@@ -86,19 +86,20 @@ internal object FairScanDocumentSegmenter : Closeable {
         }
 
         val probability = Mat(INPUT_SIZE, INPUT_SIZE, CvType.CV_32FC1)
-        val probabilityValues = FloatArray(INPUT_SIZE * INPUT_SIZE)
-        for (y in 0 until INPUT_SIZE) {
-            for (x in 0 until INPUT_SIZE) {
-                val logit = output[0][y][x][0]
-                // The exported network emits logits; sigmoid makes a probability map.
-                probabilityValues[y * INPUT_SIZE + x] =
-                    (1.0 / (1.0 + kotlin.math.exp(-logit.toDouble()))).toFloat()
-            }
-        }
-        probability.put(0, 0, probabilityValues)
         try {
+            val probabilityValues = FloatArray(INPUT_SIZE * INPUT_SIZE)
+            for (y in 0 until INPUT_SIZE) {
+                for (x in 0 until INPUT_SIZE) {
+                    val logit = output[0][y][x][0]
+                    // The exported network emits logits; sigmoid makes a probability map.
+                    probabilityValues[y * INPUT_SIZE + x] =
+                        (1.0 / (1.0 + kotlin.math.exp(-logit.toDouble()))).toFloat()
+                }
+            }
+            probability.put(0, 0, probabilityValues)
             return bestQuadrilateral(probability, bitmap.width, bitmap.height)
         } finally {
+            // OpenCV Mats own native memory; release even if conversion or inference post-processing fails.
             probability.release()
         }
     }
