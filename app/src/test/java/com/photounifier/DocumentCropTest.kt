@@ -6,6 +6,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DocumentCropTest {
+
+    @Test fun fallbackRejectsCandidateWithUnsupportedFourthSide() {
+        assertFalse(DocumentCrop.hasReliableSideSupport(doubleArrayOf(0.72, 0.68, 0.61, 0.01)))
+    }
+
+    @Test fun fallbackAcceptsCandidateWithEvidenceOnAllFourSides() {
+        assertTrue(DocumentCrop.hasReliableSideSupport(doubleArrayOf(0.35, 0.42, 0.38, 0.31)))
+    }
+
+    @Test fun fallbackRejectsInsufficientOverallEdgeEvidence() {
+        assertFalse(DocumentCrop.hasReliableSideSupport(doubleArrayOf(0.10, 0.14, 0.12, 0.11)))
+    }
+
+    @Test fun fallbackRejectsInvalidSideSupportValues() {
+        assertFalse(DocumentCrop.hasReliableSideSupport(doubleArrayOf(0.4, 0.4, Double.NaN, 0.4)))
+    }
+
     @Test fun acceptsOrderedRectangle() {
         assertTrue(DocumentCrop.isValid(
             listOf(CropPoint(10f, 10f), CropPoint(90f, 10f), CropPoint(90f, 90f), CropPoint(10f, 90f)),

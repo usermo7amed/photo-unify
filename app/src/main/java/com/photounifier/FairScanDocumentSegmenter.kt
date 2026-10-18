@@ -144,7 +144,23 @@ internal object FairScanDocumentSegmenter : Closeable {
                                             analysisPoints, INPUT_SIZE, INPUT_SIZE
                                         )
                                     ) continue
-                                    val confidence = combinedConfidence(smooth, ordered)
+                                    val boundaryBySide = boundaryConfidenceBySide(smooth, ordered)
+                                    val weakestBoundary = boundaryBySide.minOrNull() ?: 0.0
+                                    val boundaryConfidence = boundaryBySide.average()
+                                    val interiorConfidence = meanInteriorProbability(smooth, ordered)
+                                    val confidence = combinedConfidence(
+                                        boundaryConfidence, interiorConfidence
+                                    )
+
+                                    // Reject candidates that only have a convincing outline:
+                                    // each side must be supported, and the paper interior must
+                                    // independently look like document according to the mask.
+                                    if (interiorConfidence < MIN_INTERIOR_CONFIDENCE ||
+                                        boundaryConfidence < MIN_BOUNDARY_CONFIDENCE ||
+                                        weakestBoundary < MIN_SIDE_CONFIDENCE ||
+                                        confidence < MIN_COMBINED_CONFIDENCE
+                                    ) continue
+
                                     val score = fraction * confidence
                                     if (score > bestScore) {
                                         bestScore = score
@@ -183,32 +199,46 @@ internal object FairScanDocumentSegmenter : Closeable {
      * the page interior. Boundary-only scoring can favor a background frame or
      * shadow that happens to form a convincing quadrilateral.
      */
-    private fun combinedConfidence(probability: Mat, corners: Array<Point>): Double {
-        val boundaryConfidence = meanBoundaryProbability(probability, corners)
-        val interiorConfidence = meanInteriorProbability(probability, corners)
-        if (boundaryConfidence <= 0.0 || interiorConfidence <= 0.0) return 0.0
+    private const val MIN_INTERIOR_CONFIDENCE = 0.60
+    private const val MIN_BOUNDARY_CONFIDENCE = 0.45
+    private const val MIN_SIDE_CONFIDENCE = 0.28
+    private const val MIN_COMBINED_CONFIDENCE = 0.54
 
-        // The interior is the stronger semantic signal; retain boundary evidence
-        // to reject candidates whose corners drift away from the predicted edge.
+    private fun combinedConfidence(
+        boundaryConfidence: Double,
+        interiorConfidence: Double
+    ): Double {
+        if (!boundaryConfidence.isFinite() || !interiorConfidence.isFinite() ||
+            boundaryConfidence <= 0.0 || interiorConfidence <= 0.0
+        ) return 0.0
+
+        // Interior segmentation is the primary semantic signal; boundary evidence
+        // verifies that the proposed corners agree with the model's predicted edge.
         return (0.55 * interiorConfidence + 0.45 * boundaryConfidence).coerceIn(0.0, 1.0)
     }
 
-    private fun meanBoundaryProbability(probability: Mat, corners: Array<Point>): Double {
-        var sum = 0.0
-        var count = 0
-        for (side in corners.indices) {
+    private fun boundaryConfidenceBySide(
+        probability: Mat,
+        corners: Array<Point>
+    ): DoubleArray {
+        return DoubleArray(corners.size) { side ->
             val a = corners[side]
             val b = corners[(side + 1) % corners.size]
             val steps = max(8, (kotlin.math.hypot(b.x - a.x, b.y - a.y) / 4.0).roundToInt())
+            var sum = 0.0
+            var count = 0
             for (i in 0..steps) {
                 val t = i.toDouble() / steps
                 val x = (a.x + (b.x - a.x) * t).roundToInt().coerceIn(0, probability.cols() - 1)
                 val y = (a.y + (b.y - a.y) * t).roundToInt().coerceIn(0, probability.rows() - 1)
-                sum += probability.get(y, x)[0]
-                count++
+                val sample = probability.get(y, x)
+                if (sample != null && sample.isNotEmpty() && sample[0].isFinite()) {
+                    sum += sample[0]
+                    count++
+                }
             }
+            if (count == 0) 0.0 else sum / count
         }
-        return if (count == 0) 0.0 else sum / count
     }
 
     private fun meanInteriorProbability(probability: Mat, corners: Array<Point>): Double {
