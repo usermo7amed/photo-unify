@@ -169,7 +169,6 @@ object DocumentCrop {
                                     ordered, analysis.cols(), analysis.rows(), supportPixels
                                 )
                                 val averageSideSupport = sideSupports.average()
-                                val weakestSideSupport = sideSupports.minOrNull() ?: 0.0
                                 // Do not accept a quadrilateral whose apparent sides are
                                 // supported only on one or two edges. Keep a softer threshold
                                 // for broken edges caused by shadows or partial occlusion.
