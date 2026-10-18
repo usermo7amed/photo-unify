@@ -173,9 +173,7 @@ object DocumentCrop {
                                 // Do not accept a quadrilateral whose apparent sides are
                                 // supported only on one or two edges. Keep a softer threshold
                                 // for broken edges caused by shadows or partial occlusion.
-                                if (averageSideSupport < 0.12 ||
-                                    (weakestSideSupport < 0.015 && averageSideSupport < 0.24)
-                                ) continue
+                                if (!hasReliableSideSupport(sideSupports)) continue
 
                                 val cosine = cornerCosine(ordered)
                                 val centerX = ordered.map { it.x }.average()
@@ -232,6 +230,21 @@ object DocumentCrop {
      * the image frame/table rather than the paper. Such cases should fall back to
      * manual corner adjustment instead of being silently accepted as a page.
      */
+    /**
+     * The fallback is intentionally conservative: a strong average must not hide
+     * a completely unsupported side, which is a common signature of background
+     * rectangles and shadows rather than a real page.
+     */
+    internal fun hasReliableSideSupport(sideSupports: DoubleArray): Boolean {
+        if (sideSupports.size != 4 || sideSupports.any { !it.isFinite() || it !in 0.0..1.0 }) {
+            return false
+        }
+        val average = sideSupports.average()
+        val weakest = sideSupports.minOrNull() ?: return false
+        return average >= 0.18 && weakest >= 0.035 &&
+            !(average < 0.26 && weakest < 0.08)
+    }
+
     internal fun isPlausibleDetection(
         points: List<CropPoint>,
         width: Int,
