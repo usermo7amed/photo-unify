@@ -98,25 +98,25 @@ internal fun BeforeAfterPreview(
     enhanced: android.graphics.Bitmap?,
     modifier: Modifier = Modifier
 ) {
-    var reveal by remember(source, enhanced) { mutableStateOf(0.5f) }
+    var revealTarget by remember(source, enhanced) { mutableStateOf(0.5f) }
+    var isHoldingOriginal by remember { mutableStateOf(false) }
     var zoom by remember(source, enhanced) { mutableStateOf(1f) }
     var pan by remember(source, enhanced) { mutableStateOf(Offset.Zero) }
+
     val safeSource = source?.takeUnless { it.isRecycled }
     val safeEnhanced = enhanced?.takeUnless { it.isRecycled }
     val dividerColor = MaterialTheme.colorScheme.primary
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("قبل", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Text("بعد", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        }
-        Box(
-            modifier = Modifier.fillMaxWidth().height(300.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF16191D))
+
+    // If holding original, temporarily force reveal to 1f (100% original)
+    val effectiveReveal = if (isHoldingOriginal) 1f else revealTarget
+
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(310.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0xFF14171C))
                 .pointerInput(safeSource, safeEnhanced) {
                     detectTransformGestures { _, panChange, zoomChange, _ ->
                         zoom = (zoom * zoomChange).coerceIn(1f, 5f)
@@ -124,8 +124,13 @@ internal fun BeforeAfterPreview(
                     }
                 }
         ) {
+            val componentWidth = constraints.maxWidth.toFloat()
+            val componentHeight = constraints.maxHeight.toFloat()
+
             if (safeSource != null) {
-                Canvas(Modifier.fillMaxSize()) {
+                Canvas(
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     val after = safeEnhanced ?: safeSource
                     val fit = minOf(
                         size.width / safeSource.width.toFloat(),
@@ -145,54 +150,247 @@ internal fun BeforeAfterPreview(
                             filterQuality = FilterQuality.High
                         )
                     }
+
+                    // Draw after (enhanced) image first
                     drawFitted(after)
-                    // In RTL, "قبل" is on the right, so reveal the original from the right edge.
-                    clipRect(left = size.width * (1f - reveal), top = 0f, right = size.width, bottom = size.height) {
-                        drawFitted(safeSource)
+
+                    // In RTL, "قبل" (Original) is on the right side, so reveal the original from the right edge
+                    if (effectiveReveal > 0f) {
+                        clipRect(
+                            left = size.width * (1f - effectiveReveal),
+                            top = 0f,
+                            right = size.width,
+                            bottom = size.height
+                        ) {
+                            drawFitted(safeSource)
+                        }
                     }
-                    val dividerX = size.width * (1f - reveal)
-                    drawLine(Color.White, Offset(dividerX, 0f), Offset(dividerX, size.height), strokeWidth = 4f)
-                    drawCircle(Color.White, radius = 16f, center = Offset(dividerX, size.height / 2f))
-                    drawCircle(dividerColor, radius = 11f, center = Offset(dividerX, size.height / 2f))
+
+                    // Draw separator line and handle unless viewing 100% of one side
+                    if (!isHoldingOriginal && effectiveReveal in 0.005f..0.995f) {
+                        val dividerX = size.width * (1f - effectiveReveal)
+                        // Glowing divider line
+                        drawLine(
+                            Color.White.copy(alpha = 0.95f),
+                            Offset(dividerX, 0f),
+                            Offset(dividerX, size.height),
+                            strokeWidth = 3.dp.toPx()
+                        )
+                        // Outer circular badge
+                        drawCircle(
+                            Color.White,
+                            radius = 18.dp.toPx(),
+                            center = Offset(dividerX, size.height / 2f)
+                        )
+                        // Inner colored pill with accent
+                        drawCircle(
+                            dividerColor,
+                            radius = 14.dp.toPx(),
+                            center = Offset(dividerX, size.height / 2f)
+                        )
+                        // Center dot
+                        drawCircle(
+                            Color.White,
+                            radius = 4.dp.toPx(),
+                            center = Offset(dividerX, size.height / 2f)
+                        )
+                    }
                 }
-                if (safeEnhanced == null) {
+
+                // Interactive transparent draggable overlay directly over the divider
+                if (!isHoldingOriginal && componentWidth > 0) {
+                    val dividerXOffset = (componentWidth * (1f - effectiveReveal)) - 28.dp.value
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset(dividerXOffset.roundToInt(), 0) }
+                            .fillMaxHeight()
+                            .width(56.dp)
+                            .pointerInput(componentWidth) {
+                                detectHorizontalDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    // In RTL, dragging rightwards decreases original reveal, leftwards increases it
+                                    val deltaFraction = dragAmount / componentWidth
+                                    revealTarget = (revealTarget - deltaFraction).coerceIn(0.01f, 0.99f)
+                                }
+                            }
+                    )
+                }
+
+                // Floating glass badges for "قبل" and "بعد" inside the image preview
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                        .align(Alignment.TopCenter),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Surface(
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color.Black.copy(alpha = 0.55f)
                     ) {
-                        Text("بانتظار النتيجة", modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = "بعد (المحسّنة)",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color.Black.copy(alpha = 0.55f)
+                    ) {
+                        Text(
+                            text = "قبل (الأصل)",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Bottom floating pill: status or hold hint
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                        .align(Alignment.BottomCenter),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (safeEnhanced == null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "بانتظار النتيجة...",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    } else {
+                        // Quick hold-to-compare pill
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isHoldingOriginal) dividerColor else Color.Black.copy(alpha = 0.60f),
+                            modifier = Modifier.pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val anyDown = event.changes.any { it.pressed }
+                                        isHoldingOriginal = anyDown
+                                    }
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = if (isHoldingOriginal) "معاينة الأصل الآن" else "المس مطولاً لرؤية الأصل",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    if (zoom > 1f) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.Black.copy(alpha = 0.60f)
+                        ) {
+                            Text(
+                                text = "تكبير ${(zoom * 100).roundToInt()}%",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 }
             } else {
-                Text("اختار صورة لعرض المقارنة", modifier = Modifier.align(Alignment.Center),
-                    color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "اختار صورة لعرض المقارنة",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
+
+        // Quick presets row: 100% Original, 50/50 Split, 100% Enhanced
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = { revealTarget = 1f },
+                enabled = safeSource != null && safeEnhanced != null,
+                modifier = Modifier.weight(1f).height(38.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(
+                    "الأصل فقط",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (revealTarget >= 0.95f) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+            OutlinedButton(
+                onClick = { revealTarget = 0.5f },
+                enabled = safeSource != null && safeEnhanced != null,
+                modifier = Modifier.weight(1f).height(38.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(
+                    "مقارنة ٥٠/٥٠",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (abs(revealTarget - 0.5f) < 0.05f) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+            OutlinedButton(
+                onClick = { revealTarget = 0f },
+                enabled = safeSource != null && safeEnhanced != null,
+                modifier = Modifier.weight(1f).height(38.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(
+                    "النتيجة فقط",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (revealTarget <= 0.05f) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+        }
+
+        // Slider for fine precision
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "حرّك المؤشر لمقارنة التفاصيل",
+                "اسحب الفاصل على الصورة مباشرة أو عبر المؤشر",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "${(reveal * 100).roundToInt()}٪ من الأصل",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+                "${(revealTarget * 100).roundToInt()}٪ من الأصل",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = dividerColor
             )
         }
         Slider(
-            value = reveal,
-            onValueChange = { reveal = it },
-            valueRange = 0.02f..0.98f,
+            value = revealTarget,
+            onValueChange = { revealTarget = it },
+            valueRange = 0.01f..0.99f,
             enabled = safeSource != null && safeEnhanced != null
         )
+
+        // Zoom controls
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -201,19 +399,20 @@ internal fun BeforeAfterPreview(
             OutlinedButton(
                 onClick = { zoom = (zoom / 1.25f).coerceAtLeast(1f); if (zoom == 1f) pan = Offset.Zero },
                 enabled = zoom > 1f,
-                modifier = Modifier.weight(1f)
-            ) { Text("−") }
-            Text("${(zoom * 100).roundToInt()}%", modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.labelLarge)
+                modifier = Modifier.weight(1f).height(40.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) { Text("− تصغير") }
             OutlinedButton(
                 onClick = { zoom = (zoom * 1.25f).coerceAtMost(5f) },
                 enabled = safeSource != null,
-                modifier = Modifier.weight(1f)
-            ) { Text("+") }
+                modifier = Modifier.weight(1f).height(40.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) { Text("+ تكبير") }
             OutlinedButton(
-                onClick = { zoom = 1f; pan = Offset.Zero; reveal = 0.5f },
-                modifier = Modifier.weight(1.4f)
-            ) { Text("إعادة") }
+                onClick = { zoom = 1f; pan = Offset.Zero; revealTarget = 0.5f },
+                modifier = Modifier.weight(1.2f).height(40.dp),
+                shape = RoundedCornerShape(10.dp)
+            ) { Text("إعادة ضبط") }
         }
     }
 }
