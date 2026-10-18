@@ -167,25 +167,32 @@ object Processor {
         }
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
             ?: throw IllegalStateException("تعذر إنشاء ملف الصورة")
-        val written = try {
-            resolver.openOutputStream(uri)?.use {
+        try {
+            val written = resolver.openOutputStream(uri)?.use {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)
             } ?: false
+            if (!written) {
+                throw IllegalStateException("تعذر حفظ الصورة")
+            }
+
+            val publishValues = ContentValues().apply {
+                put(MediaStore.Images.Media.IS_PENDING, 0)
+            }
+            if (resolver.update(uri, publishValues, null, null) <= 0) {
+                throw IllegalStateException("تعذر إتاحة الصورة بعد الحفظ")
+            }
+            return uri
         } catch (error: Exception) {
+            // A failed publish/update must not leave an invisible IS_PENDING item behind.
             runCatching { resolver.delete(uri, null, null) }
+            if (error is IllegalStateException &&
+                (error.message == "تعذر حفظ الصورة" ||
+                    error.message == "تعذر إتاحة الصورة بعد الحفظ")
+            ) {
+                throw error
+            }
             throw IllegalStateException("تعذر حفظ الصورة", error)
         }
-        if (!written) {
-            resolver.delete(uri, null, null)
-            throw IllegalStateException("تعذر حفظ الصورة")
-        }
-        values.clear()
-        values.put(MediaStore.Images.Media.IS_PENDING, 0)
-        if (resolver.update(uri, values, null, null) <= 0) {
-            resolver.delete(uri, null, null)
-            throw IllegalStateException("تعذر إتاحة الصورة بعد الحفظ")
-        }
-        return uri
     }
 
     // ----------------------------------------------------------- entry point
