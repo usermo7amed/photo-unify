@@ -3,10 +3,34 @@ import unittest
 import cv2
 import numpy as np
 
-from tools.prototype.enhance import enhance, rectify_page, remove_paper_shadows
+from tools.prototype.enhance import (
+    _apply_clahe,
+    enhance,
+    local_tone_map,
+    rectify_page,
+    remove_paper_shadows,
+)
 
 
 class EnhancementTests(unittest.TestCase):
+    def test_local_tone_map_preserves_highlight_headroom_and_gradation(self):
+        gradient = np.tile(np.linspace(20, 250, 512, dtype=np.uint8), (80, 1))
+        config = {
+            "target": 0.50, "alpha": 0.50,
+            "gain_min": 0.62, "gain_max": 2.25,
+        }
+        corrected = local_tone_map(gradient, config)
+        self.assertEqual(corrected.shape, gradient.shape)
+        self.assertLessEqual(int(corrected.max()), 250)
+        self.assertGreater(np.unique(corrected).size, 150)
+
+    def test_clahe_blending_retains_input_tonal_detail(self):
+        gradient = np.tile(np.linspace(18, 242, 512, dtype=np.uint8), (80, 1))
+        corrected = _apply_clahe(gradient, 2.0)
+        self.assertEqual(corrected.shape, gradient.shape)
+        self.assertEqual(corrected.dtype, np.uint8)
+        self.assertGreater(np.unique(corrected).size, 150)
+
     def test_paper_shadow_correction_reduces_background_variation(self):
         height, width = 320, 400
         background = np.tile(np.linspace(135, 225, width, dtype=np.float32), (height, 1))
