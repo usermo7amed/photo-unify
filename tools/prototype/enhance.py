@@ -44,6 +44,13 @@ def gray_world(rgb):
 
 
 def local_tone_map(lightness, config):
+    """Apply restrained local exposure correction while protecting tonal detail.
+
+    The illumination field is estimated at low resolution as before. Instead of
+    applying the full gain everywhere, blend toward the corrected result more
+    strongly only where the estimated exposure differs meaningfully from target.
+    This avoids stacking an aggressive global lift on top of CLAHE.
+    """
     h, w = lightness.shape
     normalized = lightness.astype(np.float32) / 255.0
     small = cv2.resize(normalized, (max(w // 8, 1), max(h // 8, 1)), interpolation=cv2.INTER_AREA)
@@ -52,7 +59,18 @@ def local_tone_map(lightness, config):
     illumination = cv2.resize(illumination, (w, h), interpolation=cv2.INTER_LINEAR)
     gain = np.power(config["target"] / (illumination + 1e-3), config["alpha"])
     gain = np.clip(gain, config["gain_min"], config["gain_max"])
-    return (np.clip(normalized * gain, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
+    corrected = np.clip(normalized * gain, 0.0, 1.0)
+
+    # Small exposure deviations get a light touch; larger deviations get more
+    # correction. Reduce correction in near-black and near-white regions where
+    # clipping would destroy recoverable tonal separation.
+    deviation = np.abs(np.log((illumination + 1e-3) / config["target"]))
+    amount = np.clip(0.22 + deviation * 0.42, 0.22, 0.58)
+    highlight_protection = np.clip((0.98 - normalized) / 0.16, 0.0, 1.0)
+    shadow_protection = np.clip(normalized / 0.10, 0.0, 1.0)
+    amount *= np.minimum(highlight_protection, shadow_protection)
+    result = normalized + amount * (corrected - normalized)
+    return (np.clip(result, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
 
 
 def remove_paper_shadows(lightness):
@@ -136,7 +154,12 @@ def rectify_page(bgr):
 
 
 def _apply_clahe(lightness, clip_limit):
-    return cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8)).apply(lightness)
+    """Use CLAHE conservatively, blending it with the input to limit artifacts."""
+    enhanced = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8)).apply(lightness)
+    # CLAHE remains the existing local-contrast stage; blending prevents it from
+    # undoing the detail-preserving exposure restraint above.
+    amount = float(np.clip((clip_limit - 1.0) * 0.22 + 0.18, 0.18, 0.42))
+    return cv2.addWeighted(lightness, 1.0 - amount, enhanced, amount, 0)
 
 
 def _sharpen(rgb, strength):
@@ -172,7 +195,10 @@ def enhance(bgr, mode="auto"):
     rgb = cv2.cvtColor(cv2.merge([lightness, a, b]), cv2.COLOR_LAB2RGB)
     hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
     h, s, v = cv2.split(hsv)
-    s = cv2.convertScaleAbs(s, alpha=config["saturation"])
+    # Avoid uint8 absolute-value conversion and cap saturation boosts so
+    # bright or already vivid colours are less likely to clip.
+    saturation_gain = float(np.clip(config["saturation"], 1.0, 1.08))
+    s = np.clip(s.astype(np.float32) * saturation_gain, 0.0, 255.0).astype(np.uint8)
     rgb = cv2.cvtColor(cv2.merge([h, s, v]), cv2.COLOR_HSV2RGB)
     return cv2.cvtColor(_sharpen(rgb, config["sharp"]), cv2.COLOR_RGB2BGR)
 
