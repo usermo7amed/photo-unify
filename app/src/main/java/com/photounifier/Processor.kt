@@ -439,6 +439,16 @@ object Processor {
         val gray = pool.mat()
         Imgproc.cvtColor(original, gray, Imgproc.COLOR_RGB2GRAY)
         val meanLuminance = Core.mean(gray).`val`[0] / 255.0
+        // Measure shadow and highlight prevalence as well as the mean. A single
+        // mean can hide a bright sky plus dark foreground, so avoid aggressive
+        // global enhancement when highlights are already close to clipping.
+        val darkMask = pool.mat()
+        Core.compare(gray, Scalar(38.0), darkMask, Core.CMP_LE)
+        val brightMask = pool.mat()
+        Core.compare(gray, Scalar(242.0), brightMask, Core.CMP_GE)
+        val pixelCount = gray.total().coerceAtLeast(1.0)
+        val darkFraction = Core.countNonZero(darkMask) / pixelCount
+        val brightFraction = Core.countNonZero(brightMask) / pixelCount
 
         if (config.whiteBalance) grayWorld(pool, rgb)
         val lab = pool.mat()
@@ -454,13 +464,19 @@ object Processor {
         // Adapt the strength to the input exposure. Underexposed photos benefit from
         // stronger correction; already bright or midtone-balanced photos retain more
         // of their original pixels to avoid clipped highlights and an over-processed look.
-        val strength = when {
-            meanLuminance < 0.28 -> 0.86
-            meanLuminance < 0.42 -> 0.78
-            meanLuminance < 0.66 -> 0.66
-            meanLuminance < 0.78 -> 0.56
-            else -> 0.44
+        val exposureStrength = when {
+            meanLuminance < 0.28 -> 0.78
+            meanLuminance < 0.42 -> 0.68
+            meanLuminance < 0.66 -> 0.54
+            meanLuminance < 0.78 -> 0.42
+            else -> 0.30
         }
+        // Strong highlight clipping is irreversible; in that case lean further
+        // toward the source instead of lifting the entire image for its shadows.
+        val highlightPenalty = (brightFraction * 1.8).coerceIn(0.0, 0.28)
+        val shadowCredit = (darkFraction * 0.35).coerceIn(0.0, 0.12)
+        val strength = (exposureStrength - highlightPenalty + shadowCredit)
+            .coerceIn(0.22, 0.82)
         val blended = pool.mat()
         Core.addWeighted(enhanced, strength, original, 1.0 - strength, 0.0, blended)
         return blended
