@@ -143,7 +143,8 @@ internal object FairScanDocumentSegmenter : Closeable {
                                             analysisPoints, INPUT_SIZE, INPUT_SIZE
                                         )
                                     ) continue
-                                    val score = fraction * meanProbability(smooth, ordered)
+                                    val confidence = combinedConfidence(smooth, ordered)
+                                    val score = fraction * confidence
                                     if (score > bestScore) {
                                         bestScore = score
                                         best = analysisPoints.map {
@@ -176,8 +177,22 @@ internal object FairScanDocumentSegmenter : Closeable {
         }
     }
 
-    private fun meanProbability(probability: Mat, corners: Array<Point>): Double {
-        // Sampling the four edges checks that the predicted page mask supports its boundary.
+    /**
+     * Combines confidence along the proposed page boundary with confidence in
+     * the page interior. Boundary-only scoring can favor a background frame or
+     * shadow that happens to form a convincing quadrilateral.
+     */
+    private fun combinedConfidence(probability: Mat, corners: Array<Point>): Double {
+        val boundaryConfidence = meanBoundaryProbability(probability, corners)
+        val interiorConfidence = meanInteriorProbability(probability, corners)
+        if (boundaryConfidence <= 0.0 || interiorConfidence <= 0.0) return 0.0
+
+        // The interior is the stronger semantic signal; retain boundary evidence
+        // to reject candidates whose corners drift away from the predicted edge.
+        return (0.55 * interiorConfidence + 0.45 * boundaryConfidence).coerceIn(0.0, 1.0)
+    }
+
+    private fun meanBoundaryProbability(probability: Mat, corners: Array<Point>): Double {
         var sum = 0.0
         var count = 0
         for (side in corners.indices) {
@@ -193,6 +208,39 @@ internal object FairScanDocumentSegmenter : Closeable {
             }
         }
         return if (count == 0) 0.0 else sum / count
+    }
+
+    private fun meanInteriorProbability(probability: Mat, corners: Array<Point>): Double {
+        val polygon = MatOfPoint2f(*corners)
+        try {
+            val minX = corners.minOf { it.x }.roundToInt().coerceIn(0, probability.cols() - 1)
+            val maxX = corners.maxOf { it.x }.roundToInt().coerceIn(0, probability.cols() - 1)
+            val minY = corners.minOf { it.y }.roundToInt().coerceIn(0, probability.rows() - 1)
+            val maxY = corners.maxOf { it.y }.roundToInt().coerceIn(0, probability.rows() - 1)
+            if (maxX <= minX || maxY <= minY) return 0.0
+
+            // A bounded grid is fast and stable across resolutions; polygon testing
+            // avoids sampling outside a perspective page's rectangular bounding box.
+            val step = max(4, min(probability.cols(), probability.rows()) / 48)
+            var sum = 0.0
+            var count = 0
+            var y = minY + step / 2
+            while (y < maxY) {
+                var x = minX + step / 2
+                while (x < maxX) {
+                    val point = Point(x.toDouble(), y.toDouble())
+                    if (Imgproc.pointPolygonTest(polygon, point, false) >= 0.0) {
+                        sum += probability.get(y, x)[0]
+                        count++
+                    }
+                    x += step
+                }
+                y += step
+            }
+            return if (count == 0) 0.0 else sum / count
+        } finally {
+            polygon.release()
+        }
     }
 
     private fun orderCorners(points: Array<Point>): Array<Point> {
