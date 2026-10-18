@@ -27,6 +27,7 @@ data class PhotoUiState(
     val brightness: Int = 0,
     val contrastPercent: Int = 100,
     val cropSource: Bitmap? = null,
+    val cropPreviewSource: Bitmap? = null,
     val cropPreview: Bitmap? = null,
     val cropAppliedSource: Bitmap? = null,
     val cropApplying: Boolean = false,
@@ -75,6 +76,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             enhancedPreview = null,
             resultPreview = null,
             cropSource = null,
+            cropPreviewSource = null,
             cropPreview = null,
             cropAppliedSource = null,
             cropApplying = false,
@@ -228,25 +230,30 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     return@execute
                 }
                 val corners = detected ?: DocumentCrop.fullFrame(source.width, source.height)
+                val previewSource = createCropPreviewSource(source)
                 val preview = try {
-                    DocumentCrop.warp(source, corners, Processor.PREVIEW_MAX_SIDE)
+                    DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE)
                 } catch (error: Exception) {
+                    if (previewSource !== source && !previewSource.isRecycled) previewSource.recycle()
                     newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
                     throw error
                 }
                 if (generation != cropGeneration.get()) {
                     preview.recycle()
+                    if (previewSource !== source && !previewSource.isRecycled) previewSource.recycle()
                     newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
                     return@execute
                 }
                 update { old ->
                     if (generation != cropGeneration.get() || old.selected.firstOrNull() != uri) {
                         if (!preview.isRecycled) preview.recycle()
+                        if (previewSource !== source && !previewSource.isRecycled) previewSource.recycle()
                         newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
                         old
                     } else {
                         old.copy(
                             cropSource = source,
+                            cropPreviewSource = previewSource,
                             cropPreview = preview,
                             cropCorners = corners,
                             cropUndoStack = emptyList(),
@@ -285,7 +292,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         update { it.copy(cropCorners = candidate, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners)) }
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
-            val preview = try { DocumentCrop.warp(source, candidate, Processor.PREVIEW_MAX_SIDE) } catch (_: Exception) { return@execute }
+            val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
+            val preview = try { DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, candidate), Processor.PREVIEW_MAX_SIDE) } catch (_: Exception) { return@execute }
             if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
             update { old ->
                 if (!old.cropOpen || old.cropCorners != candidate) { preview.recycle(); old }
@@ -303,7 +311,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
-                DocumentCrop.warp(source, previous, Processor.PREVIEW_MAX_SIDE)
+                val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
+                DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, previous), Processor.PREVIEW_MAX_SIDE)
             } catch (_: Exception) { return@execute }
             if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
             update { old ->
@@ -323,7 +332,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
-                DocumentCrop.warp(source, corners, Processor.PREVIEW_MAX_SIDE)
+                val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
+                DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE)
             } catch (_: Exception) { return@execute }
             if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
             update { old ->
@@ -339,9 +349,13 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         cropGeneration.incrementAndGet()
         imagePreviewGeneration.incrementAndGet()
         val hasSelection = currentState.selected.isNotEmpty()
+        currentState.cropPreviewSource?.let { bitmap ->
+            if (bitmap !== currentState.cropSource && !bitmap.isRecycled) bitmap.recycle()
+        }
         update {
             it.copy(
                 cropSource = null,
+                cropPreviewSource = null,
                 cropPreview = null,
                 cropAppliedSource = null,
                 cropApplying = false,
@@ -368,6 +382,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         ) return
 
         val generation = cropGeneration.incrementAndGet()
+        currentState.cropPreviewSource?.let { bitmap ->
+            if (bitmap !== source && !bitmap.isRecycled) bitmap.recycle()
+        }
         update {
             it.copy(
                 cropOpen = false,
@@ -418,6 +435,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         enhancedPreview = null,
                         resultPreview = null,
                         cropSource = null,
+                        cropPreviewSource = null,
                         cropPreview = null,
                         cropAppliedSource = fullResolutionCrop,
                         cropCorners = emptyList(),
@@ -540,11 +558,30 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         currentState.enhancedPreview?.let { if (!it.isRecycled) it.recycle() }
         currentState.resultPreview?.let { if (!it.isRecycled) it.recycle() }
         currentState.cropSource?.let { if (!it.isRecycled) it.recycle() }
+        currentState.cropPreviewSource?.let { bitmap ->
+            if (bitmap !== currentState.cropSource && !bitmap.isRecycled) bitmap.recycle()
+        }
         currentState.cropPreview?.let { if (!it.isRecycled) it.recycle() }
         currentState.cropAppliedSource?.let { if (!it.isRecycled) it.recycle() }
         currentState.selectionThumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
         super.onCleared()
     }
+    private fun createCropPreviewSource(source: Bitmap): Bitmap {
+        val maxSide = Processor.PREVIEW_MAX_SIDE
+        val scale = minOf(1.0, maxSide.toDouble() / maxOf(source.width, source.height).toDouble())
+        val width = (source.width * scale).roundToInt().coerceAtLeast(2)
+        val height = (source.height * scale).roundToInt().coerceAtLeast(2)
+        return if (width == source.width && height == source.height) source
+        else Bitmap.createScaledBitmap(source, width, height, true)
+    }
+
+    private fun mapCropPoints(source: Bitmap, target: Bitmap, points: List<CropPoint>): List<CropPoint> {
+        if (source === target) return points
+        val scaleX = (target.width - 1).toFloat() / (source.width - 1).coerceAtLeast(1)
+        val scaleY = (target.height - 1).toFloat() / (source.height - 1).coerceAtLeast(1)
+        return points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
+    }
+
     private companion object {
         const val MAX_SELECTION_THUMBNAILS = 6
         const val SELECTION_THUMBNAIL_SIDE = 256
