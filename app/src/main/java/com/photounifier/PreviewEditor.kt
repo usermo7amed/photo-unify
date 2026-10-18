@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,13 +13,17 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlin.math.abs
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -198,20 +203,22 @@ internal fun BeforeAfterPreview(
                 }
 
                 // Interactive transparent draggable overlay directly over the divider
-                if (!isHoldingOriginal && componentWidth > 0) {
-                    val dividerXOffset = (componentWidth * (1f - effectiveReveal)) - 28.dp.value
+                if (!isHoldingOriginal && componentWidth > 0f) {
+                    val dividerXOffset = (componentWidth * (1f - effectiveReveal)) - 28f
                     Box(
                         modifier = Modifier
                             .offset { IntOffset(dividerXOffset.roundToInt(), 0) }
                             .fillMaxHeight()
                             .width(56.dp)
                             .pointerInput(componentWidth) {
-                                detectHorizontalDragGestures { change, dragAmount ->
-                                    change.consume()
-                                    // In RTL, dragging rightwards decreases original reveal, leftwards increases it
-                                    val deltaFraction = dragAmount / componentWidth
-                                    revealTarget = (revealTarget - deltaFraction).coerceIn(0.01f, 0.99f)
-                                }
+                                detectHorizontalDragGestures(
+                                    onHorizontalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        val deltaFraction: Float = dragAmount / componentWidth
+                                        val currentVal: Float = revealTarget
+                                        revealTarget = (currentVal - deltaFraction).coerceIn(0.01f, 0.99f)
+                                    }
+                                )
                             }
                     )
                 }

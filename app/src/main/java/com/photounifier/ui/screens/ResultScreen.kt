@@ -127,11 +127,10 @@ fun ResultScreen(
 
                     if (state.busy || state.progress > 0) {
                         LinearProgressIndicator(
-                            progress = { animatedProgress },
+                            progress = animatedProgress,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(8.dp),
-                            drawStopIndicator = {}
+                                .height(8.dp)
                         )
                     }
                 }
