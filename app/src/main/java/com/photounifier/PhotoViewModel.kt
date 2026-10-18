@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 
 data class SelectionThumbnail(val uri: Uri, val bitmap: Bitmap)
 
@@ -349,9 +350,6 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         cropGeneration.incrementAndGet()
         imagePreviewGeneration.incrementAndGet()
         val hasSelection = currentState.selected.isNotEmpty()
-        currentState.cropPreviewSource?.let { bitmap ->
-            if (bitmap !== currentState.cropSource && !bitmap.isRecycled) bitmap.recycle()
-        }
         update {
             it.copy(
                 cropSource = null,
@@ -382,9 +380,6 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         ) return
 
         val generation = cropGeneration.incrementAndGet()
-        currentState.cropPreviewSource?.let { bitmap ->
-            if (bitmap !== source && !bitmap.isRecycled) bitmap.recycle()
-        }
         update {
             it.copy(
                 cropOpen = false,
