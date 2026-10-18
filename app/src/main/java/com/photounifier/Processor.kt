@@ -446,7 +446,7 @@ object Processor {
         Core.compare(gray, Scalar(38.0), darkMask, Core.CMP_LE)
         val brightMask = pool.mat()
         Core.compare(gray, Scalar(242.0), brightMask, Core.CMP_GE)
-        val pixelCount = gray.total().coerceAtLeast(1.0)
+        val pixelCount = gray.total().toDouble().coerceAtLeast(1.0)
         val darkFraction = Core.countNonZero(darkMask) / pixelCount
         val brightFraction = Core.countNonZero(brightMask) / pixelCount
 
