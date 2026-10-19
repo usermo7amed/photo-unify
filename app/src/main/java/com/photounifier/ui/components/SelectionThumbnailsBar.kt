@@ -7,6 +7,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -34,11 +39,13 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.SelectionThumbnail
+import com.photounifier.ui.PhotoUnifierSpacing
 
 @Composable
 fun SelectionThumbnailsBar(
@@ -55,7 +62,7 @@ fun SelectionThumbnailsBar(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -63,7 +70,7 @@ fun SelectionThumbnailsBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "الصور المختارة (${selectedUris.size})",
+                text = "الصفحات",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -75,7 +82,7 @@ fun SelectionThumbnailsBar(
         }
 
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             itemsIndexed(
@@ -105,14 +112,14 @@ fun SelectionThumbnailsBar(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(MaterialTheme.shapes.medium)
                             .border(
                                 width = if (isCurrent) 2.5.dp else 1.dp,
                                 color = if (isCurrent) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(14.dp)
+                                shape = MaterialTheme.shapes.medium
                             )
-                            .clickable(enabled = enabled && selectedIndex >= 0) {
+                            .clickable(enabled = enabled && selectedIndex >= 0, role = Role.Button) {
                                 if (selectedIndex >= 0) onSelectIndex(selectedIndex)
                             }
                     ) {
@@ -147,39 +154,40 @@ fun SelectionThumbnailsBar(
                             Surface(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
-                                    .padding(4.dp),
+                                    .padding(PhotoUnifierSpacing.xxs),
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.secondary
                             ) {
-                                Text(
-                                    text = "✓",
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                                    color = MaterialTheme.colorScheme.onSecondary,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "الصفحة الحالية",
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .size(12.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondary
                                 )
                             }
                         }
                     }
 
                     // Remove badge button
-                    if (onRemoveUri != null && enabled && selectedUris.size > 1) {
+                    if (onRemoveUri != null && enabled) {
                         Surface(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
-                                .padding(2.dp)
-                                .size(20.dp)
-                                .clickable { onRemoveUri(thumbnail.uri) },
+                                .padding(1.dp),
                             shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.70f)
+                            color = Color.Black.copy(alpha = 0.76f)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "✕",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
+                            IconButton(
+                                onClick = { onRemoveUri(thumbnail.uri) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "إزالة الصورة ${selectedIndex + 1}",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color.White
                                 )
                             }
                         }
@@ -194,8 +202,8 @@ fun SelectionThumbnailsBar(
                     Surface(
                         modifier = Modifier
                             .size(76.dp)
-                            .clip(RoundedCornerShape(14.dp)),
-                        shape = RoundedCornerShape(14.dp),
+                            .clip(MaterialTheme.shapes.medium),
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -216,14 +224,14 @@ fun SelectionThumbnailsBar(
                     Surface(
                         modifier = Modifier
                             .size(76.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(MaterialTheme.shapes.medium)
                             .border(
                                 1.dp,
                                 MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                                RoundedCornerShape(14.dp)
+                                MaterialTheme.shapes.medium
                             )
-                            .clickable(enabled = enabled) { onAddMore() },
-                        shape = RoundedCornerShape(14.dp),
+                            .clickable(enabled = enabled, role = Role.Button) { onAddMore() },
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surface
                     ) {
                         Column(
@@ -231,11 +239,11 @@ fun SelectionThumbnailsBar(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = "+",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = "إضافة",
@@ -271,7 +279,7 @@ fun PreviewNavigationControls(
             modifier = Modifier
                 .weight(1f)
                 .height(44.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.small
         ) {
             Text("الصورة السابقة")
         }
@@ -280,7 +288,7 @@ fun PreviewNavigationControls(
             modifier = Modifier
                 .weight(0.9f)
                 .height(44.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.small,
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -299,7 +307,7 @@ fun PreviewNavigationControls(
             modifier = Modifier
                 .weight(1f)
                 .height(44.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.small
         ) {
             Text("الصورة التالية")
         }
