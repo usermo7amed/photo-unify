@@ -6,11 +6,21 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 
 data class SelectionThumbnail(val uri: Uri, val bitmap: Bitmap)
+
+data class ExportImage(
+    val id: String,
+    val sourceUri: Uri,
+    val file: File,
+    val displayName: String
+)
+
+enum class ExportFormat { IMAGES, PDF }
 
 data class PhotoUiState(
     val selected: List<Uri> = emptyList(),
@@ -22,6 +32,14 @@ data class PhotoUiState(
     val savedCount: Int = 0,
     val status: String = "جاهز لاختيار الصور",
     val errors: List<String> = emptyList(),
+    val processedImages: List<ExportImage> = emptyList(),
+    val selectedExportIds: Set<String> = emptySet(),
+    val exportBusy: Boolean = false,
+    val exportProgress: Int = 0,
+    val exportProgressMax: Int = 1,
+    val exportStatus: String = "جاهز للتصدير",
+    val exportErrors: List<String> = emptyList(),
+    val exportedCount: Int = 0,
     val sourcePreview: Bitmap? = null,
     val enhancedPreview: Bitmap? = null,
     val resultPreview: Bitmap? = null,
@@ -44,7 +62,9 @@ data class PhotoUiState(
 /** Owns screen state and coordinates background work; the Activity only renders state. */
 class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PhotoRepository()
+    private val exportRepository = ExportRepository()
     private val executor = Executors.newSingleThreadExecutor()
+    private val exportExecutor = Executors.newSingleThreadExecutor()
     private val previewExecutor = Executors.newSingleThreadExecutor()
     private val thumbnailExecutor = Executors.newSingleThreadExecutor()
     private val imagePreviewExecutor = Executors.newSingleThreadExecutor()
@@ -64,6 +84,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectImages(uris: List<Uri>) {
+        if (currentState.busy || currentState.exportBusy) return
+        currentState.processedImages.forEach { runCatching { it.file.delete() } }
         val normalizedUris = uris.distinct()
         previewGeneration.incrementAndGet()
         imagePreviewGeneration.incrementAndGet()
@@ -76,6 +98,14 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             progress = 0,
             savedCount = 0,
             errors = emptyList(),
+            processedImages = emptyList(),
+            selectedExportIds = emptySet(),
+            exportBusy = false,
+            exportProgress = 0,
+            exportProgressMax = 1,
+            exportStatus = "جاهز للتصدير",
+            exportErrors = emptyList(),
+            exportedCount = 0,
             status = if (normalizedUris.isEmpty()) "لم يتم اختيار صور" else "تم اختيار ${normalizedUris.size} صورة",
             sourcePreview = null,
             enhancedPreview = null,
@@ -763,7 +793,25 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val uris = snapshot.selected
         val brightness = snapshot.brightness
         val contrast = snapshot.contrastPercent
-        update { it.copy(busy = true, progress = 0, savedCount = 0, progressMax = uris.size, errors = emptyList(), status = "بدء معالجة الصور…") }
+        snapshot.processedImages.forEach { runCatching { it.file.delete() } }
+        update {
+            it.copy(
+                busy = true,
+                progress = 0,
+                savedCount = 0,
+                progressMax = uris.size,
+                errors = emptyList(),
+                processedImages = emptyList(),
+                selectedExportIds = emptySet(),
+                exportBusy = false,
+                exportProgress = 0,
+                exportProgressMax = 1,
+                exportStatus = "جاهز للتصدير",
+                exportErrors = emptyList(),
+                exportedCount = 0,
+                status = "بدء معالجة الصور…"
+            )
+        }
 
         executor.execute {
             repository.process(
@@ -785,8 +833,23 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         update { it.copy(enhancedPreview = bitmap) }
                         refreshPreview()
                     }
-                    override fun onSaved(index: Int, bitmap: Bitmap) {
-                        update { it.copy(progress = index, savedCount = it.savedCount + 1, resultPreview = bitmap, status = "تم حفظ الصورة ${it.savedCount + 1} من ${uris.size}") }
+                    override fun onSaved(index: Int, bitmap: Bitmap, file: File) {
+                        val item = ExportImage(
+                            id = file.name,
+                            sourceUri = uris[index - 1],
+                            file = file,
+                            displayName = file.name
+                        )
+                        update {
+                            it.copy(
+                                progress = index,
+                                savedCount = it.savedCount + 1,
+                                resultPreview = bitmap,
+                                processedImages = it.processedImages + item,
+                                selectedExportIds = it.selectedExportIds + item.id,
+                                status = "تم تجهيز الصورة ${it.savedCount + 1} من ${uris.size} للتصدير"
+                            )
+                        }
                         // Reapply the latest manual settings after the saved-result event.
                         refreshPreview()
                     }
@@ -810,10 +873,125 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleExportImage(id: String, selected: Boolean) {
+        if (currentState.busy || currentState.exportBusy) return
+        update { old ->
+            if (old.processedImages.none { it.id == id }) old
+            else old.copy(
+                selectedExportIds = if (selected) old.selectedExportIds + id
+                else old.selectedExportIds - id
+            )
+        }
+    }
+
+    fun selectAllExportImages(selected: Boolean) {
+        if (currentState.busy || currentState.exportBusy) return
+        update { old ->
+            old.copy(
+                selectedExportIds = if (selected) old.processedImages.map { it.id }.toSet()
+                else emptySet()
+            )
+        }
+    }
+
+    fun exportSelected(format: ExportFormat) {
+        val snapshot = currentState
+        if (snapshot.busy || snapshot.exportBusy) return
+        val items = snapshot.processedImages.filter { it.id in snapshot.selectedExportIds }
+        if (items.isEmpty()) {
+            update { it.copy(exportStatus = "اختار صورة واحدة على الأقل قبل التصدير.") }
+            return
+        }
+
+        update {
+            it.copy(
+                exportBusy = true,
+                exportProgress = 0,
+                exportProgressMax = items.size,
+                exportStatus = if (format == ExportFormat.PDF)
+                    "جاري تجهيز ملف PDF..."
+                else "جاري تصدير الصور...",
+                exportErrors = emptyList(),
+                exportedCount = 0
+            )
+        }
+
+        exportExecutor.execute {
+            val observer = object : ExportRepository.Observer {
+                override fun onProgress(completed: Int, total: Int, message: String) {
+                    update { old ->
+                        old.copy(
+                            exportProgress = completed.coerceIn(0, total.coerceAtLeast(1)),
+                            exportProgressMax = total.coerceAtLeast(1),
+                            exportStatus = message
+                        )
+                    }
+                }
+
+                override fun onError(message: String) {
+                    update { old ->
+                        old.copy(
+                            exportErrors = old.exportErrors + message,
+                            exportStatus = message
+                        )
+                    }
+                }
+
+                override fun onFinished(success: Int, failed: Int, error: String?) {
+                    update { old ->
+                        val finalStatus = when {
+                            failed == 0 && format == ExportFormat.PDF ->
+                                "تم تصدير ملف PDF بنجاح إلى Documents/PhotoUnifier"
+                            failed == 0 ->
+                                "تم تصدير $success صورة بنجاح إلى Pictures/PhotoUnifier"
+                            success > 0 ->
+                                "اكتمل التصدير جزئيًا: نجاح $success، فشل $failed"
+                            else ->
+                                "فشل التصدير: ${error ?: "راجع تفاصيل الأخطاء أدناه"}"
+                        }
+                        old.copy(
+                            exportBusy = false,
+                            exportProgress = old.exportProgressMax,
+                            exportedCount = success,
+                            exportStatus = finalStatus,
+                            exportErrors = if (failed > 0 && old.exportErrors.isEmpty() && error != null)
+                                old.exportErrors + error else old.exportErrors
+                        )
+                    }
+                }
+            }
+
+            try {
+                when (format) {
+                    ExportFormat.IMAGES -> exportRepository.exportAsImages(
+                        getApplication<Application>().applicationContext,
+                        items,
+                        observer
+                    )
+                    ExportFormat.PDF -> exportRepository.exportAsPdf(
+                        getApplication<Application>().applicationContext,
+                        items,
+                        observer
+                    )
+                }
+            } catch (error: Exception) {
+                val message = error.message ?: error.javaClass.simpleName
+                update { old ->
+                    old.copy(
+                        exportBusy = false,
+                        exportStatus = "فشل التصدير: $message",
+                        exportErrors = old.exportErrors + message
+                    )
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         imagePreviewGeneration.incrementAndGet()
         previewGeneration.incrementAndGet()
         executor.shutdownNow()
+        exportExecutor.shutdownNow()
         previewExecutor.shutdownNow()
         thumbnailExecutor.shutdownNow()
         imagePreviewExecutor.shutdownNow()
@@ -826,6 +1004,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
         currentState.cropPreview?.let { if (!it.isRecycled) it.recycle() }
         currentState.selectionThumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
+        currentState.processedImages.forEach { runCatching { it.file.delete() } }
         super.onCleared()
     }
     private fun createCropPreviewSource(source: Bitmap): Bitmap {

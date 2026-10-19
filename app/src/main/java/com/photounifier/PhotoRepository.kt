@@ -7,6 +7,7 @@ import android.os.Debug
 import android.os.SystemClock
 import android.os.Trace
 import android.util.Log
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,7 +18,7 @@ class PhotoRepository {
         fun onSource(index: Int, total: Int, bitmap: Bitmap)
         fun onClassification(index: Int, total: Int, kind: ImageKind)
         fun onEnhanced(bitmap: Bitmap)
-        fun onSaved(index: Int, bitmap: Bitmap)
+        fun onSaved(index: Int, bitmap: Bitmap, file: File)
         fun onError(index: Int, total: Int, uri: Uri, message: String)
         fun onFinished(success: Int, failed: Int, error: String?)
     }
@@ -43,6 +44,7 @@ class PhotoRepository {
                 var source: Bitmap? = null
                 var enhanced: Bitmap? = null
                 var output: Bitmap? = null
+                var temporaryFile: File? = null
                 try {
                     val loadStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.decode")
@@ -135,8 +137,11 @@ class PhotoRepository {
                     val saveStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.save")
                     try {
-                        Processor.save(context, output ?: throw IllegalStateException("تعذر تجهيز الصورة للحفظ"),
-                            "PU_%s_%03d.jpg".format(Locale.US, stamp, index + 1))
+                        temporaryFile = Processor.saveTemporary(
+                            context,
+                            output ?: throw IllegalStateException("تعذر تجهيز الصورة للحفظ"),
+                            "PU_%s_%03d.jpg".format(Locale.US, stamp, index + 1)
+                        )
                     } finally {
                         Trace.endSection()
                         saveMs = elapsedMs(saveStarted)
@@ -145,8 +150,13 @@ class PhotoRepository {
                     val savedPreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.saved")
                     try {
-                        observer.onSaved(index + 1, Processor.createPreview(output
-                            ?: throw IllegalStateException("تعذر تجهيز معاينة الصورة المحفوظة")))
+                        observer.onSaved(
+                            index + 1,
+                            Processor.createPreview(output
+                                ?: throw IllegalStateException("تعذر تجهيز معاينة الصورة المحفوظة")),
+                            temporaryFile ?: throw IllegalStateException("ملف الصورة المؤقت غير متاح")
+                        )
+                        temporaryFile = null
                     } finally {
                         Trace.endSection()
                         savedPreviewMs = elapsedMs(savedPreviewStarted)
@@ -175,6 +185,7 @@ class PhotoRepository {
                     source?.let { if (!it.isRecycled) it.recycle() }
                     enhanced?.let { if (!it.isRecycled) it.recycle() }
                     output?.let { if (!it.isRecycled) it.recycle() }
+                    temporaryFile?.let { runCatching { it.delete() } }
                 }
             }
         } finally {

@@ -18,6 +18,7 @@ import org.opencv.core.Point
 import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.max
@@ -155,6 +156,42 @@ object Processor {
         )
         if (rotated !== bitmap) bitmap.recycle()
         return rotated
+    }
+
+    /**
+     * Writes a processed image to app-private storage until the user chooses what to export.
+     * The temporary file is not visible in the public gallery before an explicit export.
+     */
+    fun saveTemporary(context: Context, bitmap: Bitmap, displayName: String): File {
+        val directory = File(context.filesDir, "pending_exports")
+        if (!directory.isDirectory && !directory.mkdirs()) {
+            throw IllegalStateException("تعذر تجهيز مجلد التصدير")
+        }
+
+        val target = File(directory, displayName)
+        val temporary = File(directory, "$displayName.part")
+        try {
+            temporary.outputStream().use { output ->
+                if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+                    throw IllegalStateException("تعذر تجهيز الصورة للتصدير")
+                }
+                output.flush()
+            }
+            if (target.exists() && !target.delete()) {
+                throw IllegalStateException("تعذر استبدال ملف التصدير المؤقت")
+            }
+            if (!temporary.renameTo(target)) {
+                throw IllegalStateException("تعذر إنهاء تجهيز الصورة للتصدير")
+            }
+            return target
+        } catch (error: Exception) {
+            temporary.delete()
+            target.delete()
+            if (error is IllegalStateException && error.message == "تعذر تجهيز الصورة للتصدير") {
+                throw error
+            }
+            throw IllegalStateException("تعذر تجهيز الصورة للتصدير", error)
+        }
     }
 
     fun save(context: Context, bitmap: Bitmap, displayName: String): Uri {
