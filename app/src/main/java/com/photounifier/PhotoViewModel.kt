@@ -219,76 +219,170 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun openCropEditor(openCvReady: Boolean) {
         val snapshot = currentState
-        val uri = snapshot.selected.firstOrNull() ?: return
+        val index = snapshot.previewIndex
+        val uri = snapshot.selected.getOrNull(index) ?: return
         if (!openCvReady) {
             update { it.copy(status = "مكتبة OpenCV مش جاهزة") }
             return
         }
         if (snapshot.cropApplying) return
-        val existingSource = snapshot.cropSource?.takeIf { !it.isRecycled }
+
+        val savedEdit = snapshot.cropEdits[uri]
         val generation = cropGeneration.incrementAndGet()
-        update { it.copy(cropApplying = true, status = "جاري تجهيز الصورة للقص...") }
+        update { old ->
+            if (old.selected.getOrNull(index) != uri) old
+            else old.copy(cropApplying = true, cropOpen = true, status = "جاري تجهيز الصفحة للقص...")
+        }
+
         executor.execute {
-            var newlyLoadedSource: Bitmap? = null
+            var source: Bitmap? = null
+            var previewSource: Bitmap? = null
+            var preview: Bitmap? = null
             try {
-                val source = existingSource ?: Processor.load(
-                    getApplication<Application>().applicationContext,
-                    uri
-                ).also { newlyLoadedSource = it }
-                if (generation != cropGeneration.get() || source.isRecycled) {
-                    newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
+                val context = getApplication<Application>().applicationContext
+                val decoded = Processor.load(context, uri)
+                val rotated = rotatePageBitmap(decoded, savedEdit?.rotationDegrees ?: 0)
+                if (rotated !== decoded && !decoded.isRecycled) decoded.recycle()
+                source = rotated
+
+                if (generation != cropGeneration.get() || rotated.isRecycled) {
+                    releaseBitmaps(listOf(source, previewSource, preview))
                     return@execute
                 }
-                val detected = try { DocumentCrop.detect(source, getApplication<Application>().applicationContext) } catch (_: Exception) { null }
-                if (generation != cropGeneration.get() || source.isRecycled) {
-                    newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
-                    return@execute
+
+                val detectedCorners = if (savedEdit?.normalizedCorners == null) {
+                    DocumentCrop.detect(rotated, context)
+                } else {
+                    null
                 }
-                val corners = detected ?: DocumentCrop.fullFrame(source.width, source.height)
-                val previewSource = createCropPreviewSource(source)
-                val preview = try {
-                    DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE)
-                } catch (error: Exception) {
-                    if (previewSource !== source && !previewSource.isRecycled) previewSource.recycle()
-                    newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
-                    throw error
-                }
+                val corners = savedEdit?.normalizedCorners?.let {
+                    mapNormalizedCropPoints(it, rotated.width, rotated.height)
+                } ?: detectedCorners ?: DocumentCrop.fullFrame(rotated.width, rotated.height)
+
+                previewSource = createCropPreviewSource(rotated)
+                preview = DocumentCrop.warp(
+                    previewSource!!,
+                    mapCropPoints(rotated, previewSource!!, corners),
+                    Processor.PREVIEW_MAX_SIDE
+                )
+
                 if (generation != cropGeneration.get()) {
-                    preview.recycle()
-                    if (previewSource !== source && !previewSource.isRecycled) previewSource.recycle()
-                    newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
+                    releaseBitmaps(listOf(source, previewSource, preview))
                     return@execute
                 }
+
+                var installed = false
                 update { old ->
-                    if (generation != cropGeneration.get() || old.selected.firstOrNull() != uri) {
-                        if (!preview.isRecycled) preview.recycle()
-                        if (previewSource !== source && !previewSource.isRecycled) previewSource.recycle()
-                        newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
+                    if (generation != cropGeneration.get() ||
+                        old.selected.getOrNull(index) != uri ||
+                        old.previewIndex != index
+                    ) {
                         old
                     } else {
+                        installed = true
                         old.copy(
-                            cropSource = source,
+                            cropSource = rotated,
                             cropPreviewSource = previewSource,
                             cropPreview = preview,
                             cropCorners = corners,
                             cropUndoStack = emptyList(),
+                            cropPageUri = uri,
+                            cropRotationDegrees = savedEdit?.rotationDegrees ?: 0,
                             cropOpen = true,
                             cropApplying = false,
-                            cropApplied = false,
-                                            status = if (detected == null)
-                                "مفيش ورقة واضحة؛ ظبط الأربع زوايا يدويًا."
-                            else
-                                "تم اكتشاف حدود الورقة. اسحب النقاط للتعديل."
+                            cropApplied = old.cropEdits.isNotEmpty(),
+                            status = when {
+                                savedEdit != null -> "تم تحميل تعديلات الصفحة ${index + 1}. تقدر تراجعها أو تدوّر الصفحة."
+                                detectedCorners == null -> "مفيش ورقة واضحة؛ ظبط الأربع زوايا يدويًا."
+                                else -> "تم اكتشاف حدود الورقة. اسحب النقاط للتعديل."
+                            }
                         )
                     }
                 }
+                if (installed) {
+                    releaseBitmaps(
+                        listOf(snapshot.cropSource, snapshot.cropPreviewSource, snapshot.cropPreview),
+                        setOfNotNull(rotated, previewSource, preview)
+                    )
+                } else {
+                    releaseBitmaps(listOf(source, previewSource, preview))
+                }
             } catch (error: Exception) {
-                newlyLoadedSource?.let { if (!it.isRecycled) it.recycle() }
+                releaseBitmaps(listOf(source, previewSource, preview))
                 update { old ->
-                    if (generation != cropGeneration.get() || old.selected.firstOrNull() != uri) old
+                    if (generation != cropGeneration.get() || old.selected.getOrNull(index) != uri) old
                     else old.copy(
                         cropApplying = false,
                         status = "تعذر تجهيز القص: ${error.message ?: error.javaClass.simpleName}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun rotateCropPage() {
+        val snapshot = currentState
+        val source = snapshot.cropSource ?: return
+        val uri = snapshot.cropPageUri ?: return
+        if (!snapshot.cropOpen || snapshot.cropApplying || snapshot.busy || source.isRecycled) return
+
+        val generation = cropGeneration.incrementAndGet()
+        val nextRotation = (snapshot.cropRotationDegrees + 90) % 360
+        update { it.copy(cropApplying = true, status = "جاري تدوير الصفحة...") }
+
+        executor.execute {
+            var rotated: Bitmap? = null
+            var previewSource: Bitmap? = null
+            var preview: Bitmap? = null
+            try {
+                rotated = rotatePageBitmap(source, 90)
+                val context = getApplication<Application>().applicationContext
+                val corners = DocumentCrop.detect(rotated, context)
+                    ?: DocumentCrop.fullFrame(rotated.width, rotated.height)
+                previewSource = createCropPreviewSource(rotated)
+                preview = DocumentCrop.warp(
+                    previewSource!!,
+                    mapCropPoints(rotated, previewSource!!, corners),
+                    Processor.PREVIEW_MAX_SIDE
+                )
+
+                if (generation != cropGeneration.get()) {
+                    releaseBitmaps(listOf(rotated, previewSource, preview), setOf(source))
+                    return@execute
+                }
+
+                var installed = false
+                update { old ->
+                    if (!old.cropOpen || old.cropPageUri != uri || old.cropSource !== source) old
+                    else {
+                        installed = true
+                        old.copy(
+                            cropSource = rotated,
+                            cropPreviewSource = previewSource,
+                            cropPreview = preview,
+                            cropCorners = corners,
+                            cropUndoStack = emptyList(),
+                            cropRotationDegrees = nextRotation,
+                            cropApplying = false,
+                            status = "اتدورت الصفحة 90°. راجع الزوايا قبل الحفظ."
+                        )
+                    }
+                }
+                if (installed) {
+                    releaseBitmaps(
+                        listOf(snapshot.cropSource, snapshot.cropPreviewSource, snapshot.cropPreview),
+                        setOfNotNull(rotated, previewSource, preview)
+                    )
+                } else {
+                    releaseBitmaps(listOf(rotated, previewSource, preview), setOf(source))
+                }
+            } catch (error: Exception) {
+                releaseBitmaps(listOf(rotated, previewSource, preview), setOf(source))
+                update { old ->
+                    if (generation != cropGeneration.get()) old
+                    else old.copy(
+                        cropApplying = false,
+                        status = "تعذر تدوير الصفحة: ${error.message ?: error.javaClass.simpleName}"
                     )
                 }
             }
