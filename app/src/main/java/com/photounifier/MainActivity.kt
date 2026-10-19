@@ -1,7 +1,11 @@
 package com.photounifier
 
+import android.content.ContentValues
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -64,6 +68,22 @@ class MainActivity : ComponentActivity() {
     private val viewModel: PhotoViewModel by viewModels()
     private var openCvReady = false
 
+    /**
+     * Android 10+ MediaStore writes do not need broad storage permissions.
+     * The external camera app writes the captured JPEG directly to this URI.
+     */
+    private fun createScanOutputUri(): Uri? {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "Scan_${System.currentTimeMillis()}.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(
+                MediaStore.Images.Media.RELATIVE_PATH,
+                "${Environment.DIRECTORY_PICTURES}/PhotoUnifier/Scans"
+            )
+        }
+        return contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         openCvReady = OpenCVLoader.initLocal()
@@ -86,6 +106,20 @@ class MainActivity : ComponentActivity() {
                             viewModel.selectImages(chosen)
                         }
                     }
+                    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+                    val cameraLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.TakePicture()
+                    ) { captured ->
+                        val outputUri = pendingCameraUri
+                        pendingCameraUri = null
+                        if (captured && outputUri != null) {
+                            // The camera writes a full-resolution JPEG to this MediaStore URI.
+                            viewModel.selectImages((state.selected + outputUri).distinct())
+                        } else if (outputUri != null) {
+                            // Remove the empty MediaStore row if the user cancels capture.
+                            runCatching { contentResolver.delete(outputUri, null, null) }
+                        }
+                    }
                     PhotoUnifierScreen(
                         state = state,
                         openCvReady = openCvReady,
@@ -94,6 +128,29 @@ class MainActivity : ComponentActivity() {
                             picker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
+                        },
+                        onCaptureDocument = {
+                            val outputUri = runCatching { createScanOutputUri() }.getOrNull()
+                            if (outputUri == null) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "تعذّر تجهيز ملف للمسح. حاول مرة أخرى.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                pendingCameraUri = outputUri
+                                try {
+                                    cameraLauncher.launch(outputUri)
+                                } catch (_: Exception) {
+                                    pendingCameraUri = null
+                                    runCatching { contentResolver.delete(outputUri, null, null) }
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "تعذّر فتح الكاميرا على هذا الجهاز.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
                         },
                         onClearSelection = { viewModel.selectImages(emptyList()) },
                         onRemoveImage = { uri ->
@@ -122,6 +179,7 @@ private fun PhotoUnifierScreen(
     state: PhotoUiState,
     openCvReady: Boolean,
     onPickImages: (Boolean) -> Unit,
+    onCaptureDocument: () -> Unit,
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
@@ -300,6 +358,7 @@ private fun PhotoUnifierScreen(
                         HomeScreen(
                             state = state,
                             onPickImages = onPickImages,
+                            onCaptureDocument = onCaptureDocument,
                             onClearSelection = onClearSelection,
                             onRemoveImage = onRemoveImage,
                             onPreviewSelect = onPreviewSelect,
