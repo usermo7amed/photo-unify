@@ -788,5 +788,6 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         const val MAX_SELECTION_THUMBNAILS = 6
         const val MAX_DYNAMIC_PAGE_THUMBNAILS = 12
         const val SELECTION_THUMBNAIL_SIDE = 256
+        const val PAGE_THUMBNAIL_SIDE = 112
     }
 }
