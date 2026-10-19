@@ -47,6 +47,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -106,7 +107,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.selectImages(chosen)
                         }
                     }
-                    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+                    var pendingCameraUri by rememberSaveable { mutableStateOf<Uri?>(null) }
                     val cameraLauncher = rememberLauncherForActivityResult(
                         ActivityResultContracts.TakePicture()
                     ) { captured ->
