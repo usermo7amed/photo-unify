@@ -220,6 +220,62 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
+    fun ensurePageThumbnail(index: Int) {
+        val snapshot = currentState
+        val uri = snapshot.selected.getOrNull(index) ?: return
+        if (index < MAX_SELECTION_THUMBNAILS) return
+        if (snapshot.selectionThumbnails.any { it.uri == uri && !it.bitmap.isRecycled }) return
+        if (!thumbnailRequests.add(uri)) return
+
+        val generation = selectionGeneration.get()
+        thumbnailExecutor.execute {
+            var loadedThumbnail: Bitmap? = null
+            var accepted = false
+            var evicted = emptyList<SelectionThumbnail>()
+            try {
+                if (selectionGeneration.get() != generation) return@execute
+                val context = getApplication<Application>().applicationContext
+                val thumbnail = Processor.loadPreview(context, uri, PAGE_THUMBNAIL_SIDE)
+                loadedThumbnail = thumbnail
+                if (selectionGeneration.get() != generation) return@execute
+
+                update { old ->
+                    if (generation != selectionGeneration.get() ||
+                        old.selected.getOrNull(index) != uri ||
+                        old.selectionThumbnails.any { it.uri == uri && !it.bitmap.isRecycled }
+                    ) {
+                        old
+                    } else {
+                        val initialUris = old.selected.take(MAX_SELECTION_THUMBNAILS).toSet()
+                        val dynamic = old.selectionThumbnails.filter {
+                            it.uri !in initialUris && it.uri != uri && !it.bitmap.isRecycled
+                        } + SelectionThumbnail(uri, thumbnail)
+                        val retainedDynamic = dynamic.takeLast(MAX_DYNAMIC_PAGE_THUMBNAILS)
+                        val retainedUris = initialUris + retainedDynamic.map { it.uri }
+                        evicted = old.selectionThumbnails.filter { it.uri !in retainedUris }
+                        accepted = true
+                        old.copy(
+                            selectionThumbnails = old.selectionThumbnails.filter {
+                                it.uri in initialUris && !it.bitmap.isRecycled
+                            } + retainedDynamic
+                        )
+                    }
+                }
+
+                if (accepted) {
+                    releaseBitmaps(evicted.map { it.bitmap })
+                    loadedThumbnail = null
+                }
+            } catch (_: Exception) {
+                // Keep the numbered placeholder when a source URI cannot be decoded.
+            } finally {
+                loadedThumbnail?.let { if (!it.isRecycled) it.recycle() }
+                synchronized(this@PhotoViewModel) { thumbnailRequests.remove(uri) }
+            }
+        }
+    }
+
     fun openCropEditor(openCvReady: Boolean) {
         val snapshot = currentState
         val index = snapshot.previewIndex
