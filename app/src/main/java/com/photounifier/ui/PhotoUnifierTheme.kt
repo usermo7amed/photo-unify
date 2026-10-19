@@ -2,10 +2,16 @@ package com.photounifier.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF0D7E73),
@@ -51,10 +57,70 @@ private val DarkColors = darkColorScheme(
     outlineVariant = Color(0xFF2B3642)
 )
 
+private val PhotoUnifierShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp)
+)
+
+private val DefaultTypography = Typography()
+private val PhotoUnifierTypography = DefaultTypography.copy(
+    headlineSmall = DefaultTypography.headlineSmall.copy(
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+        fontWeight = FontWeight.SemiBold
+    ),
+    titleLarge = DefaultTypography.titleLarge.copy(
+        fontSize = 20.sp,
+        lineHeight = 28.sp,
+        fontWeight = FontWeight.SemiBold
+    ),
+    titleMedium = DefaultTypography.titleMedium.copy(
+        fontSize = 16.sp,
+        lineHeight = 24.sp
+    ),
+    titleSmall = DefaultTypography.titleSmall.copy(
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.Medium
+    ),
+    bodyLarge = DefaultTypography.bodyLarge.copy(
+        fontSize = 16.sp,
+        lineHeight = 24.sp
+    ),
+    bodyMedium = DefaultTypography.bodyMedium.copy(
+        fontSize = 14.sp,
+        lineHeight = 20.sp
+    ),
+    bodySmall = DefaultTypography.bodySmall.copy(
+        fontSize = 12.sp,
+        lineHeight = 18.sp
+    ),
+    labelLarge = DefaultTypography.labelLarge.copy(
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.Medium
+    ),
+    labelMedium = DefaultTypography.labelMedium.copy(
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        fontWeight = FontWeight.Medium
+    ),
+    labelSmall = DefaultTypography.labelSmall.copy(
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        fontWeight = FontWeight.Medium
+    )
+)
+
 @Composable
 fun PhotoUnifierTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
+        typography = PhotoUnifierTypography,
+        shapes = PhotoUnifierShapes,
         content = content
     )
 }
