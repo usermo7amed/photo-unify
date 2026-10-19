@@ -22,7 +22,7 @@ class PhotoRepository {
         fun onFinished(success: Int, failed: Int, error: String?)
     }
 
-    fun process(context: Context, uris: List<Uri>, brightness: Int, contrastPercent: Int, observer: Observer, firstSourceOverride: Bitmap? = null) {
+    fun process(context: Context, uris: List<Uri>, brightness: Int, contrastPercent: Int, observer: Observer, firstSourceOverride: Bitmap? = null, pageEdits: Map<Uri, DocumentPageEdit> = emptyMap()) {
         val batchStarted = SystemClock.elapsedRealtimeNanos()
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         var success = 0
@@ -47,11 +47,31 @@ class PhotoRepository {
                     val loadStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.decode")
                     try {
-                        source = if (index == 0 && firstSourceOverride != null) {
+                        val pageEdit = pageEdits[uri]
+                        source = if (pageEdit == null && index == 0 && firstSourceOverride != null) {
                             firstSourceOverride.copy(Bitmap.Config.ARGB_8888, false)
                                 ?: throw IllegalStateException("تعذر تجهيز الصورة المقصوصة")
                         } else {
                             Processor.load(context, uri)
+                        }
+                        if (pageEdit != null) {
+                            var editedSource = source ?: throw IllegalStateException("تعذر تحميل الصورة")
+                            val rotated = rotatePageBitmap(editedSource, pageEdit.rotationDegrees)
+                            if (rotated !== editedSource) {
+                                if (!editedSource.isRecycled) editedSource.recycle()
+                                editedSource = rotated
+                                source = rotated
+                            }
+                            pageEdit.normalizedCorners?.let { normalized ->
+                                val corners = mapNormalizedCropPoints(normalized, editedSource.width, editedSource.height)
+                                check(DocumentCrop.isValid(corners, editedSource.width, editedSource.height)) {
+                                    "حدود القص المحفوظة للصفحة غير صالحة"
+                                }
+                                val cropped = DocumentCrop.warp(editedSource, corners)
+                                if (cropped !== editedSource) editedSource.recycle()
+                                editedSource = cropped
+                                source = cropped
+                            }
                         }
                     } finally {
                         Trace.endSection()

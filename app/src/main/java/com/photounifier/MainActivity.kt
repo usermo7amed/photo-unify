@@ -163,10 +163,17 @@ class MainActivity : ComponentActivity() {
                         onContrastChange = viewModel::setContrast,
                         onOpenCrop = { viewModel.openCropEditor(openCvReady) },
                         onMoveCropCorner = viewModel::moveCropCorner,
+                        onSelectCropPage = { index ->
+                            viewModel.showPreview(index)
+                            viewModel.openCropEditor(openCvReady)
+                        },
+                        onRotateCropPage = viewModel::rotateCropPage,
+                        onEnsureCropPageThumbnail = viewModel::ensurePageThumbnail,
                         onUndoCrop = viewModel::undoCrop,
                         onResetCrop = viewModel::resetCrop,
                         onCancelCrop = viewModel::cancelCrop,
-                        onApplyCrop = viewModel::applyCrop
+                        onApplyCrop = viewModel::applyCrop,
+                        onFinishCrop = viewModel::cancelCrop
                     )
                 }
             }
@@ -189,10 +196,14 @@ private fun PhotoUnifierScreen(
     onContrastChange: (Int) -> Unit,
     onOpenCrop: () -> Unit,
     onMoveCropCorner: (Int, Float, Float) -> Unit,
+    onSelectCropPage: (Int) -> Unit,
+    onRotateCropPage: () -> Unit,
+    onEnsureCropPageThumbnail: (Int) -> Unit,
     onUndoCrop: () -> Unit,
     onResetCrop: () -> Unit,
     onCancelCrop: () -> Unit,
-    onApplyCrop: () -> Unit
+    onApplyCrop: () -> Unit,
+    onFinishCrop: () -> Unit
 ) {
     var currentStep by remember { mutableIntStateOf(0) }
     val stepTitles = listOf("اختيار الصور", "قص الصورة", "الضبط والمعاينة", "النتيجة")
@@ -202,20 +213,6 @@ private fun PhotoUnifierScreen(
     LaunchedEffect(state.selected.isEmpty()) {
         if (state.selected.isEmpty() && currentStep > 0 && !state.busy) {
             currentStep = 0
-        }
-    }
-
-    // Manual crop is scoped to the first selected image
-    LaunchedEffect(currentStep, state.previewIndex) {
-        if (currentStep == 1 && state.previewIndex != 0 && !state.busy) {
-            onPreviewSelect(0)
-        }
-    }
-
-    // Automatically advance to adjustment step when crop is successfully applied
-    LaunchedEffect(state.cropApplied) {
-        if (state.cropApplied && currentStep == 1) {
-            currentStep = 2
         }
     }
 
@@ -259,7 +256,8 @@ private fun PhotoUnifierScreen(
                     onUndoCrop = onUndoCrop,
                     onResetCrop = onResetCrop,
                     onCancelCrop = onCancelCrop,
-                    onApplyCrop = onApplyCrop
+                    onApplyCrop = onApplyCrop,
+                    onFinishCrop = { onFinishCrop(); currentStep = 2 }
                 )
             } else if (currentStep == 1 && !state.cropOpen) {
                 Surface(
@@ -340,6 +338,7 @@ private fun PhotoUnifierScreen(
 
             // Smooth animated transition between main workflow views
             AnimatedContent(
+                modifier = if (isCropWorkspace) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth(),
                 targetState = currentStep,
                 transitionSpec = {
                     if (targetState > initialState) {
@@ -372,7 +371,11 @@ private fun PhotoUnifierScreen(
                         if (isCropWorkspace) {
                             CropWorkspaceView(
                                 state = state,
-                                onMoveCropCorner = onMoveCropCorner
+                                onMoveCropCorner = onMoveCropCorner,
+                                onSelectPage = onSelectCropPage,
+                                onRotatePage = onRotateCropPage,
+                                onEnsurePageThumbnail = onEnsureCropPageThumbnail,
+                                modifier = Modifier.fillMaxSize()
                             )
                         } else {
                             CropReviewCard(
