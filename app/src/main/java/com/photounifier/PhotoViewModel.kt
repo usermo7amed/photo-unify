@@ -34,7 +34,10 @@ data class PhotoUiState(
     val cropCorners: List<CropPoint> = emptyList(),
     val cropUndoStack: List<List<CropPoint>> = emptyList(),
     val cropOpen: Boolean = false,
-    val cropApplied: Boolean = false
+    val cropApplied: Boolean = false,
+    val cropEdits: Map<Uri, DocumentPageEdit> = emptyMap(),
+    val cropPageUri: Uri? = null,
+    val cropRotationDegrees: Int = 0
 )
 
 /** Owns screen state and coordinates background work; the Activity only renders state. */
@@ -78,12 +81,14 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             cropSource = null,
             cropPreviewSource = null,
             cropPreview = null,
-            cropAppliedSource = null,
             cropApplying = false,
             cropCorners = emptyList(),
             cropUndoStack = emptyList(),
             cropOpen = false,
-            cropApplied = false
+            cropApplied = false,
+            cropEdits = emptyMap(),
+            cropPageUri = null,
+            cropRotationDegrees = 0
         ) }
         if (normalizedUris.isEmpty()) return
 
@@ -155,16 +160,26 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         imagePreviewExecutor.execute {
             if (generation != imagePreviewGeneration.get()) return@execute
             try {
-                val croppedSource = snapshot.cropAppliedSource
-                val preview = if (index == 0 && snapshot.cropApplied &&
-                    croppedSource != null && !croppedSource.isRecycled
-                ) {
-                    Processor.createPreview(croppedSource)
-                } else {
-                    Processor.loadPreview(
-                        getApplication<Application>().applicationContext,
-                        uri
-                    )
+                var preview = Processor.loadPreview(
+                    getApplication<Application>().applicationContext,
+                    uri
+                )
+                val savedEdit = snapshot.cropEdits[uri]
+                if (savedEdit != null) {
+                    val rotated = rotatePageBitmap(preview, savedEdit.rotationDegrees)
+                    if (rotated !== preview) {
+                        preview.recycle()
+                        preview = rotated
+                    }
+                    savedEdit.normalizedCorners?.let { normalized ->
+                        val cropped = DocumentCrop.warp(
+                            preview,
+                            mapNormalizedCropPoints(normalized, preview.width, preview.height),
+                            Processor.PREVIEW_MAX_SIDE
+                        )
+                        if (cropped !== preview) preview.recycle()
+                        preview = cropped
+                    }
                 }
 
                 update { old ->
@@ -260,8 +275,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             cropOpen = true,
                             cropApplying = false,
                             cropApplied = false,
-                            cropAppliedSource = null,
-                            status = if (detected == null)
+                                            status = if (detected == null)
                                 "مفيش ورقة واضحة؛ ظبط الأربع زوايا يدويًا."
                             else
                                 "تم اكتشاف حدود الورقة. اسحب النقاط للتعديل."
@@ -354,8 +368,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 cropSource = null,
                 cropPreviewSource = null,
                 cropPreview = null,
-                cropAppliedSource = null,
-                cropApplying = false,
+                    cropApplying = false,
                 cropCorners = emptyList(),
                 cropUndoStack = emptyList(),
                 cropOpen = false,
