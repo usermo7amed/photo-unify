@@ -159,6 +159,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onPreviewSelect = viewModel::showPreview,
                         onProcess = { viewModel.process(openCvReady) },
+                        onToggleExportImage = viewModel::toggleExportImage,
+                        onSelectAllExportImages = viewModel::selectAllExportImages,
+                        onExport = viewModel::exportSelected,
                         onBrightnessChange = viewModel::setBrightness,
                         onContrastChange = viewModel::setContrast,
                         onOpenCrop = { viewModel.openCropEditor(openCvReady) },
@@ -192,6 +195,9 @@ private fun PhotoUnifierScreen(
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
     onProcess: () -> Unit,
+    onToggleExportImage: (String, Boolean) -> Unit,
+    onSelectAllExportImages: (Boolean) -> Unit,
+    onExport: (ExportFormat) -> Unit,
     onBrightnessChange: (Int) -> Unit,
     onContrastChange: (Int) -> Unit,
     onOpenCrop: () -> Unit,
@@ -404,7 +410,11 @@ private fun PhotoUnifierScreen(
                             onPickNewBatch = {
                                 onClearSelection()
                                 currentStep = 0
-                            }
+                            },
+                            onToggleExportImage = onToggleExportImage,
+                            onSelectAllExportImages = onSelectAllExportImages,
+                            onExportImages = { onExport(ExportFormat.IMAGES) },
+                            onExportPdf = { onExport(ExportFormat.PDF) }
                         )
                     }
                 }
