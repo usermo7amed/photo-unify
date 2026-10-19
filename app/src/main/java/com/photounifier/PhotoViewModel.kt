@@ -233,7 +233,17 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val generation = cropGeneration.incrementAndGet()
         update { old ->
             if (old.selected.getOrNull(index) != uri) old
-            else old.copy(cropApplying = true, cropOpen = true, status = "جاري تجهيز الصفحة للقص...")
+            else old.copy(
+                cropSource = null,
+                cropPreviewSource = null,
+                cropPreview = null,
+                cropCorners = emptyList(),
+                cropUndoStack = emptyList(),
+                cropDirty = false,
+                cropApplying = true,
+                cropOpen = true,
+                status = "جاري تجهيز الصفحة للقص..."
+            )
         }
 
         executor.execute {
