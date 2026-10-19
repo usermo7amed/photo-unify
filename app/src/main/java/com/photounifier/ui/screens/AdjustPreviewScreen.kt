@@ -72,7 +72,7 @@ private data class FilterPreset(
 private val ScannerFilterPresets = listOf(
     FilterPreset(
         id = "magic",
-        icon = "🪄",
+        icon = "AI",
         title = "تفتيح ذكي",
         subtitle = "تنقية الورق وإبراز الخط",
         brightness = 18,
@@ -80,7 +80,7 @@ private val ScannerFilterPresets = listOf(
     ),
     FilterPreset(
         id = "sharp",
-        icon = "📄",
+        icon = "DOC",
         title = "مستند ناصع",
         subtitle = "إزالة كاملة للظلال والاصفرار",
         brightness = 24,
@@ -88,7 +88,7 @@ private val ScannerFilterPresets = listOf(
     ),
     FilterPreset(
         id = "original",
-        icon = "🖼️",
+        icon = "IMG",
         title = "محايد",
         subtitle = "بدون ضبط إضافي فوق التحسين",
         brightness = 0,
@@ -96,7 +96,7 @@ private val ScannerFilterPresets = listOf(
     ),
     FilterPreset(
         id = "soft",
-        icon = "💡",
+        icon = "LIGHT",
         title = "إضاءة ناعمة",
         subtitle = "تفتيح خفيف متوازن",
         brightness = 10,
@@ -104,7 +104,7 @@ private val ScannerFilterPresets = listOf(
     ),
     FilterPreset(
         id = "bold",
-        icon = "🌑",
+        icon = "B/W",
         title = "نص بارز",
         subtitle = "للكتابة الباهتة والرصاص",
         brightness = -5,
@@ -177,7 +177,7 @@ fun AdjustPreviewScreen(
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
                     ) {
                         Text(
-                            text = "لمس مطول للأصل 👆",
+                            text = "اضغط مطولًا لمعاينة الأصل",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -243,7 +243,7 @@ fun AdjustPreviewScreen(
                     enabled = !state.busy && state.sourcePreview != null
                 ) {
                     Text(
-                        text = if (showFineTuneSliders) "إخفاء الضبط اليدوي ▴" else "🎚️ ضبط يدوي دقيق ▾",
+                        text = if (showFineTuneSliders) "إخفاء الضبط اليدوي" else "الضبط اليدوي الدقيق",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -306,7 +306,7 @@ fun AdjustPreviewScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = if (state.busy) "جاري المعالجة والحفظ..." else "حفظ المستندات الآن (${state.selected.size}) 🚀",
+                    text = if (state.busy) "جاري المعالجة والحفظ..." else "حفظ المستندات الآن (${state.selected.size})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -315,7 +315,7 @@ fun AdjustPreviewScreen(
 
         // ملاحظة حفظ هادئة
         Text(
-            text = "📁 تُحفظ النسخ الناتجة بجودتها الكاملة في Pictures/PhotoUnifier دون تعديل الأصل.",
+            text = "تُحفظ النسخ الناتجة بجودتها الكاملة في Pictures/PhotoUnifier دون تعديل الأصل.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
