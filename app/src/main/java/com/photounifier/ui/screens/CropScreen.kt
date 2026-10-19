@@ -77,7 +77,7 @@ fun CropReviewCard(
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Text(
-                    text = if (state.cropApplied) "إعادة مراجعة زوايا الورقة" else "اكتشاف الورقة وضبط الزوايا الأربع",
+                    text = if (state.cropApplied) "استكمال مراجعة الصفحات" else "اكتشاف الورقة وضبط الزوايا",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -87,7 +87,7 @@ fun CropReviewCard(
                 state.cropApplying -> "جاري تجهيز القص وتصحيح المنظور بجودة فائقة..."
                 state.selected.isEmpty() -> "اختر صورة أولاً لتتمكن من مراجعة حدودها."
                 !openCvReady -> "مكتبة معالجة الصور (OpenCV) غير جاهزة حالياً."
-                state.cropApplied -> "تم تطبيق القص على الصورة الأولى بنجاح! يمكنك المتابعة إلى خطوة الضبط."
+                state.cropApplied -> "اتحفظت تعديلات ${state.cropEdits.size} من ${state.selected.size} صفحة. تقدر تكمل مراجعة الباقي أو تتابع للتحسين."
                 else -> "هذه الخطوة اختيارية؛ إذا كانت الصورة طبيعية أو بورتريه وليست مستنداً، يمكنك تخطيها بالضغط على «التالي»."
             }
 
@@ -260,76 +260,68 @@ fun CropWorkspaceBottomBar(
     onResetCrop: () -> Unit,
     onCancelCrop: () -> Unit,
     onApplyCrop: () -> Unit,
+    onFinishCrop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = 0.30f),
-                RoundedCornerShape(22.dp)
+                RoundedCornerShape(20.dp)
             ),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
         shadowElevation = 8.dp
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = onUndoCrop,
                     enabled = state.cropUndoStack.isNotEmpty() && !state.cropApplying && !state.busy,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(10.dp)
                 ) { Text("تراجع") }
 
                 OutlinedButton(
                     onClick = onResetCrop,
                     enabled = !state.cropApplying && !state.busy,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("إعادة ضبط") }
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) { Text("إعادة ضبط الزوايا") }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedButton(
                     onClick = onCancelCrop,
                     enabled = !state.cropApplying && !state.busy,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("إلغاء") }
+                    modifier = Modifier.weight(0.9f).height(46.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) { Text("إغلاق") }
 
                 Button(
                     onClick = onApplyCrop,
                     enabled = state.cropPreview != null && !state.cropApplying && !state.busy,
-                    modifier = Modifier
-                        .weight(1.3f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.weight(1.2f).height(46.dp),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
-                        text = if (state.cropApplying) "جاري التطبيق..." else "تطبيق القص ➔",
+                        text = if (state.cropApplying) "جاري الحفظ..." else "حفظ الصفحة",
                         fontWeight = FontWeight.Bold
                     )
                 }
+
+                Button(
+                    onClick = onFinishCrop,
+                    enabled = !state.cropApplying && !state.busy,
+                    modifier = Modifier.weight(1.1f).height(46.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) { Text("إنهاء المراجعة") }
             }
         }
     }
