@@ -119,7 +119,7 @@ fun SelectionThumbnailsBar(
                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                 shape = MaterialTheme.shapes.medium
                             )
-                            .clickable(enabled = enabled && selectedIndex >= 0) {
+                            .clickable(enabled = enabled && selectedIndex >= 0, role = Role.Button) {
                                 if (selectedIndex >= 0) onSelectIndex(selectedIndex)
                             }
                     ) {
@@ -230,7 +230,7 @@ fun SelectionThumbnailsBar(
                                 MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                                 MaterialTheme.shapes.medium
                             )
-                            .clickable(enabled = enabled) { onAddMore() },
+                            .clickable(enabled = enabled, role = Role.Button) { onAddMore() },
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surface
                     ) {
