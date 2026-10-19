@@ -30,7 +30,6 @@ data class PhotoUiState(
     val cropSource: Bitmap? = null,
     val cropPreviewSource: Bitmap? = null,
     val cropPreview: Bitmap? = null,
-    val cropAppliedSource: Bitmap? = null,
     val cropApplying: Boolean = false,
     val cropCorners: List<CropPoint> = emptyList(),
     val cropUndoStack: List<List<CropPoint>> = emptyList(),
