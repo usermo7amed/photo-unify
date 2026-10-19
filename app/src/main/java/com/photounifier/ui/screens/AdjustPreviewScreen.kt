@@ -45,6 +45,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.BeforeAfterPreview
@@ -85,8 +89,8 @@ private val ScannerFilterPresets = listOf(
     FilterPreset(
         id = "original",
         icon = "🖼️",
-        title = "أصلي",
-        subtitle = "ألوان وإضاءة المستند الطبيعية",
+        title = "محايد",
+        subtitle = "بدون ضبط إضافي فوق التحسين",
         brightness = 0,
         contrast = 100
     ),
@@ -337,7 +341,10 @@ private fun AdjustHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             Text(
                 text = "الفلاتر والتحسين",
                 style = MaterialTheme.typography.titleMedium,
@@ -350,21 +357,28 @@ private fun AdjustHeader(
             )
         }
 
-        if (selectedCount > 1) {
-            PreviewNavigationControls(
-                selectedIndex = currentIndex,
-                totalCount = selectedCount,
-                onIndexChange = onIndexChange,
-                enabled = enabled
-            )
-        } else if (isCustomAdjusted) {
-            OutlinedButton(
-                onClick = onResetAdjustments,
-                enabled = enabled,
-                modifier = Modifier.height(36.dp),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("إعادة ضبط", fontSize = 12.sp)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (selectedCount > 1) {
+                PreviewNavigationControls(
+                    selectedIndex = currentIndex,
+                    totalCount = selectedCount,
+                    onIndexChange = onIndexChange,
+                    enabled = enabled
+                )
+            }
+            if (isCustomAdjusted) {
+                OutlinedButton(
+                    onClick = onResetAdjustments,
+                    enabled = enabled,
+                    modifier = Modifier.height(36.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("إعادة ضبط", fontSize = 12.sp)
+                }
             }
         }
     }
@@ -382,8 +396,16 @@ private fun FilterPresetCard(
 ) {
     Surface(
         modifier = Modifier
-            .width(108.dp)
-            .clickable(enabled = enabled, onClick = onClick),
+            .width(124.dp)
+            .clickable(
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClick = onClick
+            )
+            .semantics {
+                contentDescription = "${preset.title}. ${preset.subtitle}"
+                selected = isSelected
+            },
         shape = RoundedCornerShape(14.dp),
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surface,
@@ -428,9 +450,9 @@ private fun FilterPresetCard(
                 text = preset.subtitle,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 9.sp,
+                fontSize = 11.sp,
                 textAlign = TextAlign.Center,
-                maxLines = 1
+                maxLines = 2
             )
         }
     }
@@ -476,7 +498,10 @@ private fun FineTuneSlidersCard(
                     value = brightness.toFloat(),
                     onValueChange = { onBrightnessChange(it.roundToInt()) },
                     valueRange = -50f..50f,
-                    enabled = enabled
+                    enabled = enabled,
+                    modifier = Modifier.semantics {
+                        contentDescription = "ضبط السطوع"
+                    }
                 )
             }
 
@@ -498,7 +523,10 @@ private fun FineTuneSlidersCard(
                     value = contrastPercent.toFloat(),
                     onValueChange = { onContrastChange(it.roundToInt()) },
                     valueRange = 50f..200f,
-                    enabled = enabled
+                    enabled = enabled,
+                    modifier = Modifier.semantics {
+                        contentDescription = "ضبط التباين"
+                    }
                 )
             }
         }
