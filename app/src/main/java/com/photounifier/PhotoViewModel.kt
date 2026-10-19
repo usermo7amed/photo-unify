@@ -37,7 +37,8 @@ data class PhotoUiState(
     val cropApplied: Boolean = false,
     val cropEdits: Map<Uri, DocumentPageEdit> = emptyMap(),
     val cropPageUri: Uri? = null,
-    val cropRotationDegrees: Int = 0
+    val cropRotationDegrees: Int = 0,
+    val cropDirty: Boolean = false
 )
 
 /** Owns screen state and coordinates background work; the Activity only renders state. */
@@ -88,7 +89,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             cropApplied = false,
             cropEdits = emptyMap(),
             cropPageUri = null,
-            cropRotationDegrees = 0
+            cropRotationDegrees = 0,
+            cropDirty = false
         ) }
         if (normalizedUris.isEmpty()) return
 
@@ -318,6 +320,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             cropUndoStack = emptyList(),
                             cropPageUri = uri,
                             cropRotationDegrees = savedEdit?.rotationDegrees ?: 0,
+                            cropDirty = false,
                             cropOpen = true,
                             cropApplying = false,
                             cropApplied = old.cropEdits.isNotEmpty(),
@@ -394,6 +397,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             cropCorners = corners,
                             cropUndoStack = emptyList(),
                             cropRotationDegrees = nextRotation,
+                            cropDirty = true,
                             cropApplying = false,
                             status = "اتدورت الصفحة 90°. راجع الزوايا قبل الحفظ."
                         )
@@ -428,7 +432,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         candidate[index] = CropPoint(x.coerceIn(0f, (source.width - 1).toFloat()), y.coerceIn(0f, (source.height - 1).toFloat()))
         if (!DocumentCrop.isValid(candidate, source.width, source.height)) return
         val generation = cropGeneration.incrementAndGet()
-        update { it.copy(cropCorners = candidate, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners)) }
+        update { it.copy(cropCorners = candidate, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners), cropDirty = true) }
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
@@ -446,7 +450,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val previous = snapshot.cropUndoStack.lastOrNull() ?: return
         val source = snapshot.cropSource ?: return
         val generation = cropGeneration.incrementAndGet()
-        update { it.copy(cropCorners = previous, cropUndoStack = it.cropUndoStack.dropLast(1)) }
+        update { it.copy(cropCorners = previous, cropUndoStack = it.cropUndoStack.dropLast(1), cropDirty = true) }
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
@@ -467,7 +471,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val source = currentState.cropSource ?: return
         val corners = DocumentCrop.fullFrame(source.width, source.height)
         val generation = cropGeneration.incrementAndGet()
-        update { it.copy(cropCorners = corners, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners)) }
+        update { it.copy(cropCorners = corners, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners), cropDirty = true) }
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
@@ -501,6 +505,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 cropApplied = it.cropEdits.isNotEmpty(),
                 cropPageUri = null,
                 cropRotationDegrees = 0,
+                cropDirty = false,
                 sourcePreview = null,
                 enhancedPreview = null,
                 resultPreview = null
@@ -561,6 +566,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         cropPreview = preview,
                         cropApplying = false,
                         cropApplied = true,
+                        cropDirty = false,
                         status = "اتحفظ تعديل الصفحة ${snapshot.previewIndex + 1} من ${snapshot.selected.size}. اختار صفحة تانية أو انهي المراجعة."
                     )
                 }
