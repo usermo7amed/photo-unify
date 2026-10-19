@@ -247,6 +247,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         executor.execute {
+            releaseBitmaps(listOf(snapshot.cropSource, snapshot.cropPreviewSource, snapshot.cropPreview))
             var source: Bitmap? = null
             var previewSource: Bitmap? = null
             var preview: Bitmap? = null
