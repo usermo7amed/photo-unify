@@ -204,7 +204,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 if (generation == imagePreviewGeneration.get() &&
                     currentState.sourcePreview === preview
                 ) {
-                    refreshPreview()
+                    generateEnhancedPreview(preview, generation)
                 }
             } catch (error: Exception) {
                 update { old ->
@@ -216,6 +216,72 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         status = "تعذر تحميل معاينة الصورة ${index + 1}: ${error.message ?: "خطأ"}"
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * Builds a bounded, on-device enhanced preview before the user starts saving.
+     * The full-resolution pipeline still runs independently when the user processes
+     * the batch; this result is for interactive review only.
+     */
+    private fun generateEnhancedPreview(source: Bitmap, generation: Int) {
+        previewExecutor.execute {
+            if (generation != imagePreviewGeneration.get() || source.isRecycled) return@execute
+
+            var processed: Bitmap? = null
+            var failureMessage: String? = null
+            val classifier = try {
+                SceneClassifier()
+            } catch (_: Exception) {
+                null
+            }
+
+            try {
+                val kind = classifier?.classify(source)?.kind ?: ImageKind.GENERAL
+                if (generation != imagePreviewGeneration.get() || source.isRecycled) return@execute
+                processed = Processor.enhance(source, kind)
+            } catch (_: Exception) {
+                failureMessage = "تعذر تجهيز معاينة التحسين. تقدر تراجع الأصل وتتابع لو مكتبة OpenCV متاحة."
+            } finally {
+                runCatching { classifier?.close() }
+            }
+
+            val enhanced = processed
+            if (enhanced == null) {
+                failureMessage?.let { message ->
+                    update { old ->
+                        if (generation != imagePreviewGeneration.get() || old.sourcePreview !== source) old
+                        else old.copy(status = message)
+                    }
+                }
+                return@execute
+            }
+
+            var installed = false
+            var replacedResult: Bitmap? = null
+            update { old ->
+                if (generation != imagePreviewGeneration.get() ||
+                    old.sourcePreview !== source ||
+                    source.isRecycled
+                ) {
+                    old
+                } else {
+                    installed = true
+                    replacedResult = old.resultPreview
+                    old.copy(
+                        enhancedPreview = enhanced,
+                        resultPreview = null,
+                        status = "معاينة التحسين جاهزة للصورة ${old.previewIndex + 1} من ${old.selected.size}"
+                    )
+                }
+            }
+
+            if (installed) {
+                releaseBitmaps(listOf(replacedResult), setOf(source, enhanced))
+                refreshPreview()
+            } else {
+                releaseBitmaps(listOf(enhanced))
             }
         }
     }
