@@ -18,11 +18,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -37,11 +45,12 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.components.SelectionThumbnailsBar
+import com.photounifier.ui.PhotoUnifierSpacing
 import com.photounifier.ui.components.ValuePill
 
 /**
@@ -62,7 +71,7 @@ fun HomeScreen(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
     ) {
         if (state.selected.isEmpty()) {
             // حالة الخلو - شاشة نظيفة وسريعة للمسح أو الاستيراد بلمسة واحدة
@@ -98,22 +107,22 @@ private fun EmptyScanDashboard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(PhotoUnifierSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.lg)
         ) {
             // أيقونة الماسح الاحترافية مع تدرج زمردي أنيق
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(MaterialTheme.shapes.large)
                     .background(
                         Brush.linearGradient(
                             listOf(
@@ -124,9 +133,11 @@ private fun EmptyScanDashboard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "📄",
-                    fontSize = 38.sp
+                Icon(
+                    imageVector = Icons.Filled.Description,
+                    contentDescription = null,
+                    modifier = Modifier.size(38.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
 
@@ -155,17 +166,17 @@ private fun EmptyScanDashboard(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                QuickFeatureBadge("⚡ كشف ذكي")
+                QuickFeatureBadge(Icons.Filled.Bolt, "كشف ذكي")
                 Spacer(modifier = Modifier.width(6.dp))
-                QuickFeatureBadge("📐 قص المنظور")
+                QuickFeatureBadge(Icons.Filled.Crop, "قص المنظور")
                 Spacer(modifier = Modifier.width(6.dp))
-                QuickFeatureBadge("✨ تحسين فوري")
+                QuickFeatureBadge(Icons.Filled.AutoAwesome, "تحسين فوري")
             }
 
             // خيارات الإدخال الرئيسية بنمط CamScanner (كاميرا + معرض)
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
             ) {
                 Button(
                     onClick = onCaptureDocument,
@@ -173,7 +184,7 @@ private fun EmptyScanDashboard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -182,9 +193,9 @@ private fun EmptyScanDashboard(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                     ) {
-                        Text(text = "📷", fontSize = 18.sp)
+                        Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
                         Text(
                             text = "مسح ضوئي بالكاميرا",
                             style = MaterialTheme.typography.titleMedium,
@@ -199,13 +210,13 @@ private fun EmptyScanDashboard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                     ) {
-                        Text(text = "🖼️", fontSize = 17.sp)
+                        Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(
                             text = "استيراد صور من المعرض",
                             style = MaterialTheme.typography.titleSmall,
@@ -217,15 +228,27 @@ private fun EmptyScanDashboard(
 
             // إشعار الخصوصية
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
-                Text(
-                    text = "🔒 المعالجة بالكامل محلياً على جهازك؛ أمان تام لمستنداتك.",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "المعالجة بالكامل محلياً على جهازك؛ أمان تام لمستنداتك.",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -253,7 +276,7 @@ private fun ActiveBatchDashboard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
         ) {
             Text(
                 text = "المستندات الجاهزة",
@@ -267,7 +290,7 @@ private fun ActiveBatchDashboard(
             onClick = onClearSelection,
             enabled = enabled,
             modifier = Modifier.height(38.dp),
-            shape = RoundedCornerShape(10.dp)
+            shape = MaterialTheme.shapes.small
         ) {
             Text(
                 text = "مسح الكل",
@@ -279,14 +302,14 @@ private fun ActiveBatchDashboard(
     // بطاقة المعاينة المركزية للصفحة النشطة (Hero Document Card)
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(PhotoUnifierSpacing.md),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val preview = state.sourcePreview
@@ -294,7 +317,7 @@ private fun ActiveBatchDashboard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1.35f)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (preview != null && !preview.isRecycled) {
@@ -322,8 +345,8 @@ private fun ActiveBatchDashboard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(10.dp),
-                    shape = RoundedCornerShape(8.dp),
+                        .padding(PhotoUnifierSpacing.xs),
+                    shape = MaterialTheme.shapes.extraSmall,
                     color = Color.Black.copy(alpha = 0.65f)
                 ) {
                     Text(
@@ -352,7 +375,7 @@ private fun ActiveBatchDashboard(
     // أزرار التحكم بالدفعة
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
     ) {
         // الزر البارز لبدء القص والتحسين
         Button(
@@ -361,7 +384,7 @@ private fun ActiveBatchDashboard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -370,7 +393,7 @@ private fun ActiveBatchDashboard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Text(
                     text = "بدء القص والتحسين ➔",
@@ -383,7 +406,7 @@ private fun ActiveBatchDashboard(
         // أزرار إضافة صفحات أخرى (كاميرا أو معرض)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
         ) {
             OutlinedButton(
                 onClick = onCaptureDocument,
@@ -391,7 +414,7 @@ private fun ActiveBatchDashboard(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text(
                     text = "+ تصوير صفحة",
@@ -406,7 +429,7 @@ private fun ActiveBatchDashboard(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text(
                     text = "+ إضافة من المعرض",
@@ -419,17 +442,28 @@ private fun ActiveBatchDashboard(
 }
 
 @Composable
-private fun QuickFeatureBadge(label: String) {
+private fun QuickFeatureBadge(icon: ImageVector, label: String) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.extraSmall,
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
     ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            fontWeight = FontWeight.SemiBold
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xxs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
