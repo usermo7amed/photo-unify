@@ -25,8 +25,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.RotateRight
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.RotateRight
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -448,7 +448,7 @@ fun CropWorkspaceBottomBar(
             ) {
                 CropToolButton(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Filled.Undo,
+                    icon = Icons.AutoMirrored.Filled.Undo,
                     label = "تراجع",
                     enabled = state.cropUndoStack.isNotEmpty() && !state.cropApplying && !state.busy,
                     onClick = onUndoCrop
@@ -462,7 +462,7 @@ fun CropWorkspaceBottomBar(
                 )
                 CropToolButton(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Filled.RotateRight,
+                    icon = Icons.AutoMirrored.Filled.RotateRight,
                     label = "تدوير 90°",
                     enabled = !state.cropApplying && !state.busy && state.cropSource != null,
                     onClick = onRotatePage
