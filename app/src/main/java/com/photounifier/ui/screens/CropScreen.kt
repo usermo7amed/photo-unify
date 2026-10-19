@@ -156,33 +156,34 @@ fun CropWorkspaceView(
     state: PhotoUiState,
     onMoveCropCorner: (Int, Float, Float) -> Unit,
     onSelectPage: (Int) -> Unit,
-    onRotatePage: () -> Unit,
     onEnsurePageThumbnail: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("محرر المستند", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+            ) {
                 Text(
-                    "اسحب الزوايا لتحديد الورقة، أو دوّر الصفحة قبل الحفظ.",
+                    text = "ضبط زوايا المستند",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "حرّك الزوايا حول الورقة. اسحب للتعديل ثم احفظ الصفحة.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             ValuePill("صفحة ${state.previewIndex + 1} / ${state.selected.size}")
-            OutlinedButton(
-                onClick = onRotatePage,
-                enabled = !state.cropApplying && !state.busy && state.cropSource != null,
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("تدوير 90°") }
         }
 
         if (state.cropSource != null && !state.cropSource.isRecycled) {
@@ -190,35 +191,115 @@ fun CropWorkspaceView(
                 bitmap = state.cropSource,
                 corners = state.cropCorners,
                 onMoveCorner = onMoveCropCorner,
-                modifier = Modifier.fillMaxWidth().weight(1f).heightIn(min = 180.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .heightIn(min = 160.dp)
             )
         } else {
             Surface(
-                modifier = Modifier.fillMaxWidth().weight(1f).heightIn(min = 180.dp),
-                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .heightIn(min = 160.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("جاري تجهيز معاينة الصفحة...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "جاري تجهيز معاينة الصفحة...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
 
-        CropResultPreview(state.cropPreview)
+        CropPreviewStrip(bitmap = state.cropPreview)
+
         if (state.cropDirty) {
-            Text(
-                "فيه تعديلات لسه ما اتحفظتش. احفظ الصفحة قبل الانتقال لصفحة تانية أو إنهاء المراجعة.",
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
-            )
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Text(
+                    text = "تعديلات غير محفوظة. احفظ الصفحة لتثبيتها، أو ألغِ التعديل للرجوع دون حفظه.",
+                    modifier = Modifier.padding(
+                        horizontal = PhotoUnifierSpacing.sm,
+                        vertical = PhotoUnifierSpacing.xxs
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
         }
+
         DocumentPageThumbnailStrip(
             state = state,
             onSelectPage = onSelectPage,
             onEnsureThumbnail = onEnsurePageThumbnail,
             enabled = !state.cropApplying && !state.busy && !state.cropDirty
         )
+    }
+}
+
+@Composable
+private fun CropPreviewStrip(bitmap: android.graphics.Bitmap?) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PhotoUnifierSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 42.dp, height = 54.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null && !bitmap.isRecycled) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "معاينة ناتج القص",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        filterQuality = FilterQuality.Medium
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Crop,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+            ) {
+                Text(
+                    text = "معاينة ناتج القص",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = if (bitmap != null && !bitmap.isRecycled) {
+                        "تتحدث المعاينة مع تعديل الزوايا."
+                    } else {
+                        "ستظهر النتيجة بعد تجهيز المعاينة."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
