@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
@@ -33,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,7 +65,7 @@ fun CropReviewCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -137,7 +138,7 @@ fun CropReviewCard(
             }
 
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             ) {
                 Text(
@@ -310,7 +311,7 @@ private fun DocumentPageThumbnailStrip(
     onEnsureThumbnail: (Int) -> Unit,
     enabled: Boolean
 ) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -323,27 +324,27 @@ private fun DocumentPageThumbnailStrip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs), verticalAlignment = Alignment.CenterVertically) {
             itemsIndexed(state.selected, key = { _, uri -> uri.toString() }) { index, uri ->
                 LaunchedEffect(uri) { onEnsureThumbnail(index) }
                 val thumbnail = state.selectionThumbnails.firstOrNull { it.uri == uri }
                 val isCurrent = index == state.previewIndex
                 val isEdited = state.cropEdits.containsKey(uri)
                 Column(
-                    modifier = Modifier.width(72.dp).clickable(enabled = enabled) { onSelectPage(index) },
+                    modifier = Modifier.width(72.dp).clickable(enabled = enabled, role = Role.Button) { onSelectPage(index) },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .size(width = 72.dp, height = 82.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(MaterialTheme.shapes.small)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(
                                 width = if (isCurrent) 2.dp else 1.dp,
                                 color = if (isCurrent) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = MaterialTheme.shapes.small
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -351,7 +352,7 @@ private fun DocumentPageThumbnailStrip(
                             Image(
                                 bitmap = thumbnail.bitmap.asImageBitmap(),
                                 contentDescription = "صفحة ${index + 1}",
-                                modifier = Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(9.dp)),
+                                modifier = Modifier.fillMaxSize().padding(2.dp).clip(MaterialTheme.shapes.extraSmall),
                                 contentScale = ContentScale.Crop,
                                 filterQuality = FilterQuality.Medium
                             )
@@ -394,6 +395,7 @@ private fun DocumentPageThumbnailStrip(
 @Composable
 fun CropWorkspaceBottomBar(
     state: PhotoUiState,
+    onRotatePage: () -> Unit,
     onUndoCrop: () -> Unit,
     onResetCrop: () -> Unit,
     onCancelCrop: () -> Unit,
@@ -404,63 +406,152 @@ fun CropWorkspaceBottomBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xxs)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = 0.30f),
-                RoundedCornerShape(20.dp)
+                MaterialTheme.shapes.large
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-        shadowElevation = 8.dp
+        shadowElevation = 4.dp
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = onUndoCrop,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+            ) {
+                CropToolButton(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Undo,
+                    label = "تراجع",
                     enabled = state.cropUndoStack.isNotEmpty() && !state.cropApplying && !state.busy,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text("تراجع") }
-
-                OutlinedButton(
-                    onClick = onResetCrop,
-                    enabled = !state.cropApplying && !state.busy,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text("إعادة ضبط الزوايا") }
+                    onClick = onUndoCrop
+                )
+                CropToolButton(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.RestartAlt,
+                    label = "إعادة ضبط",
+                    enabled = !state.cropApplying && !state.busy && state.cropSource != null,
+                    onClick = onResetCrop
+                )
+                CropToolButton(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.RotateRight,
+                    label = "تدوير 90°",
+                    enabled = !state.cropApplying && !state.busy && state.cropSource != null,
+                    onClick = onRotatePage
+                )
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedButton(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
                     onClick = onCancelCrop,
-                    enabled = !state.cropApplying && !state.busy && !state.cropDirty,
-                    modifier = Modifier.weight(0.9f).height(46.dp),
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text("إغلاق") }
-
-                Button(
-                    onClick = onApplyCrop,
-                    enabled = state.cropPreview != null && !state.cropApplying && !state.busy,
-                    modifier = Modifier.weight(1.2f).height(46.dp),
-                    shape = RoundedCornerShape(10.dp)
+                    enabled = !state.cropApplying && !state.busy,
+                    modifier = Modifier.weight(0.8f).height(44.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                 ) {
-                    Text(
-                        text = if (state.cropApplying) "جاري الحفظ..." else if (state.cropDirty) "حفظ التعديلات" else "حفظ الصفحة",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "إلغاء",
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
 
                 Button(
+                    onClick = onApplyCrop,
+                    enabled = state.cropPreview != null && state.cropDirty && !state.cropApplying && !state.busy,
+                    modifier = Modifier.weight(1.15f).height(44.dp),
+                    shape = MaterialTheme.shapes.small,
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (state.cropApplying) "جارٍ الحفظ..." else "حفظ الصفحة",
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+
+                OutlinedButton(
                     onClick = onFinishCrop,
                     enabled = !state.cropApplying && !state.busy && !state.cropDirty,
-                    modifier = Modifier.weight(1.1f).height(46.dp),
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text("إنهاء المراجعة") }
+                    modifier = Modifier.weight(1.15f).height(44.dp),
+                    shape = MaterialTheme.shapes.small,
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "إنهاء المراجعة",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun CropToolButton(
+    modifier: Modifier,
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(42.dp),
+        shape = MaterialTheme.shapes.small,
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }
