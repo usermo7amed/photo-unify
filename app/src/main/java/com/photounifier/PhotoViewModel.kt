@@ -456,65 +456,50 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelCrop() {
         cropGeneration.incrementAndGet()
         imagePreviewGeneration.incrementAndGet()
-        val hasSelection = currentState.selected.isNotEmpty()
+        val snapshot = currentState
+        val index = snapshot.previewIndex.coerceIn(0, (snapshot.selected.size - 1).coerceAtLeast(0))
         update {
             it.copy(
                 cropSource = null,
                 cropPreviewSource = null,
                 cropPreview = null,
-                    cropApplying = false,
+                cropApplying = false,
                 cropCorners = emptyList(),
                 cropUndoStack = emptyList(),
                 cropOpen = false,
-                cropApplied = false,
-                previewIndex = 0,
+                cropApplied = it.cropEdits.isNotEmpty(),
+                cropPageUri = null,
+                cropRotationDegrees = 0,
                 sourcePreview = null,
                 enhancedPreview = null,
                 resultPreview = null
             )
         }
-        if (hasSelection) showPreview(0)
+        releaseBitmaps(listOf(snapshot.cropSource, snapshot.cropPreviewSource, snapshot.cropPreview))
+        if (snapshot.selected.isNotEmpty()) showPreview(index)
     }
+
 
     fun applyCrop() {
         val snapshot = currentState
         val source = snapshot.cropSource ?: return
-        val uri = snapshot.selected.firstOrNull() ?: return
+        val uri = snapshot.cropPageUri ?: return
         val corners = snapshot.cropCorners
-        if (!snapshot.cropOpen || snapshot.cropApplying ||
+        if (!snapshot.cropOpen || snapshot.cropApplying || source.isRecycled ||
             !DocumentCrop.isValid(corners, source.width, source.height)
         ) return
 
+        val normalizedCorners = normalizeCropPoints(corners, source.width, source.height)
+        val previewSource = snapshot.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
+        val previewCorners = mapCropPoints(source, previewSource, corners)
         val generation = cropGeneration.incrementAndGet()
-        update {
-            it.copy(
-                cropOpen = false,
-                cropApplying = true,
-                status = "جاري تطبيق القص بالجودة الكاملة..."
-            )
-        }
+        update { it.copy(cropApplying = true, status = "جاري حفظ تعديل الصفحة...") }
+
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
-            val fullResolutionCrop = try {
-                DocumentCrop.warp(source, corners)
-            } catch (error: Exception) {
-                update { old ->
-                    if (generation != cropGeneration.get()) old
-                    else old.copy(
-                        cropApplying = false,
-                        status = "تعذر تطبيق القص: ${error.message ?: error.javaClass.simpleName}"
-                    )
-                }
-                return@execute
-            }
-            if (generation != cropGeneration.get()) {
-                fullResolutionCrop.recycle()
-                return@execute
-            }
             val preview = try {
-                Processor.createPreview(fullResolutionCrop)
+                DocumentCrop.warp(previewSource, previewCorners, Processor.PREVIEW_MAX_SIDE)
             } catch (error: Exception) {
-                fullResolutionCrop.recycle()
                 update { old ->
                     if (generation != cropGeneration.get()) old
                     else old.copy(
@@ -524,33 +509,39 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 return@execute
             }
+            if (generation != cropGeneration.get()) {
+                if (!preview.isRecycled) preview.recycle()
+                return@execute
+            }
+
+            var installed = false
             update { old ->
-                if (generation != cropGeneration.get() || old.selected.firstOrNull() != uri) {
-                    if (!preview.isRecycled) preview.recycle()
-                    if (!fullResolutionCrop.isRecycled) fullResolutionCrop.recycle()
+                if (generation != cropGeneration.get() || old.cropPageUri != uri ||
+                    old.cropSource !== source || !old.cropOpen
+                ) {
                     old
                 } else {
+                    installed = true
                     old.copy(
-                        sourcePreview = preview,
-                        previewIndex = 0,
-                        enhancedPreview = null,
-                        resultPreview = null,
-                        cropSource = null,
-                        cropPreviewSource = null,
-                        cropPreview = null,
-                        cropAppliedSource = fullResolutionCrop,
-                        cropCorners = emptyList(),
-                        cropUndoStack = emptyList(),
-                        cropOpen = false,
+                        cropEdits = old.cropEdits + (uri to DocumentPageEdit(
+                            rotationDegrees = snapshot.cropRotationDegrees,
+                            normalizedCorners = normalizedCorners
+                        )),
+                        cropPreview = preview,
                         cropApplying = false,
                         cropApplied = true,
-                        status = "تم تطبيق القص على الصورة الأولى بجودتها الكاملة؛ ابدأ التحسين."
+                        status = "اتحفظ تعديل الصفحة ${snapshot.previewIndex + 1} من ${snapshot.selected.size}. اختار صفحة تانية أو انهي المراجعة."
                     )
                 }
             }
-            if (currentState.cropAppliedSource === fullResolutionCrop) refreshPreview()
+            if (installed) {
+                releaseBitmaps(listOf(snapshot.cropPreview), setOf(preview))
+            } else if (!preview.isRecycled) {
+                preview.recycle()
+            }
         }
     }
+
 
     fun setBrightness(value: Int) {
         update { it.copy(brightness = value.coerceIn(-50, 50)) }
@@ -643,7 +634,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 },
-                firstSourceOverride = if (snapshot.cropApplied) snapshot.cropAppliedSource else null
+                pageEdits = snapshot.cropEdits
             )
         }
     }
@@ -663,7 +654,6 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             if (bitmap !== currentState.cropSource && !bitmap.isRecycled) bitmap.recycle()
         }
         currentState.cropPreview?.let { if (!it.isRecycled) it.recycle() }
-        currentState.cropAppliedSource?.let { if (!it.isRecycled) it.recycle() }
         currentState.selectionThumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
         super.onCleared()
     }
@@ -683,8 +673,15 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         return points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
     }
 
+    private fun releaseBitmaps(bitmaps: Iterable<Bitmap?>, keep: Set<Bitmap> = emptySet()) {
+        bitmaps.filterNotNull().distinct().forEach { bitmap ->
+            if (bitmap !in keep && !bitmap.isRecycled) bitmap.recycle()
+        }
+    }
+
     private companion object {
         const val MAX_SELECTION_THUMBNAILS = 6
+        const val MAX_VISIBLE_PAGE_THUMBNAILS = 18
         const val SELECTION_THUMBNAIL_SIDE = 256
     }
 }
