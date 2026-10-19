@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.Alignment
@@ -113,6 +114,7 @@ fun CropWorkspaceView(
     onMoveCropCorner: (Int, Float, Float) -> Unit,
     onSelectPage: (Int) -> Unit,
     onRotatePage: () -> Unit,
+    onEnsurePageThumbnail: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -171,6 +173,7 @@ fun CropWorkspaceView(
         DocumentPageThumbnailStrip(
             state = state,
             onSelectPage = onSelectPage,
+            onEnsureThumbnail = onEnsurePageThumbnail,
             enabled = !state.cropApplying && !state.busy && !state.cropDirty
         )
     }
@@ -180,6 +183,7 @@ fun CropWorkspaceView(
 private fun DocumentPageThumbnailStrip(
     state: PhotoUiState,
     onSelectPage: (Int) -> Unit,
+    onEnsureThumbnail: (Int) -> Unit,
     enabled: Boolean
 ) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -197,6 +201,7 @@ private fun DocumentPageThumbnailStrip(
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             itemsIndexed(state.selected, key = { _, uri -> uri.toString() }) { index, uri ->
+                LaunchedEffect(uri) { onEnsureThumbnail(index) }
                 val thumbnail = state.selectionThumbnails.firstOrNull { it.uri == uri }
                 val isCurrent = index == state.previewIndex
                 val isEdited = state.cropEdits.containsKey(uri)
