@@ -159,10 +159,18 @@ fun CropWorkspaceView(
         }
 
         CropResultPreview(state.cropPreview)
+        if (state.cropDirty) {
+            Text(
+                "فيه تعديلات لسه ما اتحفظتش. احفظ الصفحة قبل الانتقال لصفحة تانية أو إنهاء المراجعة.",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         DocumentPageThumbnailStrip(
             state = state,
             onSelectPage = onSelectPage,
-            enabled = !state.cropApplying && !state.busy
+            enabled = !state.cropApplying && !state.busy && !state.cropDirty
         )
     }
 }
@@ -299,7 +307,7 @@ fun CropWorkspaceBottomBar(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedButton(
                     onClick = onCancelCrop,
-                    enabled = !state.cropApplying && !state.busy,
+                    enabled = !state.cropApplying && !state.busy && !state.cropDirty,
                     modifier = Modifier.weight(0.9f).height(46.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) { Text("إغلاق") }
@@ -311,14 +319,14 @@ fun CropWorkspaceBottomBar(
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
-                        text = if (state.cropApplying) "جاري الحفظ..." else "حفظ الصفحة",
+                        text = if (state.cropApplying) "جاري الحفظ..." else if (state.cropDirty) "حفظ التعديلات" else "حفظ الصفحة",
                         fontWeight = FontWeight.Bold
                     )
                 }
 
                 Button(
                     onClick = onFinishCrop,
-                    enabled = !state.cropApplying && !state.busy,
+                    enabled = !state.cropApplying && !state.busy && !state.cropDirty,
                     modifier = Modifier.weight(1.1f).height(46.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) { Text("إنهاء المراجعة") }
