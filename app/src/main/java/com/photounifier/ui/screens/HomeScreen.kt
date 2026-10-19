@@ -39,6 +39,7 @@ import com.photounifier.ui.components.ValuePill
 fun HomeScreen(
     state: PhotoUiState,
     onPickImages: (Boolean) -> Unit,
+    onCaptureDocument: () -> Unit,
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
@@ -115,8 +116,46 @@ fun HomeScreen(
                     HomeWorkflowStep("٤", "حفظ", Modifier.weight(1f))
                 }
 
-                // Pick Button
+                // Primary action: capture a new document with the device camera.
                 Button(
+                    onClick = onCaptureDocument,
+                    enabled = enabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(36.dp),
+                            shape = RoundedCornerShape(11.dp),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("◎", fontSize = 25.sp, color = MaterialTheme.colorScheme.onPrimary)
+                            }
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(1.dp)
+                        ) {
+                            Text("مسح مستند بالكاميرا", fontWeight = FontWeight.Bold)
+                            Text(
+                                "التقط ورقة جديدة للمراجعة",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.86f)
+                            )
+                        }
+                        Text("←", style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+
+                // Secondary action: select one or more existing images.
+                OutlinedButton(
                     onClick = { onPickImages(state.selected.isNotEmpty()) },
                     enabled = enabled,
                     modifier = Modifier
@@ -124,12 +163,30 @@ fun HomeScreen(
                         .height(54.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        text = if (state.selected.isEmpty()) "اختيار الصور من المعرض"
-                        else "إضافة المزيد من الصور",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(34.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("▧", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            }
+                        }
+                        Text(
+                            text = if (state.selected.isEmpty()) "استيراد من المعرض"
+                            else "إضافة صور من المعرض",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text("←", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
 
                 Text(
@@ -234,7 +291,7 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "جاهزة للمراجعة والتحسين",
+                                text = "مراجعة الصور المحددة",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -285,11 +342,44 @@ fun HomeScreen(
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            text = "متابعة مسار المعالجة ➔",
+                            text = "مراجعة الصور المحددة  ➔",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+
+            // Keep the third main action discoverable even before images are selected.
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "مراجعة الصور المحددة",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (state.selected.isEmpty()) "اختَر صورًا من الكاميرا أو المعرض أولًا."
+                            else "راجع القص والتحسين قبل الحفظ.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    ValuePill(if (state.selected.isEmpty()) "0" else "${state.selected.size}")
                 }
             }
         }
