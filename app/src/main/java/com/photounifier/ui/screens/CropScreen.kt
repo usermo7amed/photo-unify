@@ -15,10 +15,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.RotateRight
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -36,9 +45,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.photounifier.CropCornerEditor
+import com.photounifier.ui.PhotoUnifierSpacing
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.components.CropResultPreview
 import com.photounifier.ui.components.StepHeading
@@ -94,17 +105,27 @@ fun CropReviewCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text(
-                    text = if (state.cropEdits.isNotEmpty()) "استكمال مراجعة الصفحات 📐" else "فتح محرر زوايا الورقة 📐",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Crop,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = if (state.cropEdits.isNotEmpty()) "استكمال مراجعة الصفحات" else "فتح محرر زوايا الورقة",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             val hintText = when {
@@ -112,7 +133,7 @@ fun CropReviewCard(
                 state.selected.isEmpty() -> "اختر صورة أولاً لتتمكن من مراجعة حدودها."
                 !openCvReady -> "مكتبة معالجة الصور (OpenCV) غير جاهزة حالياً."
                 state.cropEdits.isNotEmpty() -> "تم حفظ تعديلات ${state.cropEdits.size} من ${state.selected.size} صفحة. اضغط «التالي» للمتابعة للتحسين."
-                else -> "💡 خطوة اختيارية: يمكنك تخطيها بالضغط على «التالي» إذا كانت الصورة لا تحتاج إلى قص."
+                else -> "خطوة اختيارية: يمكنك الانتقال للخطوة التالية إذا كانت الصورة لا تحتاج إلى قص."
             }
 
             Surface(
