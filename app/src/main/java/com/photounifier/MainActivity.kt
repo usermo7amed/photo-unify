@@ -168,6 +168,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.openCropEditor(openCvReady)
                         },
                         onRotateCropPage = viewModel::rotateCropPage,
+                        onEnsureCropPageThumbnail = viewModel::ensurePageThumbnail,
                         onUndoCrop = viewModel::undoCrop,
                         onResetCrop = viewModel::resetCrop,
                         onCancelCrop = viewModel::cancelCrop,
@@ -197,6 +198,7 @@ private fun PhotoUnifierScreen(
     onMoveCropCorner: (Int, Float, Float) -> Unit,
     onSelectCropPage: (Int) -> Unit,
     onRotateCropPage: () -> Unit,
+    onEnsureCropPageThumbnail: (Int) -> Unit,
     onUndoCrop: () -> Unit,
     onResetCrop: () -> Unit,
     onCancelCrop: () -> Unit,
@@ -372,6 +374,7 @@ private fun PhotoUnifierScreen(
                                 onMoveCropCorner = onMoveCropCorner,
                                 onSelectPage = onSelectCropPage,
                                 onRotatePage = onRotateCropPage,
+                                onEnsurePageThumbnail = onEnsureCropPageThumbnail,
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
