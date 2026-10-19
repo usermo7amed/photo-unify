@@ -265,6 +265,7 @@ private fun PhotoUnifierScreen(
             if (isCropWorkspace) {
                 CropWorkspaceBottomBar(
                     state = state,
+                    onRotatePage = onRotateCropPage,
                     onUndoCrop = onUndoCrop,
                     onResetCrop = onResetCrop,
                     onCancelCrop = onCancelCrop,
@@ -385,7 +386,6 @@ private fun PhotoUnifierScreen(
                                 state = state,
                                 onMoveCropCorner = onMoveCropCorner,
                                 onSelectPage = onSelectCropPage,
-                                onRotatePage = onRotateCropPage,
                                 onEnsurePageThumbnail = onEnsureCropPageThumbnail,
                                 modifier = Modifier.fillMaxSize()
                             )
