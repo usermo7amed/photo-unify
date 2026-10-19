@@ -389,12 +389,13 @@ private fun DocumentPageThumbnailStrip(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.secondaryContainer
                             ) {
-                                Text(
-                                    "✓",
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "تم تعديل الصفحة ${index + 1}",
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
                         }
