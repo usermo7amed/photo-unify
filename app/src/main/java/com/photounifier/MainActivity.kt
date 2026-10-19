@@ -248,11 +248,13 @@ private fun PhotoUnifierScreen(
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge
                         )
-                        Text(
-                            text = "اكتشاف • تصحيح المنظور • تحسين ذكي",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (currentStep != 0) {
+                            Text(
+                                text = "اكتشاف • تصحيح المنظور • تحسين ذكي",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -336,7 +338,7 @@ private fun PhotoUnifierScreen(
             verticalArrangement = Arrangement.spacedBy(if (isCropWorkspace) 8.dp else 14.dp)
         ) {
             // Stepper indicator for multi-step progress
-            if (!isCropWorkspace) {
+            if (!isCropWorkspace && (currentStep != 0 || state.selected.isNotEmpty())) {
                 StepProgress(
                     currentStep = currentStep,
                     titles = stepTitles,
