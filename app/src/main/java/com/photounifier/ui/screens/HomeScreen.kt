@@ -96,22 +96,23 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "اكتشاف المستندات، قص المنظور، وتصحيح الإضاءة والتباين محلياً على جهازك.",
+                            text = "اختار صورك، راجع حدود المستند، حسّن النتيجة، وبعدها احفظ نسخة جديدة.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                         )
                     }
                 }
 
-                // Step Pills
+                // Compact workflow overview mirrors the actual four-step editor.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HomeWorkflowStep("١", "اختيار", Modifier.weight(1f))
-                    HomeWorkflowStep("٢", "قص المنظور", Modifier.weight(1f))
-                    HomeWorkflowStep("٣", "ضبط وحفظ", Modifier.weight(1f))
+                    HomeWorkflowStep("٢", "قص", Modifier.weight(1f))
+                    HomeWorkflowStep("٣", "تحسين", Modifier.weight(1f))
+                    HomeWorkflowStep("٤", "حفظ", Modifier.weight(1f))
                 }
 
                 // Pick Button
@@ -157,24 +158,24 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "مميزات مُوحِّد الصور",
+                        text = "كل أدواتك في مسار واحد",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     FeatureItem(
                         number = "١",
                         title = "قص ذكي وتصحيح منظور المستندات",
-                        description = "اكتشاف حواف الورقة بنموذج FairScan وOpenCV مع إمكانية السحب اليدوي للزوايا بدقة فائقة."
+                        description = "راجع حدود الورقة وعدّل الزوايا يدويًا قبل تطبيق القص وتصحيح المنظور."
                     )
                     FeatureItem(
                         number = "٢",
                         title = "معالجة متكيفة مع نوع المشهد",
-                        description = "توازن محلي للأبيض في الصور الداخلية، وتقليل ظلال الورق، والحفاظ على التفاصيل في الإضاءة الساطعة."
+                        description = "حسّن الإضاءة والألوان مع الحفاظ على تفاصيل النص والدرجات اللونية."
                     )
                     FeatureItem(
                         number = "٣",
                         title = "معاينة حية ومقارنة فورية",
-                        description = "تحكّم سلس في نسبة المقارنة بالسحب المباشر مع معاينة فورية لتأثير السطوع والتباين قبل الحفظ."
+                        description = "قارن الأصل بالنتيجة قبل حفظ نسخة محسّنة، من غير تعديل الملف الأصلي."
                     )
                 }
             }
