@@ -266,7 +266,7 @@ private fun PhotoUnifierScreen(
             verticalArrangement = Arrangement.spacedBy(if (isCropWorkspace) 8.dp else 14.dp)
         ) {
             // Stepper indicator for multi-step progress
-            if (!isCropWorkspace && currentStep != 0) {
+            if (!isCropWorkspace) {
                 StepProgress(
                     currentStep = currentStep,
                     titles = stepTitles,
