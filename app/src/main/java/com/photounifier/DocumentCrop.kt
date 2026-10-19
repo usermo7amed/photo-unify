@@ -2,6 +2,7 @@ package com.photounifier
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
@@ -19,6 +20,38 @@ import kotlin.math.sqrt
 
 /** Coordinates are in bitmap pixels, ordered top-left, top-right, bottom-right, bottom-left. */
 data class CropPoint(val x: Float, val y: Float)
+
+/**
+ * A compact, memory-safe edit record for one document page.
+ * normalizedCorners are in the 0..1 range relative to the rotated source image.
+ */
+data class DocumentPageEdit(
+    val rotationDegrees: Int = 0,
+    val normalizedCorners: List<CropPoint>? = null
+)
+
+internal fun rotatePageBitmap(source: Bitmap, degrees: Int): Bitmap {
+    val normalized = ((degrees % 360) + 360) % 360
+    if (normalized == 0) return source
+    val matrix = Matrix().apply { postRotate(normalized.toFloat()) }
+    return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+}
+
+internal fun normalizeCropPoints(points: List<CropPoint>, width: Int, height: Int): List<CropPoint> {
+    val maxX = (width - 1).coerceAtLeast(1).toFloat()
+    val maxY = (height - 1).coerceAtLeast(1).toFloat()
+    return points.map {
+        CropPoint((it.x / maxX).coerceIn(0f, 1f), (it.y / maxY).coerceIn(0f, 1f))
+    }
+}
+
+internal fun mapNormalizedCropPoints(points: List<CropPoint>, width: Int, height: Int): List<CropPoint> {
+    val maxX = (width - 1).coerceAtLeast(1).toFloat()
+    val maxY = (height - 1).coerceAtLeast(1).toFloat()
+    return points.map {
+        CropPoint(it.x.coerceIn(0f, 1f) * maxX, it.y.coerceIn(0f, 1f) * maxY)
+    }
+}
 
 object DocumentCrop {
     private const val DETECTION_MAX_SIDE = 1280
