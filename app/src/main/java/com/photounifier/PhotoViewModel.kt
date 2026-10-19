@@ -245,6 +245,36 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 if (rotated !== decoded && !decoded.isRecycled) decoded.recycle()
                 source = rotated
 
+                if (snapshot.selectionThumbnails.none { it.uri == uri }) {
+                    val scale = minOf(1.0, 112.0 / maxOf(rotated.width, rotated.height).toDouble())
+                    val width = (rotated.width * scale).roundToInt().coerceAtLeast(1)
+                    val height = (rotated.height * scale).roundToInt().coerceAtLeast(1)
+                    val pageThumbnail = Bitmap.createScaledBitmap(rotated, width, height, true)
+                    var accepted = false
+                    var evicted = emptyList<SelectionThumbnail>()
+                    update { old ->
+                        if (old.selected.getOrNull(index) != uri || old.selectionThumbnails.any { it.uri == uri }) {
+                            old
+                        } else {
+                            val firstUris = old.selected.take(MAX_SELECTION_THUMBNAILS).toSet()
+                            val dynamic = old.selectionThumbnails.filter { it.uri !in firstUris } +
+                                SelectionThumbnail(uri, pageThumbnail)
+                            val keptDynamic = dynamic.takeLast(MAX_DYNAMIC_PAGE_THUMBNAILS)
+                            val keepUris = firstUris + keptDynamic.map { it.uri }
+                            evicted = old.selectionThumbnails.filter { it.uri !in keepUris }
+                            accepted = true
+                            old.copy(
+                                selectionThumbnails = old.selectionThumbnails.filter { it.uri in firstUris } + keptDynamic
+                            )
+                        }
+                    }
+                    if (accepted) {
+                        releaseBitmaps(evicted.map { it.bitmap }, setOf(pageThumbnail))
+                    } else if (!pageThumbnail.isRecycled) {
+                        pageThumbnail.recycle()
+                    }
+                }
+
                 if (generation != cropGeneration.get() || rotated.isRecycled) {
                     releaseBitmaps(listOf(source, previewSource, preview))
                     return@execute
@@ -335,14 +365,15 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             var previewSource: Bitmap? = null
             var preview: Bitmap? = null
             try {
-                rotated = rotatePageBitmap(source, 90)
+                val rotatedBitmap = rotatePageBitmap(source, 90)
+                rotated = rotatedBitmap
                 val context = getApplication<Application>().applicationContext
-                val corners = DocumentCrop.detect(rotated, context)
-                    ?: DocumentCrop.fullFrame(rotated.width, rotated.height)
-                previewSource = createCropPreviewSource(rotated)
+                val corners = DocumentCrop.detect(rotatedBitmap, context)
+                    ?: DocumentCrop.fullFrame(rotatedBitmap.width, rotatedBitmap.height)
+                previewSource = createCropPreviewSource(rotatedBitmap)
                 preview = DocumentCrop.warp(
                     previewSource!!,
-                    mapCropPoints(rotated, previewSource!!, corners),
+                    mapCropPoints(rotatedBitmap, previewSource!!, corners),
                     Processor.PREVIEW_MAX_SIDE
                 )
 
@@ -681,7 +712,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val MAX_SELECTION_THUMBNAILS = 6
-        const val MAX_VISIBLE_PAGE_THUMBNAILS = 18
+        const val MAX_DYNAMIC_PAGE_THUMBNAILS = 12
         const val SELECTION_THUMBNAIL_SIDE = 256
     }
 }
