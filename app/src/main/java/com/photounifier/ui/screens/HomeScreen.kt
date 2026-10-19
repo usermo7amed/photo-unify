@@ -350,8 +350,9 @@ fun HomeScreen(
                 }
             }
 
-            // Keep the third main action discoverable even before images are selected.
-            Card(
+            if (state.selected.isEmpty()) {
+                // Keep the third main action discoverable before images are selected.
+                Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
@@ -379,8 +380,9 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    ValuePill(if (state.selected.isEmpty()) "0" else "${state.selected.size}")
+                    ValuePill("0")
                 }
+            }
             }
         }
     }
