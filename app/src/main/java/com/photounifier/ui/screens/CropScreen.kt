@@ -60,11 +60,28 @@ fun CropReviewCard(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            StepHeading(
-                number = 2,
-                title = "راجع حدود الصورة (قص المستند)",
-                subtitle = "إذا كانت الصورة ورقة أو مستند، اضبط الزوايا الأربع لتصحيح منظورها تلقائياً."
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "قص وتصحيح المنظور",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "اكتشاف أوتوماتيكي لحدود الورقة وتصحيح الزوايا",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                ValuePill(
+                    if (state.cropEdits.isNotEmpty()) "تم تعديل ${state.cropEdits.size} صفحة"
+                    else "جاهز للمراجعة"
+                )
+            }
 
             if (state.cropApplied && state.cropPreview != null) {
                 CropResultPreview(state.cropPreview)
@@ -76,10 +93,14 @@ fun CropReviewCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
                 Text(
-                    text = if (state.cropApplied) "استكمال مراجعة الصفحات" else "اكتشاف الورقة وضبط الزوايا",
+                    text = if (state.cropEdits.isNotEmpty()) "استكمال مراجعة الصفحات 📐" else "فتح محرر زوايا الورقة 📐",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -89,8 +110,8 @@ fun CropReviewCard(
                 state.cropApplying -> "جاري تجهيز القص وتصحيح المنظور بجودة فائقة..."
                 state.selected.isEmpty() -> "اختر صورة أولاً لتتمكن من مراجعة حدودها."
                 !openCvReady -> "مكتبة معالجة الصور (OpenCV) غير جاهزة حالياً."
-                state.cropApplied -> "اتحفظت تعديلات ${state.cropEdits.size} من ${state.selected.size} صفحة. تقدر تكمل مراجعة الباقي أو تتابع للتحسين."
-                else -> "هذه الخطوة اختيارية؛ إذا كانت الصورة طبيعية أو بورتريه وليست مستنداً، يمكنك تخطيها بالضغط على «التالي»."
+                state.cropEdits.isNotEmpty() -> "تم حفظ تعديلات ${state.cropEdits.size} من ${state.selected.size} صفحة. اضغط «التالي» للمتابعة للتحسين."
+                else -> "💡 خطوة اختيارية: يمكنك تخطيها بالضغط على «التالي» إذا كانت الصورة لا تحتاج إلى قص."
             }
 
             Surface(
@@ -99,7 +120,7 @@ fun CropReviewCard(
             ) {
                 Text(
                     text = hintText,
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

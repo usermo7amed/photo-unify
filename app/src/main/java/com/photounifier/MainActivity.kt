@@ -212,7 +212,7 @@ private fun PhotoUnifierScreen(
     onFinishCrop: () -> Unit
 ) {
     var currentStep by remember { mutableIntStateOf(0) }
-    val stepTitles = listOf("اختيار الصور", "قص الصورة", "الضبط والمعاينة", "النتيجة")
+    val stepTitles = listOf("المستندات", "قص المنظور", "الفلاتر", "التصدير")
     val isCropWorkspace = currentStep == 1 && state.cropOpen
 
     // Keep the home screen visible when selection is empty
@@ -238,7 +238,13 @@ private fun PhotoUnifierScreen(
                 title = {
                     Column {
                         Text(
-                            text = "مُوحِّد الصور",
+                            text = when (currentStep) {
+                                0 -> "مُوحِّد الصور"
+                                1 -> "قص وتصحيح المنظور"
+                                2 -> "الفلاتر والتحسين"
+                                3 -> "حفظ وتصدير المستندات"
+                                else -> "مُوحِّد الصور"
+                            },
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge
                         )

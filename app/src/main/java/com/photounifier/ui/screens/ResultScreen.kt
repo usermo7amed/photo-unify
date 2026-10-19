@@ -1,34 +1,55 @@
 package com.photounifier.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.photounifier.PhotoUiState
-import com.photounifier.ui.components.StepHeading
 import kotlin.math.roundToInt
 
+/**
+ * شاشة النتيجة والتصدير بنمط CamScanner الاحترافي:
+ * - بطاقة إنجاز احتفالية تبرز نجاح تحسين المستند.
+ * - خيارات تصدير فورية بنقرة واحدة كـ PDF أو صور عالية الدقة.
+ * - أزرار سريعة لمسح مستند جديد أو تعديل المجموعة.
+ */
 @Composable
 fun ResultScreen(
     state: PhotoUiState,
@@ -40,12 +61,13 @@ fun ResultScreen(
     onExportPdf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val processMax = state.progressMax.coerceAtLeast(1)
-    val processFraction = (state.progress.toFloat() / processMax).coerceIn(0f, 1f)
-    val animatedProcessProgress by animateFloatAsState(
-        targetValue = processFraction,
-        label = "processingProgress"
+    val progressMax = state.progressMax.coerceAtLeast(1)
+    val progressFraction = (state.progress.toFloat() / progressMax).coerceIn(0f, 1f)
+    val animatedProgress by animateFloatAsState(
+        targetValue = progressFraction,
+        label = "saveProgress"
     )
+
     val exportMax = state.exportProgressMax.coerceAtLeast(1)
     val exportFraction = (state.exportProgress.toFloat() / exportMax).coerceIn(0f, 1f)
     val animatedExportProgress by animateFloatAsState(
@@ -53,301 +75,363 @@ fun ResultScreen(
         label = "exportProgress"
     )
 
-    val statusTitle = when {
-        state.busy -> "جاري معالجة الصور وتجهيزها للتصدير..."
-        state.savedCount > 0 && state.errors.isNotEmpty() -> "انتهت المعالجة مع بعض الأخطاء"
-        state.savedCount > 0 -> "المعالجة اكتملت — اختار صيغة التصدير"
-        state.errors.isNotEmpty() -> "تعذّرت معالجة بعض الصور"
-        else -> "جاهز لبدء المعالجة"
-    }
-    val statusContainer = when {
-        state.busy -> MaterialTheme.colorScheme.secondaryContainer
-        state.errors.isNotEmpty() -> MaterialTheme.colorScheme.errorContainer
-        state.savedCount > 0 -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val statusContent = when {
-        state.busy -> MaterialTheme.colorScheme.onSecondaryContainer
-        state.errors.isNotEmpty() -> MaterialTheme.colorScheme.onErrorContainer
-        state.savedCount > 0 -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val selectedCount = state.processedImages.count { it.id in state.selectedExportIds }
-    val allSelected = state.processedImages.isNotEmpty() &&
-        selectedCount == state.processedImages.size
-
-    Card(
+    Column(
         modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        if (state.busy) {
+            // واجهة المعالجة الحية أثناء التحسين
+            ProcessingStateCard(
+                progress = animatedProgress,
+                current = state.progress,
+                total = progressMax,
+                status = state.status
+            )
+        } else {
+            // واجهة النجاح والتصدير بنمط CamScanner
+            SuccessExportCard(
+                state = state,
+                total = progressMax,
+                animatedExportProgress = animatedExportProgress,
+                exportMax = exportMax,
+                onExportPdf = onExportPdf,
+                onExportImages = onExportImages,
+                onBackToAdjust = onBackToAdjust,
+                onPickNewBatch = onPickNewBatch
+            )
+        }
+    }
+}
+
+/**
+ * بطاقة عرض التقدم أثناء المعالجة
+ */
+@Composable
+private fun ProcessingStateCard(
+    progress: Float,
+    current: Int,
+    total: Int,
+    status: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            StepHeading(
-                number = 4,
-                title = "الحفظ والتصدير",
-                subtitle = "اختار الصور المطلوبة، وبعدها صدّرها كصور منفصلة أو كملف PDF."
+            CircularProgressIndicator(
+                modifier = Modifier.size(54.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 4.dp
             )
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = statusContainer
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = statusTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = statusContent
-                    )
-                    Text(
-                        text = state.status,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = statusContent
-                    )
-                }
-            }
-
-            if (state.busy || state.progress > 0 || state.savedCount > 0 || state.errors.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "تم تجهيز ${state.savedCount} من أصل $processMax صورة",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${(animatedProcessProgress * 100).roundToInt()}%",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    if (state.busy || state.progress > 0) {
-                        LinearProgressIndicator(
-                            progress = animatedProcessProgress,
-                            modifier = Modifier.fillMaxWidth().height(8.dp)
-                        )
-                    }
-                }
-            }
-
-            if (state.errors.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "صور لم تكتمل معالجتها:",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        state.errors.forEach { item ->
-                            Text(
-                                text = "• $item",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = "اختار الصور المراد تصديرها",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            if (state.processedImages.isEmpty()) {
                 Text(
-                    text = if (state.busy) {
-                        "هتظهر الصور هنا أول ما تخلص معالجتها."
-                    } else {
-                        "مفيش صور جاهزة للتصدير حتى الآن. راجع حالة المعالجة والأخطاء بالأعلى."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "جاري تحسين وحفظ المستندات...",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
-            } else {
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "المحدد: $selectedCount من ${state.processedImages.size}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "المستند $current من $total",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    TextButton(
-                        onClick = { onSelectAllExportImages(!allSelected) },
-                        enabled = !state.busy && !state.exportBusy
-                    ) {
-                        Text(if (allSelected) "إلغاء تحديد الكل" else "تحديد الكل")
-                    }
+                    Text(
+                        text = "${(progress * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
-                state.processedImages.forEachIndexed { index, item ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
+            }
+        }
+    }
+}
+
+/**
+ * بطاقة الإنجاز والتصدير بعد اكتمال التحسين
+ */
+@Composable
+private fun SuccessExportCard(
+    state: PhotoUiState,
+    total: Int,
+    animatedExportProgress: Float,
+    exportMax: Int,
+    onExportPdf: () -> Unit,
+    onExportImages: () -> Unit,
+    onBackToAdjust: () -> Unit,
+    onPickNewBatch: () -> Unit
+) {
+    val isSuccess = state.savedCount > 0
+    val finalPreview = state.resultPreview ?: state.enhancedPreview ?: state.sourcePreview
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // شارة النجاح
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSuccess) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.errorContainer
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isSuccess) "✓" else "⚠️",
+                    fontSize = 32.sp,
+                    color = if (isSuccess) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = if (isSuccess) "تم تحسين المستندات بنجاح 🎉" else "تعذّر حفظ المستندات",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = if (isSuccess) "جاهزة للتصدير كملف PDF أو حفظ كصور عالية الدقة."
+                    else state.status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // معاينة سريعة للمستند النهائي
+            if (finalPreview != null && !finalPreview.isRecycled) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.65f)
+                        .aspectRatio(1.25f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF14171C))
+                        .border(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            RoundedCornerShape(14.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        bitmap = finalPreview.asImageBitmap(),
+                        contentDescription = "المستند النهائي",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        filterQuality = FilterQuality.Medium
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 6.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.Black.copy(alpha = 0.70f)
+                    ) {
+                        Text(
+                            text = "جودة كاملة ✓",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+
+            // أزرار التصدير بنمط CamScanner (PDF + صور)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "خيارات التصدير السريعة",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // تصدير PDF
+                    Button(
+                        onClick = onExportPdf,
+                        enabled = !state.exportBusy && isSuccess,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Checkbox(
-                                checked = item.id in state.selectedExportIds,
-                                onCheckedChange = { checked -> onToggleExportImage(item.id, checked) },
-                                enabled = !state.busy && !state.exportBusy
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f).padding(vertical = 7.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Text(
-                                    text = "الصورة ${index + 1}",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = item.displayName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            Text("📄", fontSize = 17.sp)
+                            Text("مستند PDF", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // تصدير صور
+                    OutlinedButton(
+                        onClick = onExportImages,
+                        enabled = !state.exportBusy && isSuccess,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("🖼️", fontSize = 17.sp)
+                            Text("حفظ كصور", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onExportImages,
-                        enabled = selectedCount > 0 && !state.busy && !state.exportBusy,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
+                // تقدم التصدير إن وجد
+                if (state.exportBusy || state.exportProgress > 0) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Text("تصدير كصور")
-                    }
-                    Button(
-                        onClick = onExportPdf,
-                        enabled = selectedCount > 0 && !state.busy && !state.exportBusy,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("تصدير PDF", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            if (state.exportBusy || state.exportProgress > 0 || state.exportedCount > 0 || state.exportErrors.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (state.exportErrors.isNotEmpty())
-                            MaterialTheme.colorScheme.errorContainer
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = if (state.exportBusy) "جاري التصدير..." else "حالة التصدير",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = state.exportStatus,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        if (state.exportBusy || state.exportProgress > 0) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Text(
-                                text = "التقدم: ${state.exportProgress.coerceAtMost(exportMax)} من $exportMax",
+                                text = state.exportStatus,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontWeight = FontWeight.SemiBold
                             )
                             LinearProgressIndicator(
                                 progress = animatedExportProgress,
-                                modifier = Modifier.fillMaxWidth().height(8.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
                             )
-                        }
-                        if (state.exportErrors.isNotEmpty()) {
-                            Text(
-                                text = "أخطاء التصدير:",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            state.exportErrors.forEach { message ->
-                                Text(
-                                    text = "• $message",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
                         }
                     }
                 }
             }
 
-            if (!state.busy && !state.exportBusy) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            // مسارات الحفظ
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Text(
+                    text = "📁 الصور في Pictures/PhotoUnifier • ملفات PDF في Documents/PhotoUnifier",
+                    modifier = Modifier.padding(10.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // أزرار المتابعة وإنشاء مستند جديد
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onPickNewBatch,
+                    enabled = !state.exportBusy,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
-                    OutlinedButton(
-                        onClick = onBackToAdjust,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("الرجوع للمعاينة")
-                    }
-                    Button(
-                        onClick = onPickNewBatch,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("مجموعة جديدة", fontWeight = FontWeight.Bold)
-                    }
+                    Text(
+                        text = "+ مسح / استيراد مستند جديد",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onBackToAdjust,
+                    enabled = !state.exportBusy,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "الرجوع لتعديل الفلاتر",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
-
-            Text(
-                text = "الصور الأصلية بتفضل كما هي. الصور المصدّرة بتتحفظ في Pictures/PhotoUnifier، وملفات PDF في Documents/PhotoUnifier.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
