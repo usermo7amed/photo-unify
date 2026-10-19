@@ -270,7 +270,7 @@ fun CropResultPreview(
             Box(
                 modifier = Modifier
                     .size(width = 64.dp, height = 78.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
