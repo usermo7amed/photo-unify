@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -159,91 +160,102 @@ fun CropWorkspaceView(
     onEnsurePageThumbnail: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-            ) {
-                Text(
-                    text = "ضبط زوايا المستند",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "حرّك الزوايا حول الورقة. اسحب للتعديل ثم احفظ الصفحة.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            ValuePill("صفحة ${state.previewIndex + 1} / ${state.selected.size}")
-        }
-
-        if (state.cropSource != null && !state.cropSource.isRecycled) {
-            CropCornerEditor(
-                bitmap = state.cropSource,
-                corners = state.cropCorners,
-                onMoveCorner = onMoveCropCorner,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .heightIn(min = 160.dp)
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compactLayout = maxHeight < 500.dp
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
             )
-        } else {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .heightIn(min = 160.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                ) {
                     Text(
-                        text = "جاري تجهيز معاينة الصفحة...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "ضبط زوايا المستند",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "اسحب الزوايا لضبط حدود الورقة.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+                ValuePill("صفحة ${state.previewIndex + 1} / ${state.selected.size}")
+            }
+
+            if (state.cropSource != null && !state.cropSource.isRecycled) {
+                CropCornerEditor(
+                    bitmap = state.cropSource,
+                    corners = state.cropCorners,
+                    onMoveCorner = onMoveCropCorner,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .heightIn(min = if (compactLayout) 108.dp else 160.dp)
+                )
+            } else {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .heightIn(min = if (compactLayout) 108.dp else 160.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "جاري تجهيز معاينة الصفحة...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            CropPreviewStrip(bitmap = state.cropPreview, compact = compactLayout)
+
+            if (state.cropDirty) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = "تعديلات غير محفوظة — احفظها أو ألغِ التعديل.",
+                        modifier = Modifier.padding(
+                            horizontal = PhotoUnifierSpacing.xs,
+                            vertical = PhotoUnifierSpacing.xxs
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
+
+            DocumentPageThumbnailStrip(
+                state = state,
+                onSelectPage = onSelectPage,
+                onEnsureThumbnail = onEnsurePageThumbnail,
+                enabled = !state.cropApplying && !state.busy && !state.cropDirty,
+                compact = compactLayout
+            )
         }
-
-        CropPreviewStrip(bitmap = state.cropPreview)
-
-        if (state.cropDirty) {
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.errorContainer
-            ) {
-                Text(
-                    text = "تعديلات غير محفوظة. احفظ الصفحة لتثبيتها، أو ألغِ التعديل للرجوع دون حفظه.",
-                    modifier = Modifier.padding(
-                        horizontal = PhotoUnifierSpacing.sm,
-                        vertical = PhotoUnifierSpacing.xxs
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-        }
-
-        DocumentPageThumbnailStrip(
-            state = state,
-            onSelectPage = onSelectPage,
-            onEnsureThumbnail = onEnsurePageThumbnail,
-            enabled = !state.cropApplying && !state.busy && !state.cropDirty
-        )
     }
 }
 
 @Composable
-private fun CropPreviewStrip(bitmap: android.graphics.Bitmap?) {
+private fun CropPreviewStrip(
+    bitmap: android.graphics.Bitmap?,
+    compact: Boolean
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.small,
@@ -252,13 +264,16 @@ private fun CropPreviewStrip(bitmap: android.graphics.Bitmap?) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PhotoUnifierSpacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
+                .padding(if (compact) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(width = 42.dp, height = 54.dp)
+                    .size(
+                        width = if (compact) 34.dp else 42.dp,
+                        height = if (compact) 44.dp else 54.dp
+                    )
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
@@ -296,7 +311,9 @@ private fun CropPreviewStrip(bitmap: android.graphics.Bitmap?) {
                         "ستظهر النتيجة بعد تجهيز المعاينة."
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (compact) 1 else 2,
+                    softWrap = !compact
                 )
             }
         }
@@ -308,9 +325,12 @@ private fun DocumentPageThumbnailStrip(
     state: PhotoUiState,
     onSelectPage: (Int) -> Unit,
     onEnsureThumbnail: (Int) -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    compact: Boolean
 ) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)) {
+    val thumbnailWidth = if (compact) 58.dp else 72.dp
+    val thumbnailHeight = if (compact) 64.dp else 82.dp
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -330,13 +350,13 @@ private fun DocumentPageThumbnailStrip(
                 val isCurrent = index == state.previewIndex
                 val isEdited = state.cropEdits.containsKey(uri)
                 Column(
-                    modifier = Modifier.width(72.dp).clickable(enabled = enabled, role = Role.Button) { onSelectPage(index) },
+                    modifier = Modifier.width(thumbnailWidth).clickable(enabled = enabled, role = Role.Button) { onSelectPage(index) },
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(width = 72.dp, height = 82.dp)
+                            .size(width = thumbnailWidth, height = thumbnailHeight)
                             .clip(MaterialTheme.shapes.small)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(
