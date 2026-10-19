@@ -52,6 +52,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val imagePreviewGeneration = AtomicInteger(0)
     private val cropGeneration = AtomicInteger(0)
     private val selectionGeneration = AtomicInteger(0)
+    private val thumbnailRequests = mutableSetOf<Uri>()
     private val mutableState = MutableLiveData(PhotoUiState())
     val state: LiveData<PhotoUiState> = mutableState
     @Volatile private var currentState = PhotoUiState()
