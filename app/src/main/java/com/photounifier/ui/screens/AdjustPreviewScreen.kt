@@ -53,8 +53,49 @@ fun AdjustPreviewScreen(
             StepHeading(
                 number = 3,
                 title = "معاينة وضبط الإضاءة والتباين",
-                subtitle = "قارن الصورة الأصلية بالنسخة المحسّنة مباشرة، واضبط الإضاءة قبل الحفظ النهائي."
+                subtitle = "قارن الأصل بنتيجة التحسين، واضبط الصورة قبل حفظها."
             )
+
+            // One-tap controls remain near the top so the most common adjustments
+            // do not require scrolling past the detailed comparison controls.
+            SectionHeading(
+                title = "ضبط سريع",
+                subtitle = "اختصارات للسطوع والتباين؛ تقدر تكمل الضبط الدقيق من المؤشرات بالأسفل."
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = { onBrightnessChange(15) },
+                    enabled = !state.busy && state.sourcePreview != null,
+                    modifier = Modifier.weight(1f).height(42.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("تفتيح +15", style = MaterialTheme.typography.labelMedium)
+                }
+                OutlinedButton(
+                    onClick = { onContrastChange(115) },
+                    enabled = !state.busy && state.sourcePreview != null,
+                    modifier = Modifier.weight(1f).height(42.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("تباين 115%", style = MaterialTheme.typography.labelMedium)
+                }
+                OutlinedButton(
+                    onClick = {
+                        onBrightnessChange(0)
+                        onContrastChange(100)
+                    },
+                    enabled = !state.busy && state.sourcePreview != null &&
+                        (state.brightness != 0 || state.contrastPercent != 100),
+                    modifier = Modifier.weight(1f).height(42.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("طبيعي", style = MaterialTheme.typography.labelMedium)
+                }
+            }
 
             // Multiple image selector controls
             if (state.selected.size > 1) {
@@ -73,7 +114,7 @@ fun AdjustPreviewScreen(
                     subtitle = "اسحب الفاصل يميناً ويساراً مباشرة، أو المس مطولاً لرؤية الأصل."
                 )
 
-                if (state.sourcePreview != null) {
+                if (state.sourcePreview != null && state.enhancedPreview != null) {
                     BeforeAfterPreview(
                         source = state.sourcePreview,
                         enhanced = state.resultPreview ?: state.enhancedPreview,
@@ -91,10 +132,20 @@ fun AdjustPreviewScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
+                            val previewMessage = when {
+                                state.sourcePreview == null ->
+                                    "جاري تجهيز معاينة الصورة ${state.previewIndex + 1}..."
+                                state.status.startsWith("تعذر تجهيز معاينة التحسين") ->
+                                    state.status
+                                else ->
+                                    "جاري تجهيز نتيجة التحسين للمقارنة..."
+                            }
                             Text(
-                                text = "جاري تجهيز معاينة الصورة ${state.previewIndex + 1}...",
+                                text = previewMessage,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     }
