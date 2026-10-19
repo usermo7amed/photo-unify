@@ -239,7 +239,7 @@ private fun SuccessExportCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = if (isSuccess) "تم تحسين المستندات بنجاح 🎉" else "تعذّر حفظ المستندات",
+                    text = if (isSuccess) "تم تحسين المستندات بنجاح" else "تعذّر حفظ المستندات",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -326,7 +326,7 @@ private fun SuccessExportCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("📄", fontSize = 17.sp)
+                            Text("PDF", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             Text("مستند PDF", fontWeight = FontWeight.Bold)
                         }
                     }
@@ -344,7 +344,7 @@ private fun SuccessExportCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("🖼️", fontSize = 17.sp)
+                            Text("JPG", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             Text("حفظ كصور", fontWeight = FontWeight.Bold)
                         }
                     }
@@ -385,7 +385,7 @@ private fun SuccessExportCard(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Text(
-                    text = "📁 الصور في Pictures/PhotoUnifier • ملفات PDF في Documents/PhotoUnifier",
+                    text = "الصور في Pictures/PhotoUnifier • ملفات PDF في Documents/PhotoUnifier",
                     modifier = Modifier.padding(10.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
