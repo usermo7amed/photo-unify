@@ -406,7 +406,7 @@ object Processor {
         // Correct illumination on the luminance channel only; keep Lab a/b, hence ink
         // and coloured stamps retain their hue instead of becoming grayscale.
         removePaperShadows(pool, channels[0])
-        applyClahe(pool, channels[0], 1.45)
+        applyClahe(channels[0], 1.45)
         Core.merge(channels, lab)
         val rgb = pool.mat()
         Imgproc.cvtColor(lab, rgb, Imgproc.COLOR_Lab2RGB)
@@ -463,7 +463,7 @@ object Processor {
         Imgproc.cvtColor(source, lab, Imgproc.COLOR_RGB2Lab)
         val channels = pool.split(lab)
         localToneMap(pool, channels[0], posterConfig)
-        applyClahe(pool, channels[0], posterConfig.claheClip)
+        applyClahe(channels[0], posterConfig.claheClip)
         Core.merge(channels, lab)
         val rgb = pool.mat()
         Imgproc.cvtColor(lab, rgb, Imgproc.COLOR_Lab2RGB)
@@ -499,7 +499,7 @@ object Processor {
         Imgproc.cvtColor(rgb, lab, Imgproc.COLOR_RGB2Lab)
         val channels = pool.split(lab)
         localToneMap(pool, channels[0], config)
-        applyClahe(pool, channels[0], config.claheClip)
+        applyClahe(channels[0], config.claheClip)
         Core.merge(channels, lab)
         Imgproc.cvtColor(lab, rgb, Imgproc.COLOR_Lab2RGB)
         boostSaturation(pool, rgb, config.saturation)
@@ -595,7 +595,7 @@ object Processor {
         normalized.convertTo(luminance, CvType.CV_8U, 255.0, 0.5)
     }
 
-    private fun applyClahe(pool: Pool, luminance: Mat, clipLimit: Double) {
+    private fun applyClahe(luminance: Mat, clipLimit: Double) {
         val clahe = Imgproc.createCLAHE(clipLimit, Size(8.0, 8.0))
         try {
             clahe.apply(luminance, luminance)

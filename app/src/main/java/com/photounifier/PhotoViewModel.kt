@@ -455,10 +455,11 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     mapNormalizedCropPoints(it, rotated.width, rotated.height)
                 } ?: detectedCorners ?: DocumentCrop.fullFrame(rotated.width, rotated.height)
 
-                previewSource = createCropPreviewSource(rotated)
+                val cropPreviewSrc = createCropPreviewSource(rotated)
+                previewSource = cropPreviewSrc
                 preview = DocumentCrop.warp(
-                    previewSource!!,
-                    mapCropPoints(rotated, previewSource!!, corners),
+                    cropPreviewSrc,
+                    mapCropPoints(rotated, cropPreviewSrc, corners),
                     Processor.PREVIEW_MAX_SIDE
                 )
 
@@ -537,10 +538,11 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 val context = getApplication<Application>().applicationContext
                 val corners = DocumentCrop.detect(rotatedBitmap, context)
                     ?: DocumentCrop.fullFrame(rotatedBitmap.width, rotatedBitmap.height)
-                previewSource = createCropPreviewSource(rotatedBitmap)
+                val cropPreviewSrc = createCropPreviewSource(rotatedBitmap)
+                previewSource = cropPreviewSrc
                 preview = DocumentCrop.warp(
-                    previewSource!!,
-                    mapCropPoints(rotatedBitmap, previewSource!!, corners),
+                    cropPreviewSrc,
+                    mapCropPoints(rotatedBitmap, cropPreviewSrc, corners),
                     Processor.PREVIEW_MAX_SIDE
                 )
 

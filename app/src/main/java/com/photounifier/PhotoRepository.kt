@@ -57,7 +57,7 @@ class PhotoRepository {
                             Processor.load(context, uri)
                         }
                         if (pageEdit != null) {
-                            var editedSource = source ?: throw IllegalStateException("تعذر تحميل الصورة")
+                            var editedSource: Bitmap = source ?: throw IllegalStateException("تعذر تحميل الصورة")
                             val rotated = rotatePageBitmap(editedSource, pageEdit.rotationDegrees)
                             if (rotated !== editedSource) {
                                 if (!editedSource.isRecycled) editedSource.recycle()

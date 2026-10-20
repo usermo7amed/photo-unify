@@ -130,7 +130,6 @@ internal fun BeforeAfterPreview(
                 }
         ) {
             val componentWidth = constraints.maxWidth.toFloat()
-            val componentHeight = constraints.maxHeight.toFloat()
 
             if (safeSource != null) {
                 Canvas(

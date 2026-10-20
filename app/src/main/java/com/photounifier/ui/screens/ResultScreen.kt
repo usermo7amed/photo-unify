@@ -123,9 +123,7 @@ fun ResultScreen(
             // واجهة النجاح والتصدير بنمط CamScanner
             SuccessExportCard(
                 state = state,
-                total = progressMax,
                 animatedExportProgress = animatedExportProgress,
-                exportMax = exportMax,
                 onExportPdf = onExportPdf,
                 onExportImages = onExportImages,
                 onToggleExportImage = onToggleExportImage,
@@ -216,7 +214,7 @@ private fun ProcessingStateCard(
                 }
 
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(PhotoUnifierHeight.progressBar)
@@ -233,9 +231,7 @@ private fun ProcessingStateCard(
 @Composable
 private fun SuccessExportCard(
     state: PhotoUiState,
-    total: Int,
     animatedExportProgress: Float,
-    exportMax: Int,
     onExportPdf: () -> Unit,
     onExportImages: () -> Unit,
     onToggleExportImage: (String, Boolean) -> Unit,
@@ -558,7 +554,7 @@ private fun SuccessExportCard(
                             )
                             if (state.exportBusy) {
                                 LinearProgressIndicator(
-                                    progress = animatedExportProgress,
+                                    progress = { animatedExportProgress },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(PhotoUnifierHeight.progressBar)
