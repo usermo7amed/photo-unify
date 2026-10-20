@@ -218,10 +218,12 @@ private fun PhotoUnifierScreen(
     val layoutDirection = LocalLayoutDirection.current
 
     BackHandler(
-        enabled = currentStep > 0 && !state.busy && !state.exportBusy &&
-            !state.cropApplying && !isCropWorkspace
+        enabled = currentStep > 0 && !state.cropApplying && !isCropWorkspace
     ) {
-        currentStep = (currentStep - 1).coerceAtLeast(0)
+        // Keep long-running work on screen; the system Back press is consumed while it is active.
+        if (!state.busy && !state.exportBusy) {
+            currentStep = (currentStep - 1).coerceAtLeast(0)
+        }
     }
 
     // Keep the home screen visible when selection is empty
