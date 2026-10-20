@@ -96,7 +96,7 @@ private data class FilterPreset(
 private val ScannerFilterPresets = listOf(
     FilterPreset(
         id = "magic",
-        badge = "AI",
+        badge = "DOC",
         title = "تفتيح ذكي",
         subtitle = "تنقية الورق وإبراز الخط",
         brightness = 18,
@@ -296,20 +296,6 @@ fun AdjustPreviewScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
-                    if (activePreset != null && activePreset.id != "original") {
-                        Surface(
-                            shape = RoundedCornerShape(PhotoUnifierRadius.xs),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        ) {
-                            Text(
-                                text = activePreset.title,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
                 }
 
                 GlassmorphicButton(
