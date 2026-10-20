@@ -500,8 +500,7 @@ private fun DocumentPageThumbnailStrip(
                             )
                         } else {
                             Text(
-                                "صفحة
-${index + 1}",
+                                "صفحة ${index + 1}",
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
