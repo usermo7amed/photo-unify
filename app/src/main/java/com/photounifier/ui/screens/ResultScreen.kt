@@ -47,6 +47,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.PhotoUiState
+import com.photounifier.ui.PhotoUnifierDuration
+import com.photounifier.ui.PhotoUnifierElevation
+import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.PhotoUnifierRadius
+import com.photounifier.ui.PhotoUnifierSpacing
 import kotlin.math.roundToInt
 
 /**
@@ -82,7 +87,7 @@ fun ResultScreen(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
     ) {
         if (state.busy) {
             // واجهة المعالجة الحية أثناء التحسين
@@ -407,8 +412,8 @@ private fun SuccessExportCard(
                         enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                         modifier = Modifier
                             .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
+                            .height(PhotoUnifierHeight.buttonSecondary),
+                        shape = MaterialTheme.shapes.large,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -416,7 +421,7 @@ private fun SuccessExportCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                         ) {
                             Text("PDF", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             Text("مستند PDF", fontWeight = FontWeight.Bold)
@@ -429,12 +434,12 @@ private fun SuccessExportCard(
                         enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                         modifier = Modifier
                             .weight(1f)
-                            .height(52.dp),
-                        shape = RoundedCornerShape(14.dp)
+                            .height(PhotoUnifierHeight.buttonSecondary),
+                        shape = MaterialTheme.shapes.large
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                         ) {
                             Text("JPG", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             Text("حفظ كصور", fontWeight = FontWeight.Bold)
@@ -448,12 +453,12 @@ private fun SuccessExportCard(
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.small,
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(PhotoUnifierSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                         ) {
                             Text(
                                 text = state.exportStatus,
@@ -465,8 +470,8 @@ private fun SuccessExportCard(
                                     progress = animatedExportProgress,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp))
+                                        .height(PhotoUnifierHeight.progressBar)
+                                        .clip(MaterialTheme.shapes.extraSmall)
                                 )
                             } else {
                                 Text(
@@ -486,12 +491,12 @@ private fun SuccessExportCard(
             if (state.exportErrors.isNotEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.padding(PhotoUnifierSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                     ) {
                         Text(
                             text = "تعذّر تصدير بعض العناصر",
@@ -519,12 +524,12 @@ private fun SuccessExportCard(
             // مسارات الحفظ
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Text(
                     text = "الصور في Pictures/PhotoUnifier • ملفات PDF في Documents/PhotoUnifier",
-                    modifier = Modifier.padding(10.dp),
+                    modifier = Modifier.padding(PhotoUnifierSpacing.sm),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -534,15 +539,15 @@ private fun SuccessExportCard(
             // أزرار المتابعة وإنشاء مستند جديد
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Button(
                     onClick = onPickNewBatch,
                     enabled = !state.exportBusy,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
+                        .height(PhotoUnifierHeight.buttonSecondary),
+                    shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
@@ -560,8 +565,8 @@ private fun SuccessExportCard(
                     enabled = !state.exportBusy,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .height(PhotoUnifierHeight.buttonTertiary),
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Text(
                         text = "الرجوع لتعديل الفلاتر",
