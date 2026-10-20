@@ -226,11 +226,6 @@ private fun ActiveBatchDashboard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = if (state.selected.size == 1) "صورة واحدة" else "${state.selected.size} صور",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
             TextButton(
