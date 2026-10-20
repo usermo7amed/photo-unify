@@ -22,12 +22,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,6 +41,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.PhotoUiState
@@ -96,6 +99,8 @@ fun ResultScreen(
                 exportMax = exportMax,
                 onExportPdf = onExportPdf,
                 onExportImages = onExportImages,
+                onToggleExportImage = onToggleExportImage,
+                onSelectAllExportImages = onSelectAllExportImages,
                 onBackToAdjust = onBackToAdjust,
                 onPickNewBatch = onPickNewBatch
             )
@@ -195,6 +200,8 @@ private fun SuccessExportCard(
     exportMax: Int,
     onExportPdf: () -> Unit,
     onExportImages: () -> Unit,
+    onToggleExportImage: (String, Boolean) -> Unit,
+    onSelectAllExportImages: (Boolean) -> Unit,
     onBackToAdjust: () -> Unit,
     onPickNewBatch: () -> Unit
 ) {
@@ -294,6 +301,86 @@ private fun SuccessExportCard(
                 }
             }
 
+            // اختَر العناصر المراد تصديرها. الاحتفاظ بالفاشلة محددة يجعل إعادة المحاولة واضحة وآمنة.
+            if (state.processedImages.isNotEmpty()) {
+                val allExportImagesSelected = state.processedImages.all {
+                    it.id in state.selectedExportIds
+                }
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = "الصور الجاهزة للتصدير",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${state.selectedExportIds.size} من ${state.processedImages.size} صور محددة",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            TextButton(
+                                onClick = { onSelectAllExportImages(!allExportImagesSelected) },
+                                enabled = !state.exportBusy
+                            ) {
+                                Text(if (allExportImagesSelected) "إلغاء تحديد الكل" else "تحديد الكل")
+                            }
+                        }
+
+                        state.processedImages.forEach { image ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = image.id in state.selectedExportIds,
+                                    onCheckedChange = { selected ->
+                                        onToggleExportImage(image.id, selected)
+                                    },
+                                    enabled = !state.exportBusy
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(vertical = 6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = image.displayName,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = if (image.id in state.selectedExportIds)
+                                            "محددة للتصدير" else "غير محددة",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // أزرار التصدير بنمط CamScanner (PDF + صور)
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -312,7 +399,7 @@ private fun SuccessExportCard(
                     // تصدير PDF
                     Button(
                         onClick = onExportPdf,
-                        enabled = !state.exportBusy && isSuccess,
+                        enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
@@ -334,7 +421,7 @@ private fun SuccessExportCard(
                     // تصدير صور
                     OutlinedButton(
                         onClick = onExportImages,
-                        enabled = !state.exportBusy && isSuccess,
+                        enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
@@ -350,8 +437,10 @@ private fun SuccessExportCard(
                     }
                 }
 
-                // تقدم التصدير إن وجد
-                if (state.exportBusy || state.exportProgress > 0) {
+                // حالة التصدير: يظل وصف النتيجة ظاهرًا، بينما يظهر الشريط فقط أثناء العمل.
+                if (state.exportBusy || state.exportProgress > 0 ||
+                    state.exportErrors.isNotEmpty() || state.exportStatus != "جاهز للتصدير"
+                ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -366,13 +455,23 @@ private fun SuccessExportCard(
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
                             )
-                            LinearProgressIndicator(
-                                progress = animatedExportProgress,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                            )
+                            if (state.exportBusy) {
+                                LinearProgressIndicator(
+                                    progress = animatedExportProgress,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                )
+                            } else {
+                                Text(
+                                    text = if (state.exportErrors.isEmpty())
+                                        "اكتمل التصدير." else "انتهى التصدير مع إخفاقات؛ تقدر تعيد المحاولة.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (state.exportErrors.isEmpty())
+                                        MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                     }
                 }
