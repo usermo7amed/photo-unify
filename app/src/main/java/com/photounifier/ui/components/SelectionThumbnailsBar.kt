@@ -82,15 +82,15 @@ fun SelectionThumbnailsBar(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(
-                text = "الصورة ${currentIndex + 1} من ${selectedUris.size}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            ValuePill("الصورة ${currentIndex + 1} من ${selectedUris.size}")
         }
 
         if (thumbnails.isEmpty() && selectedUris.isNotEmpty()) {
             LazyRow(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
+                    .padding(PhotoUnifierSpacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -100,6 +100,10 @@ fun SelectionThumbnailsBar(
             }
         } else {
             LazyRow(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
+                    .padding(PhotoUnifierSpacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -111,7 +115,7 @@ fun SelectionThumbnailsBar(
                 val isCurrent = currentIndex == selectedIndex
 
                 val scale by animateFloatAsState(
-                    targetValue = if (isCurrent) 1.08f else 1f,
+                    targetValue = if (isCurrent) 1.04f else 1f,
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMedium
@@ -199,12 +203,12 @@ fun SelectionThumbnailsBar(
                         ) {
                             IconButton(
                                 onClick = { onRemoveUri(thumbnail.uri) },
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
                                     contentDescription = "إزالة الصورة ${selectedIndex + 1}",
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(16.dp),
                                     tint = Color.White
                                 )
                             }

@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.photounifier.ui.PhotoUnifierTheme
+import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.components.StepProgress
 import com.photounifier.ui.screens.AdjustPreviewScreen
 import com.photounifier.ui.screens.CropReviewCard
@@ -298,8 +299,8 @@ private fun PhotoUnifierScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
                 )
             )
         },
@@ -318,21 +319,21 @@ private fun PhotoUnifierScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                         .border(
                             1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.30f),
-                            RoundedCornerShape(22.dp)
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f),
+                            MaterialTheme.shapes.extraLarge
                         ),
-                    shape = RoundedCornerShape(22.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 8.dp
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 3.dp
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
@@ -340,8 +341,8 @@ private fun PhotoUnifierScreen(
                             enabled = !state.busy && !state.cropApplying,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp)
+                                .height(PhotoUnifierHeight.buttonSecondary),
+                            shape = MaterialTheme.shapes.extraLarge
                         ) {
                             Text("السابق")
                         }
@@ -351,8 +352,8 @@ private fun PhotoUnifierScreen(
                             enabled = !state.busy && !state.cropApplying,
                             modifier = Modifier
                                 .weight(1.3f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp)
+                                .height(PhotoUnifierHeight.buttonPrimary),
+                            shape = MaterialTheme.shapes.extraLarge
                         ) {
                             Text("التالي: الضبط والمعاينة", fontWeight = FontWeight.Bold)
                         }
