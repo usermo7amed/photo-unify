@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.photounifier.ui.PhotoUnifierTheme
+import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.components.StepProgress
 import com.photounifier.ui.screens.AdjustPreviewScreen
 import com.photounifier.ui.screens.CropReviewCard
