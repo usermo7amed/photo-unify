@@ -40,6 +40,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.components.SelectionThumbnailsBar
+import com.photounifier.ui.PhotoUnifierDuration
+import com.photounifier.ui.PhotoUnifierElevation
+import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierSpacing
 
 /**
@@ -98,7 +102,7 @@ private fun EmptyScanDashboard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.low)
     ) {
         Column(
             modifier = Modifier
@@ -108,7 +112,7 @@ private fun EmptyScanDashboard(
             verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
         ) {
             Surface(
-                modifier = Modifier.size(60.dp),
+                modifier = Modifier.size(PhotoUnifierIconSize.hero),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -153,7 +157,7 @@ private fun EmptyScanDashboard(
                     enabled = enabled,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
+                        .height(PhotoUnifierHeight.buttonPrimary),
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -167,7 +171,7 @@ private fun EmptyScanDashboard(
                         Icon(
                             imageVector = Icons.Filled.CameraAlt,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(PhotoUnifierIconSize.md)
                         )
                         Text(
                             text = "مسح بالكاميرا",
@@ -182,7 +186,7 @@ private fun EmptyScanDashboard(
                     enabled = enabled,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(PhotoUnifierHeight.buttonSecondary),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
@@ -192,7 +196,7 @@ private fun EmptyScanDashboard(
                         Icon(
                             imageVector = Icons.Filled.PhotoLibrary,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(PhotoUnifierIconSize.sm)
                         )
                         Text(
                             text = "استيراد من المعرض",
@@ -254,7 +258,7 @@ private fun ActiveBatchDashboard(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.low)
         ) {
             Column(
                 modifier = Modifier
@@ -309,7 +313,7 @@ private fun ActiveBatchDashboard(
             enabled = enabled && state.selected.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp),
+                .height(PhotoUnifierHeight.buttonPrimary),
             shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -323,7 +327,7 @@ private fun ActiveBatchDashboard(
                 Icon(
                     imageVector = Icons.Filled.Crop,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(PhotoUnifierIconSize.md)
                 )
                 Text(
                     text = "مراجعة القص والتحسين",
@@ -352,7 +356,7 @@ private fun ActiveBatchDashboard(
                     Icon(
                         imageVector = Icons.Filled.CameraAlt,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
                     )
                     Text("تصوير صفحة", style = MaterialTheme.typography.labelMedium)
                 }
@@ -373,7 +377,7 @@ private fun ActiveBatchDashboard(
                     Icon(
                         imageVector = Icons.Filled.PhotoLibrary,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
                     )
                     Text("من المعرض", style = MaterialTheme.typography.labelMedium)
                 }
