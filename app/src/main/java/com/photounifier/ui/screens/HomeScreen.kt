@@ -66,7 +66,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
     ) {
         if (state.selected.isEmpty()) {
@@ -167,8 +167,8 @@ private fun ActiveBatchDashboard(
     enabled: Boolean
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -195,22 +195,22 @@ private fun ActiveBatchDashboard(
         }
 
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.low)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(PhotoUnifierSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
+                    .fillMaxSize()
+                    .padding(PhotoUnifierSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 val preview = state.sourcePreview
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1.15f)
+                        .weight(1f)
                         .clip(MaterialTheme.shapes.medium)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
