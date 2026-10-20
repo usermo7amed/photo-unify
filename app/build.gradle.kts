@@ -1,4 +1,6 @@
 import java.io.File
+import java.io.IOException
+import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 
@@ -10,13 +12,14 @@ plugins {
 val fairScanAssetsDir = layout.buildDirectory.dir("generated/fairscanAssets")
 val fairScanModelFile = fairScanAssetsDir.map { it.file("fairscan-segmentation-model.tflite") }
 val fairScanLicenseFile = fairScanAssetsDir.map { it.file("FAIRSCAN-LICENSE.txt") }
+val bundledLicenseFile = layout.projectDirectory.file("fairscan/FAIRSCAN-LICENSE.txt")
 
 val prepareFairScanModel by tasks.registering {
     // Re-check the cached file's digest every build; download only if absent or invalid.
     outputs.files(fairScanModelFile, fairScanLicenseFile)
     outputs.upToDateWhen { false }
     doLast {
-        val assetsDir = fairScanAssetsDir.get().asFile.apply { mkdirs() }
+        fairScanAssetsDir.get().asFile.mkdirs()
 
         fun sha256(file: java.io.File): String {
             val digest = MessageDigest.getInstance("SHA-256")
@@ -31,27 +34,106 @@ val prepareFairScanModel by tasks.registering {
             return digest.digest().joinToString("") { "%02x".format(it) }
         }
 
-        fun fetchVerified(url: String, target: java.io.File, expectedSha256: String) {
+        fun fetchVerified(
+            url: String,
+            target: java.io.File,
+            expectedSha256: String,
+            fallbackFile: java.io.File? = null
+        ) {
             if (target.isFile && sha256(target) == expectedSha256) return
-            val temporary = File(target.parentFile, target.name + ".download")
-            temporary.delete()
-            try {
-                val connection = URL(url).openConnection().apply {
-                    connectTimeout = 20_000
-                    readTimeout = 60_000
-                    setRequestProperty("User-Agent", "PhotoUnifier-build")
-                }
-                connection.getInputStream().use { input ->
-                    temporary.outputStream().use { output -> input.copyTo(output) }
-                }
-                val actual = sha256(temporary)
-                check(actual == expectedSha256) {
-                    "FairScan asset SHA-256 mismatch for ${target.name}: expected $expectedSha256, got $actual"
-                }
-                check(temporary.renameTo(target)) { "Could not install verified asset ${target.name}" }
-            } finally {
-                temporary.delete()
+
+            // 1. Use local bundled fallback if present and valid
+            if (fallbackFile != null && fallbackFile.isFile && sha256(fallbackFile) == expectedSha256) {
+                fallbackFile.copyTo(target, overwrite = true)
+                return
             }
+
+            // 2. Use persistent Gradle cache if present and valid
+            val cacheDir = File(gradle.gradleUserHomeDir, "caches/fairscan-assets").apply { mkdirs() }
+            val cachedFile = File(cacheDir, target.name)
+            if (cachedFile.isFile && sha256(cachedFile) == expectedSha256) {
+                cachedFile.copyTo(target, overwrite = true)
+                return
+            }
+
+            // 3. Download from network with retries, redirect handling, and timeouts
+            val maxRetries = 4
+            var lastError: Exception? = null
+
+            for (attempt in 1..maxRetries) {
+                val temporary = File(target.parentFile, "${target.name}.download.$attempt")
+                temporary.delete()
+                try {
+                    var currentUrl = url
+                    var redirects = 0
+                    var connection: HttpURLConnection
+
+                    while (true) {
+                        val u = URL(currentUrl)
+                        connection = u.openConnection() as HttpURLConnection
+                        connection.instanceFollowRedirects = true
+                        connection.connectTimeout = 30_000
+                        connection.readTimeout = 60_000
+                        connection.setRequestProperty("User-Agent", "PhotoUnifier-build/1.0")
+                        connection.setRequestProperty("Accept", "*/*")
+
+                        val code = connection.responseCode
+                        if (code in 300..399 && redirects < 5) {
+                            val location = connection.getHeaderField("Location")
+                            if (!location.isNullOrBlank()) {
+                                currentUrl = if (location.startsWith("http://") || location.startsWith("https://")) {
+                                    location
+                                } else {
+                                    URL(u, location).toString()
+                                }
+                                redirects++
+                                connection.disconnect()
+                                continue
+                            }
+                        }
+
+                        if (code !in 200..299) {
+                            throw IOException("Server returned HTTP response code: $code for URL: $currentUrl")
+                        }
+                        break
+                    }
+
+                    connection.inputStream.use { input ->
+                        temporary.outputStream().use { output -> input.copyTo(output) }
+                    }
+                    val actual = sha256(temporary)
+                    check(actual == expectedSha256) {
+                        "FairScan asset SHA-256 mismatch for ${target.name}: expected $expectedSha256, got $actual"
+                    }
+                    if (target.exists()) target.delete()
+                    check(temporary.renameTo(target)) { "Could not install verified asset ${target.name}" }
+
+                    // Cache for subsequent builds
+                    try {
+                        target.copyTo(cachedFile, overwrite = true)
+                    } catch (_: Exception) {
+                    }
+
+                    return
+                } catch (e: Exception) {
+                    lastError = e
+                    temporary.delete()
+                    if (attempt < maxRetries) {
+                        Thread.sleep(attempt * 2000L)
+                    }
+                }
+            }
+
+            // If network failed and fallback is available, try fallback as last resort
+            if (fallbackFile != null && fallbackFile.isFile && sha256(fallbackFile) == expectedSha256) {
+                fallbackFile.copyTo(target, overwrite = true)
+                return
+            }
+
+            throw IllegalStateException(
+                "Failed to download and verify ${target.name} after $maxRetries attempts: ${lastError?.message}",
+                lastError
+            )
         }
 
         fetchVerified(
@@ -62,7 +144,8 @@ val prepareFairScanModel by tasks.registering {
         fetchVerified(
             "https://github.com/pynicolas/fairscan-segmentation-model/releases/download/v1.2.0/LICENSE.txt",
             fairScanLicenseFile.get().asFile,
-            "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+            "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+            bundledLicenseFile.asFile
         )
     }
 }
