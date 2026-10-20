@@ -21,6 +21,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -246,9 +250,9 @@ fun StepProgress(
                                     Modifier.clickable { onStepClick?.invoke(index) }
                                 } else Modifier
                             ),
-                        shape = CircleShape,
+                        shape = if (isCurrent) RoundedCornerShape(PhotoUnifierRadius.sm) else CircleShape,
                         color = stepContainer,
-                        shadowElevation = if (isCurrent) PhotoUnifierElevation.high else PhotoUnifierElevation.none
+                        shadowElevation = if (isCurrent) PhotoUnifierElevation.mid else PhotoUnifierElevation.none
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
@@ -350,7 +354,7 @@ fun ValuePill(
 ) {
     Surface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.small,
+        shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.secondaryContainer
     ) {
         Text(
@@ -426,81 +430,98 @@ fun CropResultPreview(
 }
 
 /**
- * زر زجاجي مدمج وشبه شفاف مع تأثير Blur ناعم وإطار بلوري رفيع
+ * زر أساسي بروح Material 3 Expressive: لون واضح، مساحة لمس مريحة
+ * واستجابة نابضية خفيفة بدل طبقات الـ blur التي تقلل وضوح النص.
  */
 @Composable
 fun GlassmorphicButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    containerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = PhotoUnifierGlass.primaryAlpha),
+    containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    borderColor: Color = Color.White.copy(alpha = PhotoUnifierGlass.borderAlpha),
-    shape: Shape = RoundedCornerShape(PhotoUnifierRadius.md),
+    borderColor: Color = Color.Transparent,
+    shape: Shape = MaterialTheme.shapes.extraLarge,
     height: Dp = PhotoUnifierHeight.buttonPrimary,
-    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.md, vertical = PhotoUnifierSpacing.xxs),
+    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.lg, vertical = PhotoUnifierSpacing.xs),
     content: @Composable RowScope.() -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.975f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "expressiveButtonScale"
+    )
+    val resolvedContainer by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.surfaceVariant
+            pressed -> containerColor.copy(alpha = 0.90f)
+            else -> containerColor
+        },
+        animationSpec = tween(PhotoUnifierDuration.fast),
+        label = "expressiveButtonContainer"
+    )
+    val resolvedContent = if (enabled) {
+        contentColor
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    }
+
     Surface(
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interactionSource,
         modifier = modifier
             .height(height)
-            .clip(shape),
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         shape = shape,
-        color = Color.Transparent,
+        color = resolvedContainer,
+        contentColor = resolvedContent,
         border = BorderStroke(
             1.dp,
-            if (enabled) borderColor else borderColor.copy(alpha = 0.12f)
+            when {
+                !enabled -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
+                borderColor == Color.Transparent -> Color.Transparent
+                else -> borderColor
+            }
         ),
-        shadowElevation = 0.dp
+        shadowElevation = if (enabled && !pressed) PhotoUnifierElevation.low else PhotoUnifierElevation.none
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // طبقة خلفية شبه شفافة مع تمويه Blur
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(PhotoUnifierGlass.blurRadius)
-                    .background(
-                        if (enabled) containerColor
-                        else containerColor.copy(alpha = 0.25f)
-                    )
-            )
-            // محتوى الزر الواضح
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CompositionLocalProvider(
-                    LocalContentColor provides if (enabled) contentColor else contentColor.copy(alpha = 0.38f)
-                ) {
-                    content()
-                }
+            CompositionLocalProvider(LocalContentColor provides resolvedContent) {
+                content()
             }
         }
     }
 }
 
 /**
- * زر محدد زجاجي مدمج وشبه شفاف مع تمويه
+ * زر ثانوي محدد بسطح هادئ وحد واضح وتطابق كامل مع ارتفاعات اللمس.
  */
 @Composable
 fun GlassmorphicOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = PhotoUnifierGlass.surfaceAlpha),
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = PhotoUnifierGlass.borderAlpha),
-    shape: Shape = RoundedCornerShape(PhotoUnifierRadius.md),
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.78f),
+    shape: Shape = MaterialTheme.shapes.extraLarge,
     height: Dp = PhotoUnifierHeight.buttonSecondary,
-    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xxs),
+    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.md, vertical = PhotoUnifierSpacing.xs),
     content: @Composable RowScope.() -> Unit
 ) {
     GlassmorphicButton(
