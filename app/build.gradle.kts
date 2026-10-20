@@ -40,9 +40,11 @@ val prepareCairoFont by tasks.registering {
                     check(input.read(bytes) == 4) { "Downloaded Cairo font is incomplete" }
                 }
             }
-            check(temporary.length() > 100_000L &&
-                signature.contentEquals(byteArrayOf(0, 1, 0, 0)) ||
-                signature.contentEquals("OTTO".toByteArray(Charsets.US_ASCII))) {
+            check(
+                temporary.length() > 100_000L &&
+                    (signature.contentEquals(byteArrayOf(0, 1, 0, 0)) ||
+                        signature.contentEquals("OTTO".toByteArray(Charsets.US_ASCII)))
+            ) {
                 "Downloaded Cairo font is not a valid OpenType font"
             }
             if (output.exists()) output.delete()
