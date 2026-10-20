@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.PhotoUiState
@@ -331,7 +332,7 @@ private fun SuccessExportCard(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${state.selectedExportIds.size} من ${state.processedImages.size} صور محددة",
+                                    text = "${state.processedImages.count { it.id in state.selectedExportIds }} من ${state.processedImages.size} صور محددة",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -354,7 +355,10 @@ private fun SuccessExportCard(
                                     onCheckedChange = { selected ->
                                         onToggleExportImage(image.id, selected)
                                     },
-                                    enabled = !state.exportBusy
+                                    enabled = !state.exportBusy,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "تضمين ${image.displayName} في التصدير"
+                                    }
                                 )
                                 Column(
                                     modifier = Modifier
