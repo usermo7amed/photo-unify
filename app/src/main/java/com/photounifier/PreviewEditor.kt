@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlin.math.abs
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -283,98 +282,57 @@ internal fun BeforeAfterPreview(
             }
         }
 
-        // Quick presets row: 100% Original, 50/50 Split, 100% Enhanced
+        // Compact control strip keeps the document canvas as tall as the available workspace.
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
                 onClick = { revealTarget = 1f },
                 enabled = safeSource != null && safeEnhanced != null,
-                modifier = Modifier.weight(1f).height(38.dp),
+                modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text(
-                    "الأصل فقط",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (revealTarget >= 0.95f) FontWeight.Bold else FontWeight.Normal
-                )
+                Text("الأصل", style = MaterialTheme.typography.labelSmall)
             }
             OutlinedButton(
                 onClick = { revealTarget = 0.5f },
                 enabled = safeSource != null && safeEnhanced != null,
-                modifier = Modifier.weight(1f).height(38.dp),
+                modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    "مقارنة ٥٠/٥٠",
-                    style = MaterialTheme.typography.labelMedium,
+                    "50/50",
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (abs(revealTarget - 0.5f) < 0.05f) FontWeight.Bold else FontWeight.Normal
                 )
             }
             OutlinedButton(
                 onClick = { revealTarget = 0f },
                 enabled = safeSource != null && safeEnhanced != null,
-                modifier = Modifier.weight(1f).height(38.dp),
+                modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text(
-                    "النتيجة فقط",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (revealTarget <= 0.05f) FontWeight.Bold else FontWeight.Normal
-                )
+                Text("المحسن", style = MaterialTheme.typography.labelSmall)
             }
-        }
-
-        // Slider for fine precision
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "اسحب الفاصل على الصورة مباشرة أو عبر المؤشر",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "${(revealTarget * 100).roundToInt()}٪ من الأصل",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = dividerColor
-            )
-        }
-        Slider(
-            value = revealTarget,
-            onValueChange = { revealTarget = it },
-            valueRange = 0.01f..0.99f,
-            enabled = safeSource != null && safeEnhanced != null
-        )
-
-        // Zoom controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             OutlinedButton(
                 onClick = { zoom = (zoom / 1.25f).coerceAtLeast(1f); if (zoom == 1f) pan = Offset.Zero },
                 enabled = zoom > 1f,
-                modifier = Modifier.weight(1f).height(40.dp),
+                modifier = Modifier.weight(0.7f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
-            ) { Text("− تصغير") }
+            ) { Text("−", style = MaterialTheme.typography.labelSmall) }
             OutlinedButton(
                 onClick = { zoom = (zoom * 1.25f).coerceAtMost(5f) },
                 enabled = safeSource != null,
-                modifier = Modifier.weight(1f).height(40.dp),
+                modifier = Modifier.weight(0.7f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
-            ) { Text("+ تكبير") }
+            ) { Text("+", style = MaterialTheme.typography.labelSmall) }
             OutlinedButton(
                 onClick = { zoom = 1f; pan = Offset.Zero; revealTarget = 0.5f },
-                modifier = Modifier.weight(1.2f).height(40.dp),
+                modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
-            ) { Text("إعادة ضبط") }
+            ) { Text("إعادة", style = MaterialTheme.typography.labelSmall) }
         }
     }
 }
