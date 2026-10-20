@@ -26,8 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,36 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photounifier.PhotoUiState
-import com.photounifier.ui.components.SelectionThumbnailsBar
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.unit.sp
-import com.photounifier.ui.PhotoUnifierDuration
 import com.photounifier.ui.PhotoUnifierElevation
 import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierSpacing
+import com.photounifier.ui.components.SelectionThumbnailsBar
 
 /**
  * شاشة البداية المبسطة بنمط تطبيقات المسح الاحترافية (مثل CamScanner).
@@ -409,4 +384,3 @@ private fun ActiveBatchDashboard(
         }
     }
 }
-
