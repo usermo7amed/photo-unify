@@ -151,48 +151,6 @@ private fun EmptyScanDashboard(
                 )
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-            ) {
-                GlassmorphicButton(
-                    onClick = onCaptureDocument,
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = PhotoUnifierHeight.buttonPrimary
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CameraAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                    )
-                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                    Text(
-                        text = "مسح بالكاميرا",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                GlassmorphicOutlinedButton(
-                    onClick = onPickImages,
-                    enabled = enabled,
-                    modifier = Modifier.fillMaxWidth(),
-                    height = PhotoUnifierHeight.buttonSecondary
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PhotoLibrary,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                    )
-                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                    Text(
-                        text = "استيراد من المعرض",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
         }
     }
 }
@@ -290,58 +248,7 @@ private fun ActiveBatchDashboard(
             }
         }
 
-        GlassmorphicButton(
-            onClick = onStartReview,
-            enabled = enabled && state.selected.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth(),
-            height = PhotoUnifierHeight.buttonPrimary
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Crop,
-                contentDescription = null,
-                modifier = Modifier.size(PhotoUnifierIconSize.sm)
-            )
-            Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-            Text(
-                text = "مراجعة القص والتحسين",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-        ) {
-            GlassmorphicOutlinedButton(
-                onClick = onCaptureDocument,
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-                height = PhotoUnifierHeight.buttonTertiary
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CameraAlt,
-                    contentDescription = null,
-                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                )
-                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
-                Text("تصوير صفحة", style = MaterialTheme.typography.labelSmall)
-            }
 
-            GlassmorphicOutlinedButton(
-                onClick = { onPickImages(true) },
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-                height = PhotoUnifierHeight.buttonTertiary
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PhotoLibrary,
-                    contentDescription = null,
-                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                )
-                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
-                Text("من المعرض", style = MaterialTheme.typography.labelSmall)
-            }
-        }
     }
 }
