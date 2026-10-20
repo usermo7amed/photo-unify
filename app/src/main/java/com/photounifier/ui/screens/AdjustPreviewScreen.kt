@@ -55,6 +55,11 @@ import com.photounifier.BeforeAfterPreview
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.components.PreviewNavigationControls
 import com.photounifier.ui.components.ValuePill
+import com.photounifier.ui.PhotoUnifierDuration
+import com.photounifier.ui.PhotoUnifierElevation
+import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.PhotoUnifierRadius
+import com.photounifier.ui.PhotoUnifierSpacing
 import kotlin.math.roundToInt
 
 /**
@@ -133,7 +138,7 @@ fun AdjustPreviewScreen(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
     ) {
         // شريط رأس الشاشة والتنقل بين الصفحات
         AdjustHeader(
@@ -151,15 +156,15 @@ fun AdjustPreviewScreen(
         // بطاقة المعاينة المركزية التفاعلية
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(PhotoUnifierSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 // تلميح تفاعلي
                 Row(
@@ -178,7 +183,7 @@ fun AdjustPreviewScreen(
                     ) {
                         Text(
                             text = "اضغط مطولًا لمعاينة الأصل",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xxs),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.SemiBold
