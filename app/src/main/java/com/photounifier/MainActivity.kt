@@ -7,6 +7,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
@@ -211,9 +212,19 @@ private fun PhotoUnifierScreen(
     onApplyCrop: () -> Unit,
     onFinishCrop: () -> Unit
 ) {
-    var currentStep by remember { mutableIntStateOf(0) }
+    var currentStep by rememberSaveable { mutableIntStateOf(0) }
     val stepTitles = listOf("المستندات", "قص المنظور", "الفلاتر", "التصدير")
     val isCropWorkspace = currentStep == 1 && state.cropOpen
+    val layoutDirection = LocalLayoutDirection.current
+
+    BackHandler(
+        enabled = currentStep > 0 && !state.cropApplying && !isCropWorkspace
+    ) {
+        // Keep long-running work on screen; the system Back press is consumed while it is active.
+        if (!state.busy && !state.exportBusy) {
+            currentStep = (currentStep - 1).coerceAtLeast(0)
+        }
+    }
 
     // Keep the home screen visible when selection is empty
     LaunchedEffect(state.selected.isEmpty()) {
@@ -314,7 +325,7 @@ private fun PhotoUnifierScreen(
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("التالي: الضبط والمعاينة ➔", fontWeight = FontWeight.Bold)
+                            Text("التالي: الضبط والمعاينة", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -344,7 +355,7 @@ private fun PhotoUnifierScreen(
                     titles = stepTitles,
                     selectedCount = state.selected.size,
                     onStepClick = { target ->
-                        if (!state.busy && !state.cropApplying) {
+                        if (!state.busy && !state.cropApplying && !state.exportBusy) {
                             currentStep = target
                         }
                     }
@@ -357,12 +368,20 @@ private fun PhotoUnifierScreen(
                 targetState = currentStep,
                 transitionSpec = {
                     if (targetState > initialState) {
-                        (slideInHorizontally { width -> -width } + fadeIn()).togetherWith(
-                            slideOutHorizontally { width -> width } + fadeOut()
+                        (slideInHorizontally { width ->
+                            if (layoutDirection == LayoutDirection.Rtl) width else -width
+                        } + fadeIn()).togetherWith(
+                            slideOutHorizontally { width ->
+                                if (layoutDirection == LayoutDirection.Rtl) -width else width
+                            } + fadeOut()
                         )
                     } else {
-                        (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                            slideOutHorizontally { width -> -width } + fadeOut()
+                        (slideInHorizontally { width ->
+                            if (layoutDirection == LayoutDirection.Rtl) -width else width
+                        } + fadeIn()).togetherWith(
+                            slideOutHorizontally { width ->
+                                if (layoutDirection == LayoutDirection.Rtl) width else -width
+                            } + fadeOut()
                         )
                     }
                 },
