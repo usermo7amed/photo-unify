@@ -85,15 +85,15 @@ fun CropReviewCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
-            modifier = Modifier.padding(PhotoUnifierSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+            modifier = Modifier.fillMaxSize().padding(PhotoUnifierSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -137,6 +137,32 @@ fun CropReviewCard(
                     if (state.cropEdits.isNotEmpty()) "تم تعديل ${state.cropEdits.size} صفحة"
                     else "جاهز للمراجعة"
                 )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                val preview = state.sourcePreview
+                if (preview != null && !preview.isRecycled) {
+                    Image(
+                        bitmap = preview.asImageBitmap(),
+                        contentDescription = "معاينة الصفحة ${state.previewIndex + 1}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        filterQuality = FilterQuality.Medium
+                    )
+                } else {
+                    Text(
+                        text = "ستظهر معاينة المستند هنا",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (state.cropApplied && state.cropPreview != null) {
