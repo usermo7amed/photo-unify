@@ -14,6 +14,47 @@ val fairScanModelFile = fairScanAssetsDir.map { it.file("fairscan-segmentation-m
 val fairScanLicenseFile = fairScanAssetsDir.map { it.file("FAIRSCAN-LICENSE.txt") }
 val bundledLicenseFile = layout.projectDirectory.file("fairscan/FAIRSCAN-LICENSE.txt")
 
+val cairoResourcesDir = layout.buildDirectory.dir("generated/cairoRes")
+val cairoFontFile = cairoResourcesDir.map { it.file("font/cairo.ttf") }
+
+val prepareCairoFont by tasks.registering {
+    val output = cairoFontFile.get().asFile
+    outputs.file(output)
+    doLast {
+        if (output.isFile && output.length() > 100_000L) return@doLast
+        output.parentFile.mkdirs()
+        val temporary = File(output.parentFile, "cairo.ttf.download")
+        try {
+            URL("https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf")
+                .openConnection()
+                .apply {
+                    connectTimeout = 30_000
+                    readTimeout = 60_000
+                    setRequestProperty("User-Agent", "PhotoUnifier-build/1.0")
+                }
+                .getInputStream().use { input ->
+                    temporary.outputStream().use { destination -> input.copyTo(destination) }
+                }
+            val signature = temporary.inputStream().use { input ->
+                ByteArray(4).also { bytes ->
+                    check(input.read(bytes) == 4) { "Downloaded Cairo font is incomplete" }
+                }
+            }
+            check(
+                temporary.length() > 100_000L &&
+                    (signature.contentEquals(byteArrayOf(0, 1, 0, 0)) ||
+                        signature.contentEquals("OTTO".toByteArray(Charsets.US_ASCII)))
+            ) {
+                "Downloaded Cairo font is not a valid OpenType font"
+            }
+            if (output.exists()) output.delete()
+            check(temporary.renameTo(output)) { "Could not install Cairo font" }
+        } finally {
+            temporary.delete()
+        }
+    }
+}
+
 val prepareFairScanModel by tasks.registering {
     // Re-check the cached file's digest every build; download only if absent or invalid.
     outputs.files(fairScanModelFile, fairScanLicenseFile)
@@ -167,6 +208,7 @@ android {
     }
 
     sourceSets.getByName("main").assets.srcDir(fairScanAssetsDir)
+    sourceSets.getByName("main").res.srcDir(cairoResourcesDir)
 
     buildFeatures {
         compose = true
@@ -187,7 +229,7 @@ android {
 }
 
 tasks.named("preBuild").configure {
-    dependsOn(prepareFairScanModel)
+    dependsOn(prepareFairScanModel, prepareCairoFont)
 }
 
 dependencies {
