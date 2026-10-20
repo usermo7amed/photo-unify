@@ -275,7 +275,7 @@ private fun PhotoUnifierScreen(
             }
         },
         topBar = {
-            TopAppBar(
+            if (currentStep != 0) TopAppBar(
                 title = {
                     Column {
                         Text(
@@ -356,6 +356,56 @@ private fun PhotoUnifierScreen(
                             shape = MaterialTheme.shapes.extraLarge
                         ) {
                             Text("التالي: الضبط والمعاينة", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            } else {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { currentStep = 0 },
+                            enabled = currentStep != 0 && !state.busy && !state.exportBusy,
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.extraLarge
+                        ) {
+                            Text("المستندات")
+                        }
+                        Button(
+                            onClick = {
+                                currentStep = when (currentStep) {
+                                    0 -> if (state.selected.isNotEmpty()) 1 else 0
+                                    1 -> 2
+                                    2 -> if (state.resultPreview != null || state.enhancedPreview != null) 3 else 2
+                                    else -> 2
+                                }
+                            },
+                            enabled = !state.busy && !state.cropApplying && !state.exportBusy &&
+                                (currentStep == 0 && state.selected.isNotEmpty() ||
+                                 currentStep == 1 || currentStep == 2 &&
+                                 (state.resultPreview != null || state.enhancedPreview != null) ||
+                                 currentStep == 3),
+                            modifier = Modifier.weight(1.4f),
+                            shape = MaterialTheme.shapes.extraLarge
+                        ) {
+                            Text(
+                                when (currentStep) {
+                                    0 -> "مراجعة الصور"
+                                    1 -> "التالي: التحسين"
+                                    2 -> "عرض التصدير"
+                                    else -> "العودة للتحسين"
+                                },
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
