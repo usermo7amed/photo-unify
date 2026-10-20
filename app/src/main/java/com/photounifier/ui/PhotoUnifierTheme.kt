@@ -12,18 +12,17 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * Material 3 color palette for Photo Unifier with expressive shape and type hierarchy.
- *
- * Primary: Deep, refined Teal (representing image clarity and processing precision)
- * Secondary: Warm Amber (for success highlights, export cues, and badges)
- * Tertiary: Electric Azure / Cyan (for interactive accent accents)
- */
+private val CairoFontFamily = FontFamily(Font(R.font.cairo))
+
+/** Stable brand colors keep contrast and meaning consistent across devices. */
 private val LightColors = lightColorScheme(
     primary = Color(0xFF006B5F),
     onPrimary = Color.White,
@@ -78,81 +77,69 @@ private val PhotoUnifierShapes = Shapes(
     extraLarge = RoundedCornerShape(32.dp)
 )
 
-private val DefaultTypography = Typography()
-private val PhotoUnifierTypography = DefaultTypography.copy(
-    displaySmall = DefaultTypography.displaySmall.copy(
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        fontWeight = FontWeight.Bold
-    ),
-    headlineMedium = DefaultTypography.headlineMedium.copy(
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        fontWeight = FontWeight.Bold
-    ),
-    headlineSmall = DefaultTypography.headlineSmall.copy(
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        fontWeight = FontWeight.SemiBold
-    ),
-    titleLarge = DefaultTypography.titleLarge.copy(
-        fontSize = 20.sp,
-        lineHeight = 28.sp,
-        fontWeight = FontWeight.SemiBold
-    ),
-    titleMedium = DefaultTypography.titleMedium.copy(
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        fontWeight = FontWeight.SemiBold
-    ),
-    titleSmall = DefaultTypography.titleSmall.copy(
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        fontWeight = FontWeight.Medium
-    ),
-    bodyLarge = DefaultTypography.bodyLarge.copy(
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        fontWeight = FontWeight.Normal
-    ),
-    bodyMedium = DefaultTypography.bodyMedium.copy(
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        fontWeight = FontWeight.Normal
-    ),
-    bodySmall = DefaultTypography.bodySmall.copy(
-        fontSize = 12.sp,
-        lineHeight = 18.sp,
-        fontWeight = FontWeight.Normal
-    ),
-    labelLarge = DefaultTypography.labelLarge.copy(
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        fontWeight = FontWeight.Medium
-    ),
-    labelMedium = DefaultTypography.labelMedium.copy(
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        fontWeight = FontWeight.Medium
-    ),
-    labelSmall = DefaultTypography.labelSmall.copy(
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        fontWeight = FontWeight.Medium
+private val DefaultTypography = Typography().let { base ->
+    base.copy(
+        displayLarge = base.displayLarge.copy(fontFamily = CairoFontFamily),
+        displayMedium = base.displayMedium.copy(fontFamily = CairoFontFamily),
+        displaySmall = base.displaySmall.copy(fontFamily = CairoFontFamily),
+        headlineLarge = base.headlineLarge.copy(fontFamily = CairoFontFamily),
+        headlineMedium = base.headlineMedium.copy(fontFamily = CairoFontFamily),
+        headlineSmall = base.headlineSmall.copy(fontFamily = CairoFontFamily),
+        titleLarge = base.titleLarge.copy(fontFamily = CairoFontFamily),
+        titleMedium = base.titleMedium.copy(fontFamily = CairoFontFamily),
+        titleSmall = base.titleSmall.copy(fontFamily = CairoFontFamily),
+        bodyLarge = base.bodyLarge.copy(fontFamily = CairoFontFamily),
+        bodyMedium = base.bodyMedium.copy(fontFamily = CairoFontFamily),
+        bodySmall = base.bodySmall.copy(fontFamily = CairoFontFamily),
+        labelLarge = base.labelLarge.copy(fontFamily = CairoFontFamily),
+        labelMedium = base.labelMedium.copy(fontFamily = CairoFontFamily),
+        labelSmall = base.labelSmall.copy(fontFamily = CairoFontFamily)
     )
 )
 
-/**
- * Main application theme wrapper for Photo Unifier.
- *
- * @param darkTheme Whether to use dark theme colors. Defaults to system preference.
- * @param dynamicColor When true on Android 12+ (API 31+), applies system wallpaper-based colors.
- *                     Defaults to true to embrace Material You aesthetics.
- */
+private val PhotoUnifierTypography = DefaultTypography.copy(
+    displaySmall = DefaultTypography.displaySmall.copy(
+        fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold
+    ),
+    headlineMedium = DefaultTypography.headlineMedium.copy(
+        fontSize = 28.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold
+    ),
+    headlineSmall = DefaultTypography.headlineSmall.copy(
+        fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold
+    ),
+    titleLarge = DefaultTypography.titleLarge.copy(
+        fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold
+    ),
+    titleMedium = DefaultTypography.titleMedium.copy(
+        fontSize = 16.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold
+    ),
+    titleSmall = DefaultTypography.titleSmall.copy(
+        fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium
+    ),
+    bodyLarge = DefaultTypography.bodyLarge.copy(
+        fontSize = 16.sp, lineHeight = 24.sp, fontWeight = FontWeight.Normal
+    ),
+    bodyMedium = DefaultTypography.bodyMedium.copy(
+        fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal
+    ),
+    bodySmall = DefaultTypography.bodySmall.copy(
+        fontSize = 12.sp, lineHeight = 18.sp, fontWeight = FontWeight.Normal
+    ),
+    labelLarge = DefaultTypography.labelLarge.copy(
+        fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium
+    ),
+    labelMedium = DefaultTypography.labelMedium.copy(
+        fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium
+    ),
+    labelSmall = DefaultTypography.labelSmall.copy(
+        fontSize = 11.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium
+    )
+)
+
 @Composable
 fun PhotoUnifierTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -164,9 +151,22 @@ fun PhotoUnifierTheme(
         else -> LightColors
     }
 
+    // Slightly tighten display hierarchy on compact screens without shrinking body text.
+    val compactWidth = LocalConfiguration.current.screenWidthDp < 360
+    val typography = if (compactWidth) {
+        PhotoUnifierTypography.copy(
+            displaySmall = PhotoUnifierTypography.displaySmall.copy(fontSize = 28.sp, lineHeight = 36.sp),
+            headlineMedium = PhotoUnifierTypography.headlineMedium.copy(fontSize = 24.sp, lineHeight = 32.sp),
+            headlineSmall = PhotoUnifierTypography.headlineSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
+            titleLarge = PhotoUnifierTypography.titleLarge.copy(fontSize = 18.sp, lineHeight = 24.sp)
+        )
+    } else {
+        PhotoUnifierTypography
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = PhotoUnifierTypography,
+        typography = typography,
         shapes = PhotoUnifierShapes,
         content = content
     )
