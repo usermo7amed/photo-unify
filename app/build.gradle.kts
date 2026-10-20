@@ -25,7 +25,7 @@ val prepareCairoFont by tasks.registering {
         output.parentFile.mkdirs()
         val temporary = File(output.parentFile, "cairo.ttf.download")
         try {
-            URL("https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bwght%5D.ttf")
+            URL("https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf")
                 .openConnection()
                 .apply {
                     connectTimeout = 30_000
