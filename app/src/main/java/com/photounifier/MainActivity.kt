@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.photounifier.ui.PhotoUnifierTheme
 import com.photounifier.ui.PhotoUnifierHeight
-import com.photounifier.ui.components.StepProgress
 import com.photounifier.ui.screens.AdjustPreviewScreen
 import com.photounifier.ui.screens.CropReviewCard
 import com.photounifier.ui.screens.CropWorkspaceBottomBar
@@ -217,7 +216,6 @@ private fun PhotoUnifierScreen(
     onFinishCrop: () -> Unit
 ) {
     var currentStep by rememberSaveable { mutableIntStateOf(0) }
-    val stepTitles = listOf("المستندات", "قص المنظور", "الفلاتر", "التصدير")
     val isCropWorkspace = currentStep == 1 && state.cropOpen
     val layoutDirection = LocalLayoutDirection.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -275,26 +273,17 @@ private fun PhotoUnifierScreen(
         topBar = {
             if (currentStep != 0) TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = when (currentStep) {
-                                0 -> "مُوحِّد الصور"
-                                1 -> "قص وتصحيح المنظور"
-                                2 -> "الفلاتر والتحسين"
-                                3 -> "حفظ وتصدير المستندات"
-                                else -> "مُوحِّد الصور"
-                            },
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        if (currentStep != 0) {
-                            Text(
-                                text = "اكتشاف • تصحيح المنظور • تحسين ذكي",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    Text(
+                        text = when (currentStep) {
+                            0 -> "مُوحِّد الصور"
+                            1 -> "قص وتصحيح المنظور"
+                            2 -> "الفلاتر والتحسين"
+                            3 -> "حفظ وتصدير المستندات"
+                            else -> "مُوحِّد الصور"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -441,24 +430,10 @@ private fun PhotoUnifierScreen(
                 .padding(padding)
                 .padding(
                     horizontal = if (isCropWorkspace) 14.dp else 12.dp,
-                    vertical = 8.dp
+                    vertical = if (isCropWorkspace) 2.dp else 6.dp
                 ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(if (isCropWorkspace) 4.dp else 8.dp)
         ) {
-            // Stepper indicator for multi-step progress
-            if (!isCropWorkspace && (currentStep != 0 || state.selected.isNotEmpty())) {
-                StepProgress(
-                    currentStep = currentStep,
-                    titles = stepTitles,
-                    selectedCount = state.selected.size,
-                    onStepClick = { target ->
-                        if (!state.busy && !state.cropApplying && !state.exportBusy) {
-                            currentStep = target
-                        }
-                    }
-                )
-            }
-
             // Smooth animated transition between main workflow views
             AnimatedContent(
                 modifier = Modifier.weight(1f).fillMaxWidth(),

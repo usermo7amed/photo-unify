@@ -203,44 +203,7 @@ fun AdjustPreviewScreen(
                     .padding(PhotoUnifierSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
-                // شريط التوجيه والأدوات التفاعلية للمعاينة
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Compare,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.sm),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "اسحب الفاصل للمقارنة الحية",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(PhotoUnifierRadius.xs),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-                    ) {
-                        Text(
-                            text = "اضغط مطولاً لمعاينة الأصل",
-                            modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xxs),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
+                // معاينة الأصل والنتيجة بدون تعليمات مكررة
                 // محرك المقارنة التفاعلي
                 if (state.sourcePreview != null && !state.sourcePreview.isRecycled) {
                     BeforeAfterPreview(
@@ -279,72 +242,56 @@ fun AdjustPreviewScreen(
             }
         }
 
-        // شريط فلاتر CamScanner السريعة (Filter Presets Strip)
-        Column(
+        // أدوات الفلاتر: تحكم مختصر بدل عنوان ووصف مكررين.
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            GlassmorphicButton(
+                onClick = { showFineTuneSliders = !showFineTuneSliders },
+                enabled = !state.busy && state.sourcePreview != null,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                height = PhotoUnifierHeight.buttonTertiary,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = PhotoUnifierSpacing.xs,
+                    vertical = PhotoUnifierSpacing.xxs
+                )
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                ) {
-                    Text(
-                        text = "فلاتر المستند الذكية",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                GlassmorphicButton(
-                    onClick = { showFineTuneSliders = !showFineTuneSliders },
-                    enabled = !state.busy && state.sourcePreview != null,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    height = PhotoUnifierHeight.buttonTertiary,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = PhotoUnifierSpacing.sm,
-                        vertical = PhotoUnifierSpacing.xxs
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Tune,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (showFineTuneSliders) "إخفاء الضبط" else "ضبط يدوي دقيق",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = if (showFineTuneSliders) "إخفاء الضبط اليدوي" else "فتح الضبط اليدوي",
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (showFineTuneSliders) "إخفاء الضبط" else "ضبط",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
+        }
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(ScannerFilterPresets, key = { it.id }) { preset ->
-                    val isSelected = state.brightness == preset.brightness &&
-                            state.contrastPercent == preset.contrast
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items(ScannerFilterPresets, key = { it.id }) { preset ->
+                val isSelected = state.brightness == preset.brightness &&
+                        state.contrastPercent == preset.contrast
 
-                    FilterPresetCard(
-                        preset = preset,
-                        isSelected = isSelected,
-                        onClick = {
-                            onBrightnessChange(preset.brightness)
-                            onContrastChange(preset.contrast)
-                        },
-                        enabled = !state.busy && state.sourcePreview != null
-                    )
-                }
+                FilterPresetCard(
+                    preset = preset,
+                    isSelected = isSelected,
+                    onClick = {
+                        onBrightnessChange(preset.brightness)
+                        onContrastChange(preset.contrast)
+                    },
+                    enabled = !state.busy && state.sourcePreview != null
+                )
             }
         }
 
@@ -398,14 +345,6 @@ fun AdjustPreviewScreen(
             }
         }
 
-        // ملاحظة حفظ هادئة وموثوقة
-        Text(
-            text = "تُحفظ النسخ المحسنة بدقة كاملة في Pictures/PhotoUnifier دون تعديل الملفات الأصلية.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
@@ -427,39 +366,21 @@ private fun AdjustHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+        if (activePresetTitle != null) {
+            Surface(
+                shape = RoundedCornerShape(PhotoUnifierRadius.xs),
+                color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
-                    text = "الفلاتر والتحسين",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    text = activePresetTitle,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontWeight = FontWeight.SemiBold
                 )
-                if (activePresetTitle != null) {
-                    Surface(
-                        shape = RoundedCornerShape(PhotoUnifierRadius.xs),
-                        color = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = activePresetTitle,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
             }
-            Text(
-                text = "اختر الفلتر المناسب لنوع المستند وجودته",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        } else {
+            Spacer(modifier = Modifier.width(1.dp))
         }
 
         Row(
@@ -491,7 +412,7 @@ private fun AdjustHeader(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "إعادة ضبط",
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -513,7 +434,7 @@ private fun FilterPresetCard(
 ) {
     Surface(
         modifier = Modifier
-            .width(128.dp)
+            .width(112.dp)
             .clickable(
                 enabled = enabled,
                 role = Role.RadioButton,
@@ -563,7 +484,7 @@ private fun FilterPresetCard(
             }
 
             Column(
-                modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.sm),
+                modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
             ) {
