@@ -723,17 +723,13 @@ private fun FineTuneSlidersCard(
                                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f)
                             )
                         ) {
-                            Box(
+                            Text(
+                                text = label,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Medium,
-                                    color = if (isCurr) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (isCurr) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -810,17 +806,13 @@ private fun FineTuneSlidersCard(
                                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f)
                             )
                         ) {
-                            Box(
+                            Text(
+                                text = label,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Medium,
-                                    color = if (isCurr) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (isCurr) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
