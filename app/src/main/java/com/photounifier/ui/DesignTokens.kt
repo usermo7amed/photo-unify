@@ -10,10 +10,72 @@ import androidx.compose.ui.unit.dp
  */
 object PhotoUnifierSpacing {
     val xxs = 4.dp
-    val xs = 8.dp
-    val sm = 12.dp
-    val md = 16.dp
-    val lg = 20.dp
-    val xl = 24.dp
+    val xs  = 8.dp
+    val sm  = 12.dp
+    val md  = 16.dp
+    val lg  = 20.dp
+    val xl  = 24.dp
     val xxl = 32.dp
+    val xxxl = 48.dp
+}
+
+/**
+ * Shared icon size scale. Prefer these over one-off Modifier.size() calls.
+ */
+object PhotoUnifierIconSize {
+    val xs   = 16.dp
+    val sm   = 18.dp
+    val md   = 20.dp
+    val lg   = 24.dp
+    val xl   = 32.dp
+    val xxl  = 48.dp
+    val hero = 60.dp
+}
+
+/**
+ * Shared corner radius tokens for surfaces that don't use MaterialTheme.shapes.
+ * Prefer MaterialTheme.shapes wherever possible; use these for custom Canvas
+ * or RoundedCornerShape overrides that must match the theme visually.
+ */
+object PhotoUnifierRadius {
+    val xs  = 8.dp
+    val sm  = 10.dp
+    val md  = 12.dp
+    val lg  = 14.dp
+    val xl  = 20.dp
+    val xxl = 28.dp
+}
+
+/**
+ * Elevation tokens — keep all shadow depths consistent across the app.
+ */
+object PhotoUnifierElevation {
+    val none = 0.dp
+    val low  = 1.dp
+    val mid  = 2.dp
+    val high = 4.dp
+}
+
+/**
+ * Animation duration tokens for consistent motion timing.
+ */
+object PhotoUnifierDuration {
+    const val fast   = 160
+    const val normal = 240
+    const val slow   = 360
+    const val enter  = 280
+    const val exit   = 200
+}
+
+/**
+ * Component height tokens for interactive elements.
+ */
+object PhotoUnifierHeight {
+    val buttonPrimary   = 54.dp
+    val buttonSecondary = 50.dp
+    val buttonTertiary  = 46.dp
+    val progressBar     = 6.dp
+    val thumbnailBar    = 88.dp
+    val stepIndicator   = 34.dp
+    val stepIndicatorSm = 28.dp
 }
