@@ -216,7 +216,6 @@ private fun PhotoUnifierScreen(
     onFinishCrop: () -> Unit
 ) {
     var currentStep by rememberSaveable { mutableIntStateOf(0) }
-    val stepTitles = listOf("المستندات", "قص المنظور", "الفلاتر", "التصدير")
     val isCropWorkspace = currentStep == 1 && state.cropOpen
     val layoutDirection = LocalLayoutDirection.current
     val snackbarHostState = remember { SnackbarHostState() }
