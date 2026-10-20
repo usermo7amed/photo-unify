@@ -1,9 +1,5 @@
 package com.photounifier.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,7 +33,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,12 +40,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.photounifier.CropCornerEditor
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.PhotoUnifierDuration
@@ -237,20 +238,23 @@ fun CropWorkspaceView(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val compactLayout = maxHeight < 500.dp
+        val compactLayout = maxHeight < 620.dp
+        var showCropResultPreview by remember { mutableStateOf(false) }
+
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(
                 if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
             )
         ) {
-            // شريط العنوان وعداد الصفحات
+            // عنوان مختصر؛ المساحة الأساسية للصورة.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                 ) {
@@ -258,27 +262,35 @@ fun CropWorkspaceView(
                         imageVector = Icons.Filled.Crop,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(PhotoUnifierIconSize.md)
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
                     )
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "ضبط زوايا المستند",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "اسحب الزوايا لتعديل حدود الورقة وتصحيح المنظور.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                    Text(
+                        text = "ضبط زوايا المستند",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                ValuePill("صفحة ${state.previewIndex + 1} / ${state.selected.size}")
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                ) {
+                    if (state.cropPreview != null && !state.cropPreview.isRecycled) {
+                        TextButton(
+                            onClick = { showCropResultPreview = true },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                        ) {
+                            Text(
+                                text = "معاينة",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                    ValuePill("صفحة ${state.previewIndex + 1} / ${state.selected.size}")
+                }
             }
 
-            // منطقة محرر الزوايا التفاعلي
+            // محرر الزوايا هو العنصر الرئيسي، ويتمدد ليشغل المساحة المتاحة.
             if (state.cropSource != null && !state.cropSource.isRecycled) {
                 Surface(
                     modifier = Modifier
@@ -315,121 +327,77 @@ fun CropWorkspaceView(
                 }
             }
 
-            // شريط معاينة ناتج القص السريع
-            CropPreviewStrip(bitmap = state.cropPreview, compact = compactLayout)
+            // اختيار الصفحات مفيد فقط عند وجود أكثر من صفحة.
+            if (state.selected.size > 1) {
+                DocumentPageThumbnailStrip(
+                    state = state,
+                    onSelectPage = onSelectPage,
+                    onEnsureThumbnail = onEnsurePageThumbnail,
+                    enabled = !state.cropApplying && !state.busy && !state.cropDirty,
+                    compact = compactLayout
+                )
+            }
+        }
 
-            // تنبيه التعديلات غير المحفوظة
-            AnimatedVisibility(
-                visible = state.cropDirty,
-                enter = fadeIn(animationSpec = tween(PhotoUnifierDuration.fast)),
-                exit = fadeOut(animationSpec = tween(PhotoUnifierDuration.fast))
-            ) {
+        // معاينة الناتج متاحة عند الطلب بدل بطاقة دائمة تستهلك مساحة المحرر.
+        if (showCropResultPreview) {
+            Dialog(onDismissRequest = { showCropResultPreview = false }) {
                 Surface(
-                    shape = RoundedCornerShape(PhotoUnifierRadius.xs),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(PhotoUnifierRadius.lg),
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xxs),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(PhotoUnifierSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                        )
-                        Text(
-                            text = "تعديلات غير محفوظة — احفظ الصفحة أو تراجع عن التعديل.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "معاينة ناتج القص",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(onClick = { showCropResultPreview = false }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "إغلاق المعاينة"
+                                )
+                            }
+                        }
+
+                        val preview = state.cropPreview
+                        if (preview != null && !preview.isRecycled) {
+                            Image(
+                                bitmap = preview.asImageBitmap(),
+                                contentDescription = "ناتج القص وتصحيح المنظور",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 560.dp),
+                                contentScale = ContentScale.Fit,
+                                filterQuality = FilterQuality.Medium
+                            )
+                        } else {
+                            Text(
+                                text = "المعاينة غير متاحة حالياً.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        TextButton(
+                            onClick = { showCropResultPreview = false },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("إغلاق")
+                        }
                     }
                 }
-            }
-
-            // شريط صفحات المجموعة
-            DocumentPageThumbnailStrip(
-                state = state,
-                onSelectPage = onSelectPage,
-                onEnsureThumbnail = onEnsurePageThumbnail,
-                enabled = !state.cropApplying && !state.busy && !state.cropDirty,
-                compact = compactLayout
-            )
-        }
-    }
-}
-
-/**
- * شريط معاينة ناتج القص المصغر
- */
-@Composable
-private fun CropPreviewStrip(
-    bitmap: android.graphics.Bitmap?,
-    compact: Boolean
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(PhotoUnifierRadius.md),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(if (compact) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(
-                        width = if (compact) 36.dp else 44.dp,
-                        height = if (compact) 46.dp else 56.dp
-                    )
-                    .clip(RoundedCornerShape(PhotoUnifierRadius.xs))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(PhotoUnifierRadius.xs)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (bitmap != null && !bitmap.isRecycled) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "معاينة ناتج القص",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        filterQuality = FilterQuality.Medium
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.Crop,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.sm),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = "معاينة ناتج القص الحية",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = if (bitmap != null && !bitmap.isRecycled) {
-                        "تتحدث المعاينة مباشرة مع سحب وضبط زوايا الورقة."
-                    } else {
-                        "ستظهر النتيجة فور تحريك أو اختيار الزوايا."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (compact) 1 else 2,
-                    softWrap = !compact
-                )
             }
         }
     }
@@ -576,156 +544,91 @@ fun CropWorkspaceBottomBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xxs),
-        shape = RoundedCornerShape(PhotoUnifierRadius.xl),
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        shape = RoundedCornerShape(PhotoUnifierRadius.lg),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        shadowElevation = PhotoUnifierElevation.high
+        shadowElevation = PhotoUnifierElevation.mid
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                .padding(horizontal = PhotoUnifierSpacing.xxs, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // شريط الأدوات السريعة
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+            CropToolIconButton(
+                icon = Icons.AutoMirrored.Filled.Undo,
+                label = "تراجع",
+                enabled = state.cropUndoStack.isNotEmpty() && !state.cropApplying && !state.busy,
+                onClick = onUndoCrop
+            )
+            CropToolIconButton(
+                icon = Icons.Filled.RestartAlt,
+                label = "إعادة ضبط",
+                enabled = !state.cropApplying && !state.busy && state.cropSource != null,
+                onClick = onResetCrop
+            )
+            CropToolIconButton(
+                icon = Icons.AutoMirrored.Filled.RotateRight,
+                label = "تدوير 90 درجة",
+                enabled = !state.cropApplying && !state.busy && state.cropSource != null,
+                onClick = onRotatePage
+            )
+            CropToolIconButton(
+                icon = Icons.Filled.Close,
+                label = "إلغاء وإغلاق محرر القص",
+                enabled = !state.cropApplying && !state.busy,
+                onClick = onCancelCrop
+            )
+
+            GlassmorphicButton(
+                onClick = if (state.cropDirty) onApplyCrop else onFinishCrop,
+                enabled = !state.cropApplying && !state.busy &&
+                    (!state.cropDirty || state.cropPreview != null),
+                modifier = Modifier.weight(1f),
+                height = PhotoUnifierHeight.buttonSecondary,
+                shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                contentPadding = PaddingValues(horizontal = PhotoUnifierSpacing.xs, vertical = 0.dp)
             ) {
-                CropToolButton(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.AutoMirrored.Filled.Undo,
-                    label = "تراجع",
-                    enabled = state.cropUndoStack.isNotEmpty() && !state.cropApplying && !state.busy,
-                    onClick = onUndoCrop
+                Icon(
+                    imageVector = if (state.cropDirty) Icons.Filled.Check else Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
                 )
-                CropToolButton(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Filled.RestartAlt,
-                    label = "إعادة ضبط",
-                    enabled = !state.cropApplying && !state.busy && state.cropSource != null,
-                    onClick = onResetCrop
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = when {
+                        state.cropApplying -> "جارٍ الحفظ..."
+                        state.cropDirty -> "حفظ القص"
+                        else -> "إنهاء"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
-                CropToolButton(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.AutoMirrored.Filled.RotateRight,
-                    label = "تدوير 90°",
-                    enabled = !state.cropApplying && !state.busy && state.cropSource != null,
-                    onClick = onRotatePage
-                )
-            }
-
-            // شريط أزرار التنفيذ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                GlassmorphicOutlinedButton(
-                    onClick = onCancelCrop,
-                    enabled = !state.cropApplying && !state.busy,
-                    modifier = Modifier.weight(0.8f),
-                    height = PhotoUnifierHeight.buttonSecondary,
-                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                    )
-                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
-                    Text(
-                        text = "إلغاء",
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-
-                GlassmorphicButton(
-                    onClick = onApplyCrop,
-                    enabled = state.cropPreview != null && state.cropDirty && !state.cropApplying && !state.busy,
-                    modifier = Modifier.weight(1.2f),
-                    height = PhotoUnifierHeight.buttonSecondary,
-                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                    )
-                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
-                    Text(
-                        text = if (state.cropApplying) "جارٍ الحفظ..." else "حفظ الصفحة",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-
-                GlassmorphicButton(
-                    onClick = onFinishCrop,
-                    enabled = !state.cropApplying && !state.busy && !state.cropDirty,
-                    modifier = Modifier.weight(1.2f),
-                    height = PhotoUnifierHeight.buttonSecondary,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                    )
-                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
-                    Text(
-                        text = "إنهاء المراجعة",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
             }
         }
     }
 }
 
 @Composable
-private fun CropToolButton(
-    modifier: Modifier,
+private fun CropToolIconButton(
     icon: ImageVector,
     label: String,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
-    GlassmorphicButton(
+    IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = PhotoUnifierGlass.surfaceAlpha),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = PhotoUnifierGlass.borderAlpha),
-        shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-        height = PhotoUnifierHeight.buttonTertiary,
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+        modifier = Modifier.size(40.dp)
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-        )
-        Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            softWrap = false
+            contentDescription = label,
+            modifier = Modifier.size(PhotoUnifierIconSize.sm)
         )
     }
 }
