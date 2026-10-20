@@ -23,6 +23,7 @@ class ExportRepository {
         fun onProgress(completed: Int, total: Int, message: String)
         fun onError(message: String)
         fun onFinished(success: Int, failed: Int, error: String?)
+        fun onItemFinished(itemId: String, success: Boolean) {}
     }
 
     fun exportAsImages(context: Context, items: List<ExportImage>, observer: Observer) {
@@ -34,6 +35,7 @@ class ExportRepository {
 
         items.forEachIndexed { index, item ->
             var destination: Uri? = null
+            var itemSucceeded = false
             try {
                 check(item.file.isFile) { "الملف المؤقت للصورة غير موجود" }
                 val name = "${item.file.nameWithoutExtension}_${stamp}_${index + 1}.jpg"
@@ -60,12 +62,14 @@ class ExportRepository {
                     throw IllegalStateException("تعذر إتاحة الصورة بعد التصدير")
                 }
                 success++
+                itemSucceeded = true
             } catch (error: Exception) {
                 failed++
                 lastError = error.message ?: error.javaClass.simpleName
                 destination?.let { runCatching { resolver.delete(it, null, null) } }
                 observer.onError("${item.displayName}: ${lastError}")
             } finally {
+                observer.onItemFinished(item.id, itemSucceeded)
                 observer.onProgress(index + 1, items.size, "تصدير الصورة ${index + 1} من ${items.size}")
             }
         }
@@ -162,4 +166,19 @@ class ExportRepository {
         const val PAGE_LONG_SIDE = 842
         const val PAGE_MARGIN = 24
     }
+}
+
+
+/**
+ * Keeps failed inputs selected so retrying an export does not repeat successful items.
+ * PDF exports are all-or-nothing, so the current selection is cleared only on success.
+ */
+internal fun remainingExportIdsAfterExport(
+    format: ExportFormat,
+    selectedIds: Set<String>,
+    successfulImageIds: Set<String>,
+    failedCount: Int
+): Set<String> = when (format) {
+    ExportFormat.IMAGES -> selectedIds - successfulImageIds
+    ExportFormat.PDF -> if (failedCount == 0) emptySet() else selectedIds
 }
