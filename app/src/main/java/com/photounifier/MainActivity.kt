@@ -365,47 +365,71 @@ private fun PhotoUnifierScreen(
                     tonalElevation = 2.dp,
                     shadowElevation = 4.dp
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = { currentStep = 0 },
-                            enabled = currentStep != 0 && !state.busy && !state.exportBusy,
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.extraLarge
+                    if (currentStep == 0) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("المستندات")
+                            OutlinedButton(
+                                onClick = onCaptureDocument,
+                                enabled = !state.busy,
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.extraLarge
+                            ) { Text("الكاميرا") }
+                            OutlinedButton(
+                                onClick = { onPickImages(true) },
+                                enabled = !state.busy,
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.extraLarge
+                            ) { Text("المعرض") }
+                            Button(
+                                onClick = { currentStep = 1 },
+                                enabled = state.selected.isNotEmpty() && !state.busy,
+                                modifier = Modifier.weight(1.2f),
+                                shape = MaterialTheme.shapes.extraLarge
+                            ) { Text("مراجعة الصور", fontWeight = FontWeight.Bold) }
                         }
-                        Button(
-                            onClick = {
-                                currentStep = when (currentStep) {
-                                    0 -> if (state.selected.isNotEmpty()) 1 else 0
-                                    1 -> 2
-                                    2 -> if (state.resultPreview != null || state.enhancedPreview != null) 3 else 2
-                                    else -> 2
-                                }
-                            },
-                            enabled = !state.busy && !state.cropApplying && !state.exportBusy &&
-                                (currentStep == 0 && state.selected.isNotEmpty() ||
-                                 currentStep == 1 || currentStep == 2 &&
-                                 (state.resultPreview != null || state.enhancedPreview != null) ||
-                                 currentStep == 3),
-                            modifier = Modifier.weight(1.4f),
-                            shape = MaterialTheme.shapes.extraLarge
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                when (currentStep) {
-                                    0 -> "مراجعة الصور"
-                                    1 -> "التالي: التحسين"
-                                    2 -> "عرض التصدير"
-                                    else -> "العودة للتحسين"
+                            OutlinedButton(
+                                onClick = { currentStep = 0 },
+                                enabled = currentStep != 0 && !state.busy && !state.exportBusy,
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.extraLarge
+                            ) { Text("المستندات") }
+                            Button(
+                                onClick = {
+                                    currentStep = when (currentStep) {
+                                        1 -> 2
+                                        2 -> if (state.resultPreview != null || state.enhancedPreview != null) 3 else 2
+                                        else -> 2
+                                    }
                                 },
-                                fontWeight = FontWeight.Bold
-                            )
+                                enabled = !state.busy && !state.cropApplying && !state.exportBusy &&
+                                    (currentStep == 1 || currentStep == 2 &&
+                                     (state.resultPreview != null || state.enhancedPreview != null) ||
+                                     currentStep == 3),
+                                modifier = Modifier.weight(1.4f),
+                                shape = MaterialTheme.shapes.extraLarge
+                            ) {
+                                Text(
+                                    when (currentStep) {
+                                        1 -> "التالي: التحسين"
+                                        2 -> "عرض التصدير"
+                                        else -> "العودة للتحسين"
+                                    },
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
