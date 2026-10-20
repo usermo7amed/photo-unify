@@ -18,7 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import com.photounifier.ui.PhotoUnifierGlass
+import com.photounifier.ui.components.GlassmorphicButton
+import com.photounifier.ui.components.GlassmorphicOutlinedButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -307,30 +311,29 @@ fun AdjustPreviewScreen(
                     }
                 }
 
-                FilledTonalButton(
+                GlassmorphicButton(
                     onClick = { showFineTuneSliders = !showFineTuneSliders },
                     enabled = !state.busy && state.sourcePreview != null,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                    height = PhotoUnifierHeight.buttonTertiary,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         horizontal = PhotoUnifierSpacing.sm,
                         vertical = PhotoUnifierSpacing.xxs
                     )
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                        )
-                        Text(
-                            text = if (showFineTuneSliders) "إخفاء الضبط" else "ضبط يدوي دقيق",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (showFineTuneSliders) "إخفاء الضبط" else "ضبط يدوي دقيق",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
@@ -372,49 +375,37 @@ fun AdjustPreviewScreen(
         }
 
         // زر الحفظ والمعالجة النهائي البارز
-        Button(
+        GlassmorphicButton(
             onClick = onProcess,
             enabled = !state.busy && openCvReady && state.selected.isNotEmpty(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(PhotoUnifierHeight.buttonPrimary),
-            shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = PhotoUnifierElevation.mid,
-                pressedElevation = PhotoUnifierElevation.none
-            )
+            modifier = Modifier.fillMaxWidth(),
+            height = PhotoUnifierHeight.buttonPrimary,
+            shape = RoundedCornerShape(PhotoUnifierRadius.md)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-            ) {
-                if (state.busy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.5.dp
-                    )
-                    Text(
-                        text = "جاري المعالجة والحفظ...",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Save,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.lg)
-                    )
-                    Text(
-                        text = "حفظ وتصدير المستندات (${state.selected.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            if (state.busy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                Text(
+                    text = "جاري المعالجة والحفظ...",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                )
+                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                Text(
+                    text = "حفظ وتصدير المستندات (${state.selected.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 
@@ -495,31 +486,26 @@ private fun AdjustHeader(
                 )
             }
             if (isCustomAdjusted) {
-                OutlinedButton(
+                GlassmorphicOutlinedButton(
                     onClick = onResetAdjustments,
                     enabled = enabled,
-                    modifier = Modifier.height(36.dp),
+                    height = PhotoUnifierHeight.buttonSmall,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = PhotoUnifierSpacing.xs),
-                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(PhotoUnifierRadius.sm)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.RestartAlt,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "إعادة ضبط",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.RestartAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "إعادة ضبط",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }

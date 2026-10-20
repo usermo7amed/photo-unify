@@ -21,7 +21,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import com.photounifier.ui.PhotoUnifierGlass
+import com.photounifier.ui.components.GlassmorphicButton
+import com.photounifier.ui.components.GlassmorphicOutlinedButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -139,35 +143,25 @@ fun CropReviewCard(
                 CropResultPreview(state.cropPreview)
             }
 
-            Button(
+            GlassmorphicButton(
                 onClick = onOpenCrop,
                 enabled = !state.busy && !state.cropApplying && state.selected.isNotEmpty() && openCvReady,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PhotoUnifierHeight.buttonPrimary),
-                shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = PhotoUnifierElevation.mid)
+                modifier = Modifier.fillMaxWidth(),
+                height = PhotoUnifierHeight.buttonPrimary,
+                shape = RoundedCornerShape(PhotoUnifierRadius.md)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Crop,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.md)
-                    )
-                    Text(
-                        text = if (state.cropEdits.isNotEmpty()) "استكمال مراجعة الصفحات (${state.cropEdits.size}/${state.selected.size})"
-                        else "فتح محرر زوايا الورقة",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Filled.Crop,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                )
+                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                Text(
+                    text = if (state.cropEdits.isNotEmpty()) "استكمال مراجعة الصفحات (${state.cropEdits.size}/${state.selected.size})"
+                    else "فتح محرر زوايا الورقة",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             val hintText = when {
@@ -602,90 +596,74 @@ fun CropWorkspaceBottomBar(
                 horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(
+                GlassmorphicOutlinedButton(
                     onClick = onCancelCrop,
                     enabled = !state.cropApplying && !state.busy,
-                    modifier = Modifier
-                        .weight(0.8f)
-                        .height(44.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                    modifier = Modifier.weight(0.8f),
+                    height = PhotoUnifierHeight.buttonSecondary,
+                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                        )
-                        Text(
-                            text = "إلغاء",
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
+                    Text(
+                        text = "إلغاء",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
 
-                Button(
+                GlassmorphicButton(
                     onClick = onApplyCrop,
                     enabled = state.cropPreview != null && state.cropDirty && !state.cropApplying && !state.busy,
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .height(44.dp),
+                    modifier = Modifier.weight(1.2f),
+                    height = PhotoUnifierHeight.buttonSecondary,
                     shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                        )
-                        Text(
-                            text = if (state.cropApplying) "جارٍ الحفظ..." else "حفظ الصفحة",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
+                    Text(
+                        text = if (state.cropApplying) "جارٍ الحفظ..." else "حفظ الصفحة",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
 
-                FilledTonalButton(
+                GlassmorphicButton(
                     onClick = onFinishCrop,
                     enabled = !state.cropApplying && !state.busy && !state.cropDirty,
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .height(44.dp),
+                    modifier = Modifier.weight(1.2f),
+                    height = PhotoUnifierHeight.buttonSecondary,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                        )
-                        Text(
-                            text = "إنهاء المراجعة",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
+                    Text(
+                        text = "إنهاء المراجعة",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
@@ -700,29 +678,28 @@ private fun CropToolButton(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
-    OutlinedButton(
+    GlassmorphicButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(42.dp),
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = PhotoUnifierGlass.surfaceAlpha),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = PhotoUnifierGlass.borderAlpha),
         shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+        height = PhotoUnifierHeight.buttonTertiary,
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(PhotoUnifierIconSize.xs)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                softWrap = false
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(PhotoUnifierIconSize.xs)
+        )
+        Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }

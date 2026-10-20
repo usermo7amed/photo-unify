@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import com.photounifier.ui.components.GlassmorphicButton
+import com.photounifier.ui.components.GlassmorphicOutlinedButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Crop
@@ -151,58 +155,42 @@ private fun EmptyScanDashboard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
-                Button(
+                GlassmorphicButton(
                     onClick = onCaptureDocument,
                     enabled = enabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PhotoUnifierHeight.buttonPrimary),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    modifier = Modifier.fillMaxWidth(),
+                    height = PhotoUnifierHeight.buttonPrimary
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.CameraAlt,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.md)
-                        )
-                        Text(
-                            text = "مسح بالكاميرا",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                    Text(
+                        text = "مسح بالكاميرا",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
-                OutlinedButton(
+                GlassmorphicOutlinedButton(
                     onClick = onPickImages,
                     enabled = enabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PhotoUnifierHeight.buttonSecondary),
-                    shape = MaterialTheme.shapes.medium
+                    modifier = Modifier.fillMaxWidth(),
+                    height = PhotoUnifierHeight.buttonSecondary
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.PhotoLibrary,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                        )
-                        Text(
-                            text = "استيراد من المعرض",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Filled.PhotoLibrary,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                    Text(
+                        text = "استيراد من المعرض",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
@@ -307,79 +295,57 @@ private fun ActiveBatchDashboard(
             }
         }
 
-        Button(
+        GlassmorphicButton(
             onClick = onStartReview,
             enabled = enabled && state.selected.isNotEmpty(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(PhotoUnifierHeight.buttonPrimary),
-            shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+            modifier = Modifier.fillMaxWidth(),
+            height = PhotoUnifierHeight.buttonPrimary
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Crop,
-                    contentDescription = null,
-                    modifier = Modifier.size(PhotoUnifierIconSize.md)
-                )
-                Text(
-                    text = "مراجعة القص والتحسين",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Icon(
+                imageVector = Icons.Filled.Crop,
+                contentDescription = null,
+                modifier = Modifier.size(PhotoUnifierIconSize.sm)
+            )
+            Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+            Text(
+                text = "مراجعة القص والتحسين",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
         ) {
-            OutlinedButton(
+            GlassmorphicOutlinedButton(
                 onClick = onCaptureDocument,
                 enabled = enabled,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                shape = MaterialTheme.shapes.medium
+                modifier = Modifier.weight(1f),
+                height = PhotoUnifierHeight.buttonTertiary
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CameraAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                    )
-                    Text("تصوير صفحة", style = MaterialTheme.typography.labelMedium)
-                }
+                Icon(
+                    imageVector = Icons.Filled.CameraAlt,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                )
+                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
+                Text("تصوير صفحة", style = MaterialTheme.typography.labelSmall)
             }
 
-            OutlinedButton(
+            GlassmorphicOutlinedButton(
                 onClick = { onPickImages(true) },
                 enabled = enabled,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                shape = MaterialTheme.shapes.medium
+                modifier = Modifier.weight(1f),
+                height = PhotoUnifierHeight.buttonTertiary
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PhotoLibrary,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                    )
-                    Text("من المعرض", style = MaterialTheme.typography.labelMedium)
-                }
+                Icon(
+                    imageVector = Icons.Filled.PhotoLibrary,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                )
+                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xxs))
+                Text("من المعرض", style = MaterialTheme.typography.labelSmall)
             }
         }
     }

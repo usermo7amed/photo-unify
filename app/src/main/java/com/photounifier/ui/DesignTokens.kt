@@ -68,14 +68,28 @@ object PhotoUnifierDuration {
 }
 
 /**
- * Component height tokens for interactive elements.
+ * Component height tokens for interactive elements - optimized for a compact, modern feel.
  */
 object PhotoUnifierHeight {
-    val buttonPrimary   = 54.dp
-    val buttonSecondary = 50.dp
-    val buttonTertiary  = 46.dp
+    val buttonPrimary   = 44.dp
+    val buttonSecondary = 38.dp
+    val buttonTertiary  = 34.dp
+    val buttonSmall     = 30.dp
     val progressBar     = 6.dp
-    val thumbnailBar    = 88.dp
-    val stepIndicator   = 34.dp
-    val stepIndicatorSm = 28.dp
+    val thumbnailBar    = 84.dp
+    val stepIndicator   = 32.dp
+    val stepIndicatorSm = 26.dp
 }
+
+/**
+ * Glassmorphic design tokens for translucent blurred surfaces and buttons.
+ */
+object PhotoUnifierGlass {
+    val blurRadius = 14.dp
+    const val primaryAlpha = 0.82f
+    const val secondaryAlpha = 0.65f
+    const val surfaceAlpha = 0.60f
+    const val borderAlpha = 0.25f
+    const val borderLightAlpha = 0.40f
+}
+

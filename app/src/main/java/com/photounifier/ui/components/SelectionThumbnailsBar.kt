@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.SelectionThumbnail
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.blur
+import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.PhotoUnifierElevation
 import com.photounifier.ui.PhotoUnifierIconSize
@@ -289,7 +292,7 @@ fun PreviewNavigationControls(
         horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedButton(
+        GlassmorphicOutlinedButton(
             onClick = { onIndexChange(selectedIndex - 1) },
             enabled = enabled && selectedIndex > 0,
             modifier = Modifier
@@ -319,10 +322,20 @@ fun PreviewNavigationControls(
                 .weight(0.85f)
                 .height(PhotoUnifierHeight.buttonTertiary),
             shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shadowElevation = PhotoUnifierElevation.low
+            color = Color.Transparent,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = PhotoUnifierGlass.borderAlpha)
+            ),
+            shadowElevation = PhotoUnifierElevation.none
         ) {
             Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(PhotoUnifierGlass.blurRadius)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha))
+                )
                 Text(
                     text = "${selectedIndex + 1} / $totalCount",
                     textAlign = TextAlign.Center,
@@ -333,7 +346,7 @@ fun PreviewNavigationControls(
             }
         }
 
-        OutlinedButton(
+        GlassmorphicOutlinedButton(
             onClick = { onIndexChange(selectedIndex + 1) },
             enabled = enabled && selectedIndex < totalCount - 1,
             modifier = Modifier

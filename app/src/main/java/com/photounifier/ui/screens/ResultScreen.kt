@@ -18,6 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import com.photounifier.ui.PhotoUnifierGlass
+import com.photounifier.ui.components.GlassmorphicButton
+import com.photounifier.ui.components.GlassmorphicOutlinedButton
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -485,52 +490,39 @@ private fun SuccessExportCard(
                     horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
                 ) {
                     // تصدير PDF
-                    Button(
+                    GlassmorphicButton(
                         onClick = onExportPdf,
                         enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(PhotoUnifierHeight.buttonSecondary),
-                        shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = PhotoUnifierElevation.low)
+                        modifier = Modifier.weight(1f),
+                        height = PhotoUnifierHeight.buttonSecondary,
+                        shape = RoundedCornerShape(PhotoUnifierRadius.md)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PictureAsPdf,
-                                contentDescription = null,
-                                modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                            )
-                            Text("تصدير PDF", fontWeight = FontWeight.Bold)
-                        }
+                        Icon(
+                            imageVector = Icons.Default.PictureAsPdf,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                        )
+                        Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                        Text("تصدير PDF", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
 
                     // تصدير صور
-                    FilledTonalButton(
+                    GlassmorphicButton(
                         onClick = onExportImages,
                         enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(PhotoUnifierHeight.buttonSecondary),
-                        shape = RoundedCornerShape(PhotoUnifierRadius.lg)
+                        modifier = Modifier.weight(1f),
+                        height = PhotoUnifierHeight.buttonSecondary,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(PhotoUnifierRadius.md)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                            )
-                            Text("حفظ كصور", fontWeight = FontWeight.Bold)
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                        )
+                        Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                        Text("حفظ كصور", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -634,59 +626,46 @@ private fun SuccessExportCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
-                Button(
+                GlassmorphicButton(
                     onClick = onPickNewBatch,
                     enabled = !state.exportBusy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PhotoUnifierHeight.buttonSecondary),
-                    shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
+                    modifier = Modifier.fillMaxWidth(),
+                    height = PhotoUnifierHeight.buttonSecondary,
+                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = PhotoUnifierGlass.primaryAlpha),
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    shape = RoundedCornerShape(PhotoUnifierRadius.md)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                        )
-                        Text(
-                            text = "مسح / استيراد مستند جديد",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                    Text(
+                        text = "مسح / استيراد مستند جديد",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
-                OutlinedButton(
+                GlassmorphicOutlinedButton(
                     onClick = onBackToAdjust,
                     enabled = !state.exportBusy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PhotoUnifierHeight.buttonTertiary),
-                    shape = RoundedCornerShape(PhotoUnifierRadius.md),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    modifier = Modifier.fillMaxWidth(),
+                    height = PhotoUnifierHeight.buttonTertiary,
+                    shape = RoundedCornerShape(PhotoUnifierRadius.sm)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = null,
-                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                        )
-                        Text(
-                            text = "الرجوع لتعديل الفلاتر",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                    Text(
+                        text = "الرجوع لتعديل الفلاتر",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

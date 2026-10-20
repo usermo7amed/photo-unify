@@ -40,15 +40,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -62,8 +65,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.PhotoUnifierRadius
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 
 /**
  * Brush متحرك لإنشاء تأثير Shimmer loading على عناصر التحميل والهياكل العظمية
@@ -485,3 +492,96 @@ fun CropResultPreview(
         }
     }
 }
+
+/**
+ * زر زجاجي مدمج وشبه شفاف مع تأثير Blur ناعم وإطار بلوري رفيع
+ */
+@Composable
+fun GlassmorphicButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = PhotoUnifierGlass.primaryAlpha),
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    borderColor: Color = Color.White.copy(alpha = PhotoUnifierGlass.borderAlpha),
+    shape: Shape = RoundedCornerShape(PhotoUnifierRadius.md),
+    height: Dp = PhotoUnifierHeight.buttonPrimary,
+    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.md, vertical = PhotoUnifierSpacing.xxs),
+    content: @Composable RowScope.() -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .height(height)
+            .clip(shape),
+        shape = shape,
+        color = Color.Transparent,
+        border = BorderStroke(
+            1.dp,
+            if (enabled) borderColor else borderColor.copy(alpha = 0.12f)
+        ),
+        shadowElevation = 0.dp
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            // طبقة خلفية شبه شفافة مع تمويه Blur
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(PhotoUnifierGlass.blurRadius)
+                    .background(
+                        if (enabled) containerColor
+                        else containerColor.copy(alpha = 0.25f)
+                    )
+            )
+            // محتوى الزر الواضح
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CompositionLocalProvider(
+                    LocalContentColor provides if (enabled) contentColor else contentColor.copy(alpha = 0.38f)
+                ) {
+                    content()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * زر محدد زجاجي مدمج وشبه شفاف مع تمويه
+ */
+@Composable
+fun GlassmorphicOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = PhotoUnifierGlass.surfaceAlpha),
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = PhotoUnifierGlass.borderAlpha),
+    shape: Shape = RoundedCornerShape(PhotoUnifierRadius.md),
+    height: Dp = PhotoUnifierHeight.buttonSecondary,
+    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xxs),
+    content: @Composable RowScope.() -> Unit
+) {
+    GlassmorphicButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        containerColor = containerColor,
+        contentColor = contentColor,
+        borderColor = borderColor,
+        shape = shape,
+        height = height,
+        contentPadding = contentPadding,
+        content = content
+    )
+}
+
