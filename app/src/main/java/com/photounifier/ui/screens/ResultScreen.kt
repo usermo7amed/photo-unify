@@ -378,6 +378,40 @@ private fun SuccessExportCard(
                 }
             }
 
+            // اعرض تفاصيل كل إخفاق بدل الاكتفاء برسالة حالة عامة؛ تظل النتائج الأصلية متاحة لإعادة التصدير.
+            if (state.exportErrors.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "تعذّر تصدير بعض العناصر",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                        state.exportErrors.forEachIndexed { index, message ->
+                            Text(
+                                text = "${index + 1}. $message",
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Text(
+                            text = "يمكنك المحاولة مرة أخرى؛ الصور المعالجة ما زالت محفوظة داخل التطبيق.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+
             // مسارات الحفظ
             Surface(
                 modifier = Modifier.fillMaxWidth(),
