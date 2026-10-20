@@ -207,7 +207,8 @@ android {
         }
     }
 
-    sourceSets.getByName("main").assets.srcDir(fairScanAssetsDir)\n    sourceSets.getByName("main").res.srcDir(cairoResourcesDir)
+    sourceSets.getByName("main").assets.srcDir(fairScanAssetsDir)
+    sourceSets.getByName("main").res.srcDir(cairoResourcesDir)
 
     buildFeatures {
         compose = true
