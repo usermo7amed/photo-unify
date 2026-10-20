@@ -171,8 +171,8 @@ fun AdjustPreviewScreen(
     val isCustomAdjusted = activePreset == null && (state.brightness != 0 || state.contrastPercent != 100)
 
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
     ) {
         // شريط رأس الشاشة والتنقل بين الصفحات
         AdjustHeader(
@@ -190,7 +190,7 @@ fun AdjustPreviewScreen(
 
         // بطاقة المعاينة المركزية التفاعلية
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             shape = RoundedCornerShape(PhotoUnifierRadius.xl),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
@@ -198,7 +198,7 @@ fun AdjustPreviewScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(PhotoUnifierSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
@@ -245,13 +245,14 @@ fun AdjustPreviewScreen(
                     BeforeAfterPreview(
                         source = state.sourcePreview,
                         enhanced = state.resultPreview ?: state.enhancedPreview,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f).fillMaxWidth()
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(260.dp)
+                            .weight(1f)
+                            .heightIn(min = 120.dp)
                             .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                         contentAlignment = Alignment.Center
