@@ -27,4 +27,10 @@
     <string name="status_error_fmt">تفاصيل آخر خطأ: %1$s</string>
     <string name="opencv_failed">تعذر تشغيل مكتبة OpenCV على الجهاز</string>
     <string name="output_hint">الصور الأصلية بتفضل زي ما هي. النسخ المحسّنة بتتحفظ في Pictures/PhotoUnifier.</string>
+    <string name="step_documents">المستندات</string>
+    <string name="step_crop">قص المنظور</string>
+    <string name="step_filters">الفلاتر والتحسين</string>
+    <string name="step_export">حفظ وتصدير</string>
+    <string name="export_success_msg">تم تصدير المستندات بنجاح إلى مجلد التخزين المحلي.</string>
+    <string name="opencv_warning_msg">تنبيه: محرك OpenCV غير مفعل، سيتم الاعتماد على المعالجة البديلة.</string>
 </resources>

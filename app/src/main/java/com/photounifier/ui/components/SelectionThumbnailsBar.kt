@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.NavigateBefore
+import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,14 +96,24 @@ fun SelectionThumbnailsBar(
             )
         }
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            itemsIndexed(
-                thumbnails,
-                key = { _, item -> item.uri.toString() }
-            ) { _, thumbnail ->
+        if (thumbnails.isEmpty() && selectedUris.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(selectedUris.size.coerceAtMost(6)) {
+                    ShimmerThumbnailPlaceholder()
+                }
+            }
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                itemsIndexed(
+                    thumbnails,
+                    key = { _, item -> item.uri.toString() }
+                ) { _, thumbnail ->
                 val selectedIndex = selectedUris.indexOf(thumbnail.uri)
                 val isCurrent = currentIndex == selectedIndex
 
@@ -254,7 +266,7 @@ fun SelectionThumbnailsBar(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.AddPhotoAlternate,
-                                contentDescription = null,
+                                contentDescription = "إضافة صورة جديدة",
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -269,6 +281,7 @@ fun SelectionThumbnailsBar(
             }
         }
     }
+}
 }
 
 @Composable
@@ -294,11 +307,21 @@ fun PreviewNavigationControls(
                 .height(PhotoUnifierHeight.buttonTertiary),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text(
-                "◀ السابقة",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.NavigateBefore,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                )
+                Text(
+                    text = "السابقة",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
         Surface(
@@ -328,11 +351,21 @@ fun PreviewNavigationControls(
                 .height(PhotoUnifierHeight.buttonTertiary),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text(
-                "التالية ▶",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "التالية",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.NavigateNext,
+                    contentDescription = null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                )
+            }
         }
     }
 }

@@ -64,6 +64,10 @@ import com.photounifier.ui.screens.CropWorkspaceBottomBar
 import com.photounifier.ui.screens.CropWorkspaceView
 import com.photounifier.ui.screens.HomeScreen
 import com.photounifier.ui.screens.ResultScreen
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import com.photounifier.ui.components.PhotoUnifierSnackbar
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import org.opencv.android.OpenCVLoader
 
 class MainActivity : ComponentActivity() {
@@ -87,6 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         openCvReady = OpenCVLoader.initLocal()
         setContent {
@@ -216,6 +221,7 @@ private fun PhotoUnifierScreen(
     val stepTitles = listOf("المستندات", "قص المنظور", "الفلاتر", "التصدير")
     val isCropWorkspace = currentStep == 1 && state.cropOpen
     val layoutDirection = LocalLayoutDirection.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     BackHandler(
         enabled = currentStep > 0 && !state.cropApplying && !isCropWorkspace
@@ -242,8 +248,31 @@ private fun PhotoUnifierScreen(
         }
     }
 
+    // Show feedback for export completion
+    LaunchedEffect(state.exportedCount, state.exportBusy) {
+        if (state.exportedCount > 0 && !state.exportBusy && state.exportErrors.isEmpty()) {
+            snackbarHostState.showSnackbar(
+                message = "تم تصدير المستندات بنجاح إلى مجلد التخزين المحلي."
+            )
+        }
+    }
+
+    // Show feedback for OpenCV failure if encountered
+    LaunchedEffect(openCvReady) {
+        if (!openCvReady) {
+            snackbarHostState.showSnackbar(
+                message = "تنبيه: محرك OpenCV غير مفعل، سيتم الاعتماد على المعالجة البديلة."
+            )
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { snackbarData ->
+                PhotoUnifierSnackbar(snackbarData)
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
