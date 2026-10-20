@@ -483,20 +483,56 @@ internal fun CropCornerEditor(
             val left = (size.width - bitmap.width * scale) / 2f
             val top = (size.height - bitmap.height * scale) / 2f
             val screenPoints = corners.map { Offset(left + it.x * scale, top + it.y * scale) }
+
+            // 1) Subtle tint inside document crop quad
+            val quadPath = Path().apply {
+                moveTo(screenPoints[0].x, screenPoints[0].y)
+                lineTo(screenPoints[1].x, screenPoints[1].y)
+                lineTo(screenPoints[2].x, screenPoints[2].y)
+                lineTo(screenPoints[3].x, screenPoints[3].y)
+                close()
+            }
+            drawPath(quadPath, cropAccent.copy(alpha = 0.07f))
+
+            // 2) 3x3 Rule-of-Thirds grid displayed while user is adjusting corners
+            if (activeCorner in 0..3) {
+                val p0 = screenPoints[0] // top-left
+                val p1 = screenPoints[1] // top-right
+                val p2 = screenPoints[2] // bottom-right
+                val p3 = screenPoints[3] // bottom-left
+                val gridColor = Color.White.copy(alpha = 0.38f)
+                val gridStroke = 1.25.dp.toPx()
+
+                for (fraction in listOf(0.333f, 0.667f)) {
+                    val topP = Offset(p0.x + (p1.x - p0.x) * fraction, p0.y + (p1.y - p0.y) * fraction)
+                    val botP = Offset(p3.x + (p2.x - p3.x) * fraction, p3.y + (p2.y - p3.y) * fraction)
+                    drawLine(gridColor, topP, botP, strokeWidth = gridStroke)
+
+                    val leftP = Offset(p0.x + (p3.x - p0.x) * fraction, p0.y + (p3.y - p0.y) * fraction)
+                    val rightP = Offset(p1.x + (p2.x - p1.x) * fraction, p1.y + (p2.y - p1.y) * fraction)
+                    drawLine(gridColor, leftP, rightP, strokeWidth = gridStroke)
+                }
+            }
+
+            // 3) Crop boundary lines
             for (i in 0..3) drawLine(cropAccent, screenPoints[i], screenPoints[(i + 1) % 4], strokeWidth = 3.25f)
+
+            // 4) Corner handles with glow when dragged
             screenPoints.forEachIndexed { index, point ->
                 val selected = index == activeCorner
-                // Keep the visible grip compact so the page stays unobstructed,
-                // while the larger invisible hit radius below keeps dragging easy.
-                drawCircle(Color.Black.copy(alpha = 0.38f), radius = if (selected) 23.dp.toPx() else 19.dp.toPx(), center = point)
-                drawCircle(Color.White, radius = if (selected) 17.dp.toPx() else 14.dp.toPx(), center = point)
+                if (selected) {
+                    drawCircle(selectedCornerColor.copy(alpha = 0.28f), radius = 28.dp.toPx(), center = point)
+                }
+                drawCircle(Color.Black.copy(alpha = 0.40f), radius = if (selected) 24.dp.toPx() else 19.dp.toPx(), center = point)
+                drawCircle(Color.White, radius = if (selected) 17.5.dp.toPx() else 14.dp.toPx(), center = point)
                 drawCircle(if (selected) selectedCornerColor else cropAccent,
-                    radius = if (selected) 10.dp.toPx() else 8.5.dp.toPx(), center = point)
+                    radius = if (selected) 10.5.dp.toPx() else 8.5.dp.toPx(), center = point)
             }
+
+            // 5) Live 2.5x magnifier loupe with drop shadow
             if (activeCorner in 0..3) {
-                // Live 2.5x loupe around the dragged corner; the crop result updates alongside it.
                 val corner = corners[activeCorner]
-                val loupeRadius = 52.dp.toPx()
+                val loupeRadius = 54.dp.toPx()
                 val loupeCenter = Offset(
                     (size.width - loupeRadius - 12.dp.toPx()).coerceAtLeast(loupeRadius),
                     (loupeRadius + 12.dp.toPx()).coerceAtMost(size.height - loupeRadius)
@@ -509,7 +545,10 @@ internal fun CropCornerEditor(
                     loupeCenter.x - loupeRadius, loupeCenter.y - loupeRadius,
                     loupeCenter.x + loupeRadius, loupeCenter.y + loupeRadius
                 )) }
-                drawCircle(Color.White, radius = loupeRadius + 5.dp.toPx(), center = loupeCenter)
+
+                // Loupe shadow and border
+                drawCircle(Color.Black.copy(alpha = 0.35f), radius = loupeRadius + 6.dp.toPx(), center = loupeCenter)
+                drawCircle(Color.White, radius = loupeRadius + 4.dp.toPx(), center = loupeCenter)
                 clipPath(path) {
                     drawImage(
                         image = bitmap.asImageBitmap(),
@@ -520,7 +559,7 @@ internal fun CropCornerEditor(
                         filterQuality = FilterQuality.High
                     )
                 }
-                drawCircle(selectedCornerColor, radius = loupeRadius, center = loupeCenter, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx()))
+                drawCircle(selectedCornerColor, radius = loupeRadius, center = loupeCenter, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.5.dp.toPx()))
                 drawLine(selectedCornerColor, Offset(loupeCenter.x - 14.dp.toPx(), loupeCenter.y), Offset(loupeCenter.x + 14.dp.toPx(), loupeCenter.y), strokeWidth = 2.dp.toPx())
                 drawLine(selectedCornerColor, Offset(loupeCenter.x, loupeCenter.y - 14.dp.toPx()), Offset(loupeCenter.x, loupeCenter.y + 14.dp.toPx()), strokeWidth = 2.dp.toPx())
             }
