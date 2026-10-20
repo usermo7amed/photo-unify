@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -144,6 +145,7 @@ fun SelectionThumbnailsBar(
                             .clickable(enabled = enabled && selectedIndex >= 0, role = Role.Button) {
                                 if (selectedIndex >= 0) onSelectIndex(selectedIndex)
                             }
+                            .semantics { selected = isCurrent }
                     ) {
                         Image(
                             bitmap = thumbnail.bitmap.asImageBitmap(),
@@ -169,26 +171,6 @@ fun SelectionThumbnailsBar(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp
                             )
-                        }
-
-                        // Selected indicator
-                        if (isCurrent) {
-                            Surface(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(PhotoUnifierSpacing.xxs),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondary
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = "الصفحة الحالية",
-                                    modifier = Modifier
-                                        .padding(2.dp)
-                                        .size(12.dp),
-                                    tint = MaterialTheme.colorScheme.onSecondary
-                                )
-                            }
                         }
                     }
 
