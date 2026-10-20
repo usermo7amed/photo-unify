@@ -97,7 +97,7 @@ private val DefaultTypography = Typography().let { base ->
         labelMedium = base.labelMedium.copy(fontFamily = CairoFontFamily),
         labelSmall = base.labelSmall.copy(fontFamily = CairoFontFamily)
     )
-)
+}
 
 private val PhotoUnifierTypography = DefaultTypography.copy(
     displaySmall = DefaultTypography.displaySmall.copy(
