@@ -15,8 +15,6 @@ object PhotoUnifierSpacing {
     val md  = 16.dp
     val lg  = 20.dp
     val xl  = 24.dp
-    val xxl = 32.dp
-    val xxxl = 48.dp
 }
 
 /**
@@ -26,9 +24,6 @@ object PhotoUnifierIconSize {
     val xs   = 16.dp
     val sm   = 18.dp
     val md   = 20.dp
-    val lg   = 24.dp
-    val xl   = 32.dp
-    val xxl  = 48.dp
     val hero = 60.dp
 }
 
@@ -43,7 +38,6 @@ object PhotoUnifierRadius {
     val md  = 12.dp
     val lg  = 14.dp
     val xl  = 20.dp
-    val xxl = 28.dp
 }
 
 /**
@@ -62,9 +56,6 @@ object PhotoUnifierElevation {
 object PhotoUnifierDuration {
     const val fast   = 160
     const val normal = 240
-    const val slow   = 360
-    const val enter  = 280
-    const val exit   = 200
 }
 
 /**
@@ -76,7 +67,6 @@ object PhotoUnifierHeight {
     val buttonTertiary  = 34.dp
     val buttonSmall     = 30.dp
     val progressBar     = 6.dp
-    val thumbnailBar    = 84.dp
     val stepIndicator   = 32.dp
     val stepIndicatorSm = 26.dp
 }
@@ -90,6 +80,5 @@ object PhotoUnifierGlass {
     const val secondaryAlpha = 0.65f
     const val surfaceAlpha = 0.60f
     const val borderAlpha = 0.25f
-    const val borderLightAlpha = 0.40f
 }
 
