@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -710,19 +711,29 @@ private fun FineTuneSlidersCard(
                     listOf(-20 to "-20", 0 to "0 (محايد)", 15 to "+15", 30 to "+30").forEach { (valStep, label) ->
                         val isCurr = brightness == valStep
                         Surface(
-                            modifier = Modifier.clickable(enabled = enabled) { onBrightnessChange(valStep) },
-                            shape = RoundedCornerShape(PhotoUnifierRadius.xs),
-                            color = if (isCurr) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            border = BorderStroke(1.dp, if (isCurr) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                        ) {
-                            Text(
-                                text = label,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                fontWeight = if (isCurr) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isCurr) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier
+                                .heightIn(min = PhotoUnifierHeight.buttonSmall)
+                                .clickable(enabled = enabled, role = Role.RadioButton) { onBrightnessChange(valStep) }
+                                .semantics { selected = isCurr },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = if (isCurr) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isCurr) MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
+                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f)
                             )
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (isCurr) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -787,19 +798,29 @@ private fun FineTuneSlidersCard(
                     listOf(80 to "80%", 100 to "100%", 135 to "135%", 160 to "160%").forEach { (valStep, label) ->
                         val isCurr = contrastPercent == valStep
                         Surface(
-                            modifier = Modifier.clickable(enabled = enabled) { onContrastChange(valStep) },
-                            shape = RoundedCornerShape(PhotoUnifierRadius.xs),
-                            color = if (isCurr) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            border = BorderStroke(1.dp, if (isCurr) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                        ) {
-                            Text(
-                                text = label,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                fontWeight = if (isCurr) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isCurr) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier
+                                .heightIn(min = PhotoUnifierHeight.buttonSmall)
+                                .clickable(enabled = enabled, role = Role.RadioButton) { onContrastChange(valStep) }
+                                .semantics { selected = isCurr },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = if (isCurr) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isCurr) MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
+                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.58f)
                             )
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isCurr) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (isCurr) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
