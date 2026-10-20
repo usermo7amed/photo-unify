@@ -917,6 +917,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         exportExecutor.execute {
+            val successfulImageIds = mutableSetOf<String>()
             val observer = object : ExportRepository.Observer {
                 override fun onProgress(completed: Int, total: Int, message: String) {
                     update { old ->
@@ -937,15 +938,19 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                override fun onItemFinished(itemId: String, success: Boolean) {
+                    if (success) successfulImageIds += itemId
+                }
+
                 override fun onFinished(success: Int, failed: Int, error: String?) {
                     update { old ->
                         val finalStatus = when {
                             failed == 0 && format == ExportFormat.PDF ->
-                                "تم تصدير ملف PDF بنجاح إلى Documents/PhotoUnifier"
+                                "تم تصدير ملف PDF بنجاح إلى Documents/PhotoUnifier. أُزيل تحديد الصور لتجنّب التكرار."
                             failed == 0 ->
-                                "تم تصدير $success صورة بنجاح إلى Pictures/PhotoUnifier"
+                                "تم تصدير $success صورة بنجاح إلى Pictures/PhotoUnifier. أُزيل تحديد الصور المصدّرة لتجنّب التكرار."
                             success > 0 ->
-                                "اكتمل التصدير جزئيًا: نجاح $success، فشل $failed"
+                                "اكتمل التصدير جزئيًا: نجاح $success، فشل $failed. الصور الفاشلة ما زالت محددة لإعادة المحاولة."
                             else ->
                                 "فشل التصدير: ${error ?: "راجع تفاصيل الأخطاء أدناه"}"
                         }
@@ -953,6 +958,12 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             exportBusy = false,
                             exportProgress = old.exportProgressMax,
                             exportedCount = success,
+                            selectedExportIds = remainingExportIdsAfterExport(
+                                format = format,
+                                selectedIds = old.selectedExportIds,
+                                successfulImageIds = successfulImageIds,
+                                failedCount = failed
+                            ),
                             exportStatus = finalStatus,
                             exportErrors = if (failed > 0 && old.exportErrors.isEmpty() && error != null)
                                 old.exportErrors + error else old.exportErrors
