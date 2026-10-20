@@ -28,9 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -441,16 +439,11 @@ private fun PhotoUnifierScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
-                .then(
-                    if (isCropWorkspace) {
-                        Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                    } else {
-                        Modifier
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    }
+                .padding(
+                    horizontal = if (isCropWorkspace) 14.dp else 12.dp,
+                    vertical = 8.dp
                 ),
-            verticalArrangement = Arrangement.spacedBy(if (isCropWorkspace) 8.dp else 14.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Stepper indicator for multi-step progress
             if (!isCropWorkspace && (currentStep != 0 || state.selected.isNotEmpty())) {
@@ -468,7 +461,7 @@ private fun PhotoUnifierScreen(
 
             // Smooth animated transition between main workflow views
             AnimatedContent(
-                modifier = if (isCropWorkspace) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
                 targetState = currentStep,
                 transitionSpec = {
                     if (targetState > initialState) {
@@ -518,7 +511,8 @@ private fun PhotoUnifierScreen(
                             CropReviewCard(
                                 state = state,
                                 openCvReady = openCvReady,
-                                onOpenCrop = onOpenCrop
+                                onOpenCrop = onOpenCrop,
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
                     }
