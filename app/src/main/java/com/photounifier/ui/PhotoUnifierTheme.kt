@@ -1,5 +1,7 @@
 package com.photounifier.ui
 
+import com.photounifier.R
+
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
