@@ -16,10 +16,13 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.components.GlassmorphicButton
 import com.photounifier.ui.components.GlassmorphicOutlinedButton
@@ -113,8 +116,8 @@ fun ResultScreen(
     )
 
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
     ) {
         if (state.busy) {
             // واجهة المعالجة الحية أثناء التحسين
@@ -260,7 +263,7 @@ private fun SuccessExportCard(
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
@@ -268,10 +271,10 @@ private fun SuccessExportCard(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(PhotoUnifierSpacing.lg),
+                .fillMaxSize()
+                .padding(PhotoUnifierSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
         ) {
             // شارة النجاح الاحتفالية
             Box(
@@ -350,8 +353,9 @@ private fun SuccessExportCard(
             if (finalPreview != null && !finalPreview.isRecycled) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.68f)
-                        .aspectRatio(1.28f)
+                        .fillMaxWidth(0.9f)
+                        .weight(1.15f)
+                        .heightIn(min = 100.dp)
                         .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                         .background(Color(0xFF14171C))
                         .border(
@@ -387,6 +391,14 @@ private fun SuccessExportCard(
                 }
             }
 
+            // التفاصيل الطويلة وقائمة التصدير فقط هي القابلة للتمرير؛ تبقى المعاينة ظاهرة.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.9f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+            ) {
             // قائمة اختيار العناصر المراد تصديرها
             if (state.processedImages.isNotEmpty()) {
                 val allExportImagesSelected = state.processedImages.all {
@@ -667,6 +679,7 @@ private fun SuccessExportCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+            }
             }
         }
     }
