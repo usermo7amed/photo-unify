@@ -1,5 +1,9 @@
 package com.photounifier.ui.components
 
+import com.photounifier.ui.PhotoUnifierDuration
+import com.photounifier.ui.PhotoUnifierElevation
+import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierSpacing
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -49,7 +53,7 @@ fun StepProgress(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.none)
     ) {
         Column(
             modifier = Modifier
@@ -91,7 +95,7 @@ fun StepProgress(
                     val canNavigate = isCompleted && onStepClick != null
 
                     val stepSize by animateDpAsState(
-                        targetValue = if (isCurrent) 34.dp else 28.dp,
+                        targetValue = if (isCurrent) PhotoUnifierHeight.stepIndicator else PhotoUnifierHeight.stepIndicatorSm,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessMedium
@@ -105,7 +109,7 @@ fun StepProgress(
                             isCompleted -> MaterialTheme.colorScheme.primaryContainer
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         },
-                        animationSpec = tween(durationMillis = 240),
+                        animationSpec = tween(durationMillis = PhotoUnifierDuration.normal),
                         label = "stepContainerColor"
                     )
 
@@ -115,7 +119,7 @@ fun StepProgress(
                             isCompleted -> MaterialTheme.colorScheme.onPrimaryContainer
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        animationSpec = tween(durationMillis = 240),
+                        animationSpec = tween(durationMillis = PhotoUnifierDuration.normal),
                         label = "stepTextColor"
                     )
 
@@ -129,7 +133,7 @@ fun StepProgress(
                             ),
                         shape = CircleShape,
                         color = stepContainer,
-                        shadowElevation = if (isCurrent) 4.dp else 0.dp
+                        shadowElevation = if (isCurrent) PhotoUnifierElevation.high else PhotoUnifierElevation.none
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
@@ -195,10 +199,10 @@ fun StepHeading(
         horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
     ) {
         Surface(
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(PhotoUnifierHeight.stepIndicator),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
-            shadowElevation = 1.dp
+            shadowElevation = PhotoUnifierElevation.low
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
