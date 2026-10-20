@@ -45,6 +45,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.SelectionThumbnail
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import com.photounifier.ui.PhotoUnifierDuration
+import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.PhotoUnifierElevation
+import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierSpacing
 
 @Composable
@@ -93,9 +106,9 @@ fun SelectionThumbnailsBar(
                 val isCurrent = currentIndex == selectedIndex
 
                 val scale by animateFloatAsState(
-                    targetValue = if (isCurrent) 1.05f else 1f,
+                    targetValue = if (isCurrent) 1.08f else 1f,
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMedium
                     ),
                     label = "thumbScale"
@@ -240,7 +253,7 @@ fun SelectionThumbnailsBar(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Add,
+                                imageVector = Icons.Filled.AddPhotoAlternate,
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -270,7 +283,7 @@ fun PreviewNavigationControls(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedButton(
@@ -278,25 +291,31 @@ fun PreviewNavigationControls(
             enabled = enabled && selectedIndex > 0,
             modifier = Modifier
                 .weight(1f)
-                .height(44.dp),
-            shape = MaterialTheme.shapes.small
+                .height(PhotoUnifierHeight.buttonTertiary),
+            shape = MaterialTheme.shapes.medium
         ) {
-            Text("الصورة السابقة")
+            Text(
+                "◀ السابقة",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
 
         Surface(
             modifier = Modifier
-                .weight(0.9f)
-                .height(44.dp),
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.surfaceVariant
+                .weight(0.85f)
+                .height(PhotoUnifierHeight.buttonTertiary),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shadowElevation = PhotoUnifierElevation.low
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = "${selectedIndex + 1} / $totalCount",
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
@@ -306,10 +325,14 @@ fun PreviewNavigationControls(
             enabled = enabled && selectedIndex < totalCount - 1,
             modifier = Modifier
                 .weight(1f)
-                .height(44.dp),
-            shape = MaterialTheme.shapes.small
+                .height(PhotoUnifierHeight.buttonTertiary),
+            shape = MaterialTheme.shapes.medium
         ) {
-            Text("الصورة التالية")
+            Text(
+                "التالية ▶",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
