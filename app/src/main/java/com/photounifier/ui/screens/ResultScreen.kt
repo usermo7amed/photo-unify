@@ -1,6 +1,10 @@
 package com.photounifier.ui.screens
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,22 +12,31 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,34 +44,41 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.PhotoUnifierDuration
 import com.photounifier.ui.PhotoUnifierElevation
 import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierRadius
 import com.photounifier.ui.PhotoUnifierSpacing
 import kotlin.math.roundToInt
 
 /**
  * شاشة النتيجة والتصدير بنمط CamScanner الاحترافي:
- * - بطاقة إنجاز احتفالية تبرز نجاح تحسين المستند.
- * - خيارات تصدير فورية بنقرة واحدة كـ PDF أو صور عالية الدقة.
- * - أزرار سريعة لمسح مستند جديد أو تعديل المجموعة.
+ * - بطاقة إنجاز احتفالية تبرز نجاح تحسين المستند مع إحصائيات سريعة.
+ * - خيارات تصدير فورية بنقرة واحدة كـ PDF أو صور عالية الدقة بألوان مميزة.
+ * - قائمة اختيار الصفحات للتصدير بدقة وأمان.
+ * - أزرار سريعة لمسح مستند جديد أو الرجوع لضبط الفلاتر.
  */
 @Composable
 fun ResultScreen(
@@ -75,6 +95,7 @@ fun ResultScreen(
     val progressFraction = (state.progress.toFloat() / progressMax).coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
         targetValue = progressFraction,
+        animationSpec = tween(PhotoUnifierDuration.normal),
         label = "saveProgress"
     )
 
@@ -82,6 +103,7 @@ fun ResultScreen(
     val exportFraction = (state.exportProgress.toFloat() / exportMax).coerceIn(0f, 1f)
     val animatedExportProgress by animateFloatAsState(
         targetValue = exportFraction,
+        animationSpec = tween(PhotoUnifierDuration.normal),
         label = "exportProgress"
     )
 
@@ -127,26 +149,35 @@ private fun ProcessingStateCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(PhotoUnifierSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.lg)
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(54.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 4.dp
-            )
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(42.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.5.dp
+                )
+            }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Text(
                     text = "جاري تحسين وحفظ المستندات...",
@@ -164,7 +195,7 @@ private fun ProcessingStateCard(
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -188,8 +219,8 @@ private fun ProcessingStateCard(
                     progress = progress,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .height(PhotoUnifierHeight.progressBar)
+                        .clip(RoundedCornerShape(PhotoUnifierRadius.xs))
                 )
             }
         }
@@ -215,23 +246,37 @@ private fun SuccessExportCard(
     val isSuccess = state.savedCount > 0
     val finalPreview = state.resultPreview ?: state.enhancedPreview ?: state.sourcePreview
 
+    // أنيميشن احتفالي للرمز الترحيبي عند ظهور الشاشة
+    var hasAnimated by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { hasAnimated = true }
+    val scaleAnim by animateFloatAsState(
+        targetValue = if (hasAnimated) 1f else 0.4f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "celebrateScale"
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(PhotoUnifierSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
         ) {
-            // شارة النجاح
+            // شارة النجاح الاحتفالية
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(72.dp)
+                    .scale(scaleAnim)
                     .clip(CircleShape)
                     .background(
                         if (isSuccess) MaterialTheme.colorScheme.primaryContainer
@@ -239,27 +284,48 @@ private fun SuccessExportCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = if (isSuccess) "✓" else "⚠️",
-                    fontSize = 32.sp,
-                    color = if (isSuccess) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Bold
-                )
+                if (isSuccess) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(44.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                ) {
+                    Text(
+                        text = if (isSuccess) "تم تحسين المستندات بنجاح!" else "تعذّر حفظ بعض المستندات",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    if (isSuccess) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(PhotoUnifierIconSize.md)
+                        )
+                    }
+                }
                 Text(
-                    text = if (isSuccess) "تم تحسين المستندات بنجاح" else "تعذّر حفظ المستندات",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = if (isSuccess) "جاهزة للتصدير كملف PDF أو حفظ كصور عالية الدقة."
+                    text = if (isSuccess) "المستندات جاهزة الآن للتصدير كملف PDF موحّد أو صور مستقلة."
                     else state.status,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -267,20 +333,31 @@ private fun SuccessExportCard(
                 )
             }
 
+            // شريط إحصائيات الإنجاز السريع
+            if (isSuccess) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatSummaryChip(label = "الصفحات", value = "${state.savedCount} صفحة")
+                    StatSummaryChip(label = "الدقة", value = "جودة أصلية")
+                    StatSummaryChip(label = "المعالجة", value = "محلية 100%")
+                }
+            }
+
             // معاينة سريعة للمستند النهائي
             if (finalPreview != null && !finalPreview.isRecycled) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.65f)
-                        .aspectRatio(1.25f)
-                        .clip(RoundedCornerShape(14.dp))
+                        .fillMaxWidth(0.68f)
+                        .aspectRatio(1.28f)
+                        .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                         .background(Color(0xFF14171C))
                         .border(
                             1.5.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                            RoundedCornerShape(14.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            RoundedCornerShape(PhotoUnifierRadius.lg)
+                        )
                 ) {
                     Image(
                         bitmap = finalPreview.asImageBitmap(),
@@ -293,36 +370,38 @@ private fun SuccessExportCard(
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 6.dp),
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color.Black.copy(alpha = 0.70f)
+                            .padding(bottom = PhotoUnifierSpacing.xs),
+                        shape = RoundedCornerShape(PhotoUnifierRadius.xs),
+                        color = Color.Black.copy(alpha = 0.75f)
                     ) {
                         Text(
-                            text = "جودة كاملة ✓",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            text = "معاينة الجودة الكاملة ✓",
+                            modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = 2.dp),
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
 
-            // اختَر العناصر المراد تصديرها. الاحتفاظ بالفاشلة محددة يجعل إعادة المحاولة واضحة وآمنة.
+            // قائمة اختيار العناصر المراد تصديرها
             if (state.processedImages.isNotEmpty()) {
                 val allExportImagesSelected = state.processedImages.all {
                     it.id in state.selectedExportIds
                 }
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    shape = RoundedCornerShape(PhotoUnifierRadius.md),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(PhotoUnifierSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -338,7 +417,7 @@ private fun SuccessExportCard(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${state.processedImages.count { it.id in state.selectedExportIds }} من ${state.processedImages.size} صور محددة",
+                                    text = "${state.processedImages.count { it.id in state.selectedExportIds }} من ${state.processedImages.size} محددة",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -347,7 +426,10 @@ private fun SuccessExportCard(
                                 onClick = { onSelectAllExportImages(!allExportImagesSelected) },
                                 enabled = !state.exportBusy
                             ) {
-                                Text(if (allExportImagesSelected) "إلغاء تحديد الكل" else "تحديد الكل")
+                                Text(
+                                    text = if (allExportImagesSelected) "إلغاء التحديد" else "تحديد الكل",
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
 
@@ -369,7 +451,7 @@ private fun SuccessExportCard(
                                 Column(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(vertical = 6.dp),
+                                        .padding(vertical = 4.dp),
                                     verticalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
                                     Text(
@@ -394,17 +476,17 @@ private fun SuccessExportCard(
             // أزرار التصدير بنمط CamScanner (PDF + صور)
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Text(
-                    text = "خيارات التصدير السريعة",
+                    text = "خيارات التصدير والمشاركة",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
                 ) {
                     // تصدير PDF
                     Button(
@@ -413,48 +495,57 @@ private fun SuccessExportCard(
                         modifier = Modifier
                             .weight(1f)
                             .height(PhotoUnifierHeight.buttonSecondary),
-                        shape = MaterialTheme.shapes.large,
+                        shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = PhotoUnifierElevation.low)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                         ) {
-                            Text("PDF", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            Text("مستند PDF", fontWeight = FontWeight.Bold)
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                            )
+                            Text("تصدير PDF", fontWeight = FontWeight.Bold)
                         }
                     }
 
                     // تصدير صور
-                    OutlinedButton(
+                    FilledTonalButton(
                         onClick = onExportImages,
                         enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                         modifier = Modifier
                             .weight(1f)
                             .height(PhotoUnifierHeight.buttonSecondary),
-                        shape = MaterialTheme.shapes.large
+                        shape = RoundedCornerShape(PhotoUnifierRadius.lg)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                         ) {
-                            Text("JPG", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                            )
                             Text("حفظ كصور", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                // حالة التصدير: يظل وصف النتيجة ظاهرًا، بينما يظهر الشريط فقط أثناء العمل.
+                // حالة التصدير
                 if (state.exportBusy || state.exportProgress > 0 ||
                     state.exportErrors.isNotEmpty() || state.exportStatus != "جاهز للتصدير"
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                     ) {
                         Column(
                             modifier = Modifier.padding(PhotoUnifierSpacing.sm),
@@ -471,12 +562,12 @@ private fun SuccessExportCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(PhotoUnifierHeight.progressBar)
-                                        .clip(MaterialTheme.shapes.extraSmall)
+                                        .clip(RoundedCornerShape(PhotoUnifierRadius.xs))
                                 )
                             } else {
                                 Text(
                                     text = if (state.exportErrors.isEmpty())
-                                        "اكتمل التصدير." else "انتهى التصدير مع إخفاقات؛ تقدر تعيد المحاولة.",
+                                        "اكتمل التصدير بنجاح." else "انتهى التصدير مع بعض الملاحظات؛ يمكنك إعادة المحاولة.",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (state.exportErrors.isEmpty())
                                         MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -487,12 +578,12 @@ private fun SuccessExportCard(
                 }
             }
 
-            // اعرض تفاصيل كل إخفاق بدل الاكتفاء برسالة حالة عامة؛ تظل النتائج الأصلية متاحة لإعادة التصدير.
+            // تفاصيل الإخفاقات إن وُجدت
             if (state.exportErrors.isNotEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+                    shape = RoundedCornerShape(PhotoUnifierRadius.md),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                 ) {
                     Column(
                         modifier = Modifier.padding(PhotoUnifierSpacing.sm),
@@ -512,31 +603,37 @@ private fun SuccessExportCard(
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         }
-                        Text(
-                            text = "يمكنك المحاولة مرة أخرى؛ الصور المعالجة ما زالت محفوظة داخل التطبيق.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
                     }
                 }
             }
 
-            // مسارات الحفظ
+            // مسارات الحفظ المباشرة
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                shape = RoundedCornerShape(PhotoUnifierRadius.md),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
             ) {
-                Text(
-                    text = "الصور في Pictures/PhotoUnifier • ملفات PDF في Documents/PhotoUnifier",
+                Row(
                     modifier = Modifier.padding(PhotoUnifierSpacing.sm),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "الصور: Pictures/PhotoUnifier • ملفات PDF: Documents/PhotoUnifier",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            // أزرار المتابعة وإنشاء مستند جديد
+            // أزرار المتابعة والعمليات اللاحقة
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
@@ -547,17 +644,27 @@ private fun SuccessExportCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(PhotoUnifierHeight.buttonSecondary),
-                    shape = MaterialTheme.shapes.large,
+                    shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 ) {
-                    Text(
-                        text = "+ مسح / استيراد مستند جديد",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                        )
+                        Text(
+                            text = "مسح / استيراد مستند جديد",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 OutlinedButton(
@@ -566,15 +673,60 @@ private fun SuccessExportCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(PhotoUnifierHeight.buttonTertiary),
-                    shape = MaterialTheme.shapes.medium
+                    shape = RoundedCornerShape(PhotoUnifierRadius.md),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 ) {
-                    Text(
-                        text = "الرجوع لتعديل الفلاتر",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                        )
+                        Text(
+                            text = "الرجوع لتعديل الفلاتر",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+/**
+ * شارة ملخص الإحصائيات (عدد الصفحات، الدقة، المعالجة)
+ */
+@Composable
+private fun StatSummaryChip(
+    label: String,
+    value: String
+) {
+    Surface(
+        shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 10.sp
+            )
         }
     }
 }
