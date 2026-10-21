@@ -1,5 +1,7 @@
 package com.photounifier.ui.components
 
+import com.photounifier.R
+
 import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
