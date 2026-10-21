@@ -192,7 +192,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 sourcePreview = null,
                 enhancedPreview = null,
                 resultPreview = null,
-                status = "جاري تحميل معاينة الصورة ${index + 1} من ${old.selected.size}..."
+                status = appContext.getString(R.string.status_loading_image_preview, index + 1, old.selected.size)
             )
         }
 
