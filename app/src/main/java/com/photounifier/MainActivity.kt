@@ -98,7 +98,11 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides LayoutDirection.Rtl
                 ) {
-                    val state by viewModel.state.observeAsState(PhotoUiState())
+                    val fallbackState = PhotoUiState(
+                        status = stringResource(R.string.status_ready_select),
+                        exportStatus = stringResource(R.string.status_ready_export)
+                    )
+                    val state by viewModel.state.observeAsState(fallbackState)
                     var appendToSelection by remember { mutableStateOf(false) }
                     val picker = rememberLauncherForActivityResult(
                         ActivityResultContracts.PickMultipleVisualMedia()
