@@ -1,5 +1,8 @@
 package com.photounifier.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.photounifier.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -123,12 +126,12 @@ fun CropReviewCard(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "قص وتصحيح المنظور",
+                            text = stringResource(R.string.crop_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "اكتشاف أوتوماتيكي لحدود الورقة وتصحيح الزوايا",
+                            text = stringResource(R.string.crop_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -266,7 +269,7 @@ fun CropWorkspaceView(
                         modifier = Modifier.size(PhotoUnifierIconSize.sm)
                     )
                     Text(
-                        text = "ضبط زوايا المستند",
+                        text = stringResource(R.string.crop_editor_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -282,7 +285,7 @@ fun CropWorkspaceView(
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                         ) {
                             Text(
-                                text = "معاينة",
+                                text = stringResource(R.string.action_preview),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -360,7 +363,7 @@ fun CropWorkspaceView(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "معاينة ناتج القص",
+                                text = stringResource(R.string.crop_preview_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -385,7 +388,7 @@ fun CropWorkspaceView(
                             )
                         } else {
                             Text(
-                                text = "المعاينة غير متاحة حالياً.",
+                                text = stringResource(R.string.crop_preview_unavailable),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -395,7 +398,7 @@ fun CropWorkspaceView(
                             onClick = { showCropResultPreview = false },
                             modifier = Modifier.align(Alignment.End)
                         ) {
-                            Text("إغلاق")
+                            Text(stringResource(R.string.action_close))
                         }
                     }
                 }
@@ -601,7 +604,7 @@ fun CropWorkspaceBottomBar(
                 Text(
                     text = when {
                         state.cropApplying -> "جارٍ الحفظ..."
-                        state.cropDirty -> "حفظ القص"
+                        state.cropDirty -> stringResource(R.string.action_crop)
                         else -> "إنهاء"
                     },
                     style = MaterialTheme.typography.labelMedium,

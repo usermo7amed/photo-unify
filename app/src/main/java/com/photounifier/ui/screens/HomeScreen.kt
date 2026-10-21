@@ -1,5 +1,8 @@
 package com.photounifier.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.photounifier.R
+
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -137,14 +140,14 @@ private fun EmptyScanDashboard(
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
             ) {
                 Text(
-                    text = "ابدأ بمسح مستند",
+                    text = stringResource(R.string.home_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "صوّر الورقة بالكاميرا أو اختر صورًا من المعرض.",
+                    text = stringResource(R.string.home_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -180,7 +183,7 @@ private fun ActiveBatchDashboard(
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
             ) {
                 Text(
-                    text = "الصور المحددة",
+                    text = stringResource(R.string.selected_photos),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -190,7 +193,7 @@ private fun ActiveBatchDashboard(
                 onClick = onClearSelection,
                 enabled = enabled
             ) {
-                Text("مسح الكل", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.action_clear_all), style = MaterialTheme.typography.labelLarge)
             }
         }
 

@@ -6,4 +6,22 @@
     <string name="kind_interior">مكان داخلي</string>
     <string name="kind_exterior">مكان خارجي</string>
     <string name="kind_general">صورة عامة</string>
+    <!-- Actions and crop workflow -->
+    <string name="action_crop">قص</string>
+    <string name="action_preview">معاينة</string>
+    <string name="action_close">إغلاق</string>
+    <string name="crop_title">قص وتصحيح المنظور</string>
+    <string name="crop_subtitle">اكتشاف حدود الورقة وضبط زواياها</string>
+    <string name="crop_editor_title">ضبط زوايا المستند</string>
+    <string name="crop_preview_title">معاينة ناتج القص</string>
+    <string name="crop_preview_unavailable">المعاينة غير متاحة حاليًا.</string>
+    <string name="home_title">ابدأ بمسح مستند</string>
+    <string name="home_subtitle">صوّر الورقة بالكاميرا أو اختر صورًا من المعرض.</string>
+    <string name="selected_photos">الصور المحددة</string>
+    <string name="action_clear_all">مسح الكل</string>
+    <string name="action_reset">إعادة ضبط</string>
+    <string name="action_brightness">السطوع</string>
+    <string name="action_contrast">التباين</string>
+    <string name="action_export_pdf">تصدير PDF</string>
+    <string name="action_save_images">حفظ كصور</string>
 </resources>
