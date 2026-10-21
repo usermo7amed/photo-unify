@@ -196,4 +196,11 @@
     <string name="error_open_pdf_write">تعذر فتح ملف PDF للحفظ</string>
     <string name="error_pdf_unavailable_after_save">تعذر إتاحة ملف PDF بعد الحفظ</string>
     <string name="error_pdf_export_item">ملف PDF: %1$s</string>
+    <string name="error_crop_prepare">تعذر تجهيز الصورة المقصوصة</string>
+    <string name="error_load_image">تعذر تحميل الصورة</string>
+    <string name="error_saved_crop_bounds">حدود القص المحفوظة للصفحة غير صالحة</string>
+    <string name="error_save_image">تعذر تجهيز الصورة للحفظ</string>
+    <string name="error_saved_preview">تعذر تجهيز معاينة الصورة المحفوظة</string>
+    <string name="error_temp_image_unavailable">ملف الصورة المؤقت غير متاح</string>
+    <string name="error_unknown">خطأ غير معروف</string>
 </resources>
