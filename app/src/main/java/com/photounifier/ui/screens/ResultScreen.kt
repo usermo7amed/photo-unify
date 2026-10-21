@@ -450,6 +450,7 @@ private fun SuccessExportCard(
                         }
 
                         state.processedImages.forEach { image ->
+                            val imageExportDescription = stringResource(R.string.include_image_export, image.displayName)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -461,7 +462,7 @@ private fun SuccessExportCard(
                                     },
                                     enabled = !state.exportBusy,
                                     modifier = Modifier.semantics {
-                                        contentDescription = stringResource(R.string.include_image_export, image.displayName)
+                                        contentDescription = imageExportDescription
                                     }
                                 )
                                 Column(
