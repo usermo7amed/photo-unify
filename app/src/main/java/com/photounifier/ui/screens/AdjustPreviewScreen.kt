@@ -283,8 +283,6 @@ fun AdjustPreviewScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             items(ScannerFilterPresets, key = { it.id }) { preset ->
-                val presetTitle = stringResource(preset.titleRes)
-                val presetSubtitle = stringResource(preset.subtitleRes)
                 val isSelected = state.brightness == preset.brightness &&
                         state.contrastPercent == preset.contrast
 
@@ -437,6 +435,9 @@ private fun FilterPresetCard(
     onClick: () -> Unit,
     enabled: Boolean
 ) {
+    val presetTitle = stringResource(preset.titleRes)
+    val presetSubtitle = stringResource(preset.subtitleRes)
+    val presetDescription = "$presetTitle. $presetSubtitle"
     Surface(
         modifier = Modifier
             .width(112.dp)
@@ -446,7 +447,7 @@ private fun FilterPresetCard(
                 onClick = onClick
             )
             .semantics {
-                contentDescription = "$presetTitle. $presetSubtitle"
+                contentDescription = presetDescription
                 selected = isSelected
             },
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
