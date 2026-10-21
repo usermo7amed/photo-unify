@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
@@ -191,7 +192,7 @@ internal fun BeforeAfterPreview(
                         color = Color.Black.copy(alpha = 0.55f)
                     ) {
                         Text(
-                            text = "بعد (المحسّنة)",
+                            text = stringResource(R.string.comparison_after),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
@@ -204,7 +205,7 @@ internal fun BeforeAfterPreview(
                         color = Color.Black.copy(alpha = 0.55f)
                     ) {
                         Text(
-                            text = "قبل (الأصل)",
+                            text = stringResource(R.string.comparison_before),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
@@ -228,7 +229,7 @@ internal fun BeforeAfterPreview(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                "بانتظار النتيجة...",
+                                stringResource(R.string.preview_waiting_result),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 style = MaterialTheme.typography.labelSmall
                             )
@@ -249,7 +250,7 @@ internal fun BeforeAfterPreview(
                             }
                         ) {
                             Text(
-                                text = if (isHoldingOriginal) "معاينة الأصل الآن" else "المس مطولاً لرؤية الأصل",
+                                text = if (isHoldingOriginal) stringResource(R.string.preview_original_now) else stringResource(R.string.preview_hold_original),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 color = Color.White,
                                 style = MaterialTheme.typography.labelSmall,
@@ -264,7 +265,7 @@ internal fun BeforeAfterPreview(
                             color = Color.Black.copy(alpha = 0.60f)
                         ) {
                             Text(
-                                text = "تكبير ${(zoom * 100).roundToInt()}%",
+                                text = stringResource(R.string.zoom_percent, (zoom * 100).roundToInt()),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 color = Color.White,
                                 style = MaterialTheme.typography.labelSmall
@@ -274,7 +275,7 @@ internal fun BeforeAfterPreview(
                 }
             } else {
                 Text(
-                    "اختار صورة لعرض المقارنة",
+                    stringResource(R.string.choose_image_compare),
                     modifier = Modifier.align(Alignment.Center),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium
@@ -294,7 +295,7 @@ internal fun BeforeAfterPreview(
                 modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("الأصل", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.original), style = MaterialTheme.typography.labelSmall)
             }
             OutlinedButton(
                 onClick = { revealTarget = 0.5f },
@@ -314,7 +315,7 @@ internal fun BeforeAfterPreview(
                 modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("المحسن", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.enhanced), style = MaterialTheme.typography.labelSmall)
             }
             OutlinedButton(
                 onClick = { zoom = (zoom / 1.25f).coerceAtLeast(1f); if (zoom == 1f) pan = Offset.Zero },
@@ -332,7 +333,7 @@ internal fun BeforeAfterPreview(
                 onClick = { zoom = 1f; pan = Offset.Zero; revealTarget = 0.5f },
                 modifier = Modifier.weight(1f).height(34.dp),
                 shape = RoundedCornerShape(10.dp)
-            ) { Text("إعادة", style = MaterialTheme.typography.labelSmall) }
+            ) { Text(stringResource(R.string.action_reset_simple), style = MaterialTheme.typography.labelSmall) }
         }
     }
 }
@@ -357,7 +358,7 @@ internal fun CropCornerEditor(
     ) {
         Image(
             bitmap = bitmap.asImageBitmap(),
-            contentDescription = "الصورة مع نقاط تحديد الزوايا",
+            contentDescription = stringResource(R.string.corner_points_description),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )
