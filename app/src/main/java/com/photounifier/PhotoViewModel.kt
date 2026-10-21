@@ -214,7 +214,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         val cropped = DocumentCrop.warp(
                             preview,
                             mapNormalizedCropPoints(normalized, preview.width, preview.height),
-                            Processor.PREVIEW_MAX_SIDE
+                            Processor.PREVIEW_MAX_SIDE, context = appContext
                         )
                         if (cropped !== preview) preview.recycle()
                         preview = cropped
@@ -466,7 +466,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 preview = DocumentCrop.warp(
                     cropPreviewSrc,
                     mapCropPoints(rotated, cropPreviewSrc, corners),
-                    Processor.PREVIEW_MAX_SIDE
+                    Processor.PREVIEW_MAX_SIDE, context = appContext
                 )
 
                 if (generation != cropGeneration.get()) {
@@ -549,7 +549,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 preview = DocumentCrop.warp(
                     cropPreviewSrc,
                     mapCropPoints(rotatedBitmap, cropPreviewSrc, corners),
-                    Processor.PREVIEW_MAX_SIDE
+                    Processor.PREVIEW_MAX_SIDE, context = appContext
                 )
 
                 if (generation != cropGeneration.get()) {
@@ -608,7 +608,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
-            val preview = try { DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, candidate), Processor.PREVIEW_MAX_SIDE) } catch (_: Exception) { return@execute }
+            val preview = try { DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, candidate), Processor.PREVIEW_MAX_SIDE, context = appContext) } catch (_: Exception) { return@execute }
             if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
             update { old ->
                 if (!old.cropOpen || old.cropCorners != candidate) { preview.recycle(); old }
@@ -627,7 +627,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
                 val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
-                DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, previous), Processor.PREVIEW_MAX_SIDE)
+                DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, previous), Processor.PREVIEW_MAX_SIDE, context = appContext)
             } catch (_: Exception) { return@execute }
             if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
             update { old ->
@@ -648,7 +648,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
                 val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
-                DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE)
+                DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE, context = appContext)
             } catch (_: Exception) { return@execute }
             if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
             update { old ->
@@ -706,7 +706,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
-                DocumentCrop.warp(previewSource, previewCorners, Processor.PREVIEW_MAX_SIDE)
+                DocumentCrop.warp(previewSource, previewCorners, Processor.PREVIEW_MAX_SIDE, context = appContext)
             } catch (error: Exception) {
                 update { old ->
                     if (generation != cropGeneration.get()) old
