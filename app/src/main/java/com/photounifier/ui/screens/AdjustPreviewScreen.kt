@@ -1,5 +1,8 @@
 package com.photounifier.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.photounifier.R
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -411,7 +414,7 @@ private fun AdjustHeader(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "إعادة ضبط",
+                        text = stringResource(R.string.action_reset),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
@@ -579,7 +582,7 @@ private fun FineTuneSlidersCard(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "السطوع",
+                            text = stringResource(R.string.action_brightness),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -662,7 +665,7 @@ private fun FineTuneSlidersCard(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "التباين",
+                            text = stringResource(R.string.action_contrast),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
