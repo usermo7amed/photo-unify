@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -139,7 +140,7 @@ class MainActivity : ComponentActivity() {
                             if (outputUri == null) {
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "تعذّر تجهيز ملف للمسح. حاول مرة أخرى.",
+                                    getString(R.string.scan_prepare_failed),
                                     Toast.LENGTH_LONG
                                 ).show()
                             } else {
@@ -151,7 +152,7 @@ class MainActivity : ComponentActivity() {
                                     runCatching { contentResolver.delete(outputUri, null, null) }
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "تعذّر فتح الكاميرا على هذا الجهاز.",
+                                        getString(R.string.camera_open_failed),
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -217,6 +218,8 @@ private fun PhotoUnifierScreen(
 ) {
     var currentStep by rememberSaveable { mutableIntStateOf(0) }
     val isCropWorkspace = currentStep == 1 && state.cropOpen
+    val exportSuccessMessage = stringResource(R.string.snackbar_export_success)
+    val openCvFallbackMessage = stringResource(R.string.snackbar_opencv_fallback)
     val layoutDirection = LocalLayoutDirection.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -249,7 +252,7 @@ private fun PhotoUnifierScreen(
     LaunchedEffect(state.exportedCount, state.exportBusy) {
         if (state.exportedCount > 0 && !state.exportBusy && state.exportErrors.isEmpty()) {
             snackbarHostState.showSnackbar(
-                message = "تم تصدير المستندات بنجاح إلى مجلد التخزين المحلي."
+                message = exportSuccessMessage
             )
         }
     }
@@ -258,7 +261,7 @@ private fun PhotoUnifierScreen(
     LaunchedEffect(openCvReady) {
         if (!openCvReady) {
             snackbarHostState.showSnackbar(
-                message = "تنبيه: محرك OpenCV غير مفعل، سيتم الاعتماد على المعالجة البديلة."
+                message = openCvFallbackMessage
             )
         }
     }
@@ -275,11 +278,11 @@ private fun PhotoUnifierScreen(
                 title = {
                     Text(
                         text = when (currentStep) {
-                            0 -> "مُوحِّد الصور"
-                            1 -> "قص وتصحيح المنظور"
-                            2 -> "الفلاتر والتحسين"
-                            3 -> "حفظ وتصدير المستندات"
-                            else -> "مُوحِّد الصور"
+                            0 -> stringResource(R.string.app_name)
+                            1 -> stringResource(R.string.crop_title)
+                            2 -> stringResource(R.string.screen_title_adjust)
+                            3 -> stringResource(R.string.screen_title_result)
+                            else -> stringResource(R.string.app_name)
                         },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
@@ -331,7 +334,7 @@ private fun PhotoUnifierScreen(
                                 .height(PhotoUnifierHeight.buttonSecondary),
                             shape = MaterialTheme.shapes.extraLarge
                         ) {
-                            Text("السابق")
+                            Text(stringResource(R.string.action_previous))
                         }
 
                         Button(
@@ -342,7 +345,7 @@ private fun PhotoUnifierScreen(
                                 .height(PhotoUnifierHeight.buttonPrimary),
                             shape = MaterialTheme.shapes.extraLarge
                         ) {
-                            Text("التالي: الضبط والمعاينة", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.action_next_adjustment), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -365,19 +368,19 @@ private fun PhotoUnifierScreen(
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
                                 shape = MaterialTheme.shapes.extraLarge
-                            ) { Text("الكاميرا") }
+                            ) { Text(stringResource(R.string.action_camera)) }
                             OutlinedButton(
                                 onClick = { onPickImages(true) },
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
                                 shape = MaterialTheme.shapes.extraLarge
-                            ) { Text("المعرض") }
+                            ) { Text(stringResource(R.string.action_gallery)) }
                             Button(
                                 onClick = { currentStep = 1 },
                                 enabled = state.selected.isNotEmpty() && !state.busy,
                                 modifier = Modifier.weight(1.2f),
                                 shape = MaterialTheme.shapes.extraLarge
-                            ) { Text("مراجعة الصور", fontWeight = FontWeight.Bold) }
+                            ) { Text(stringResource(R.string.action_review_images), fontWeight = FontWeight.Bold) }
                         }
                     } else {
                         Row(
@@ -392,7 +395,7 @@ private fun PhotoUnifierScreen(
                                 enabled = currentStep != 0 && !state.busy && !state.exportBusy,
                                 modifier = Modifier.weight(1f),
                                 shape = MaterialTheme.shapes.extraLarge
-                            ) { Text("المستندات") }
+                            ) { Text(stringResource(R.string.action_documents)) }
                             Button(
                                 onClick = {
                                     currentStep = when (currentStep) {
@@ -410,9 +413,9 @@ private fun PhotoUnifierScreen(
                             ) {
                                 Text(
                                     when (currentStep) {
-                                        1 -> "التالي: التحسين"
-                                        2 -> "عرض التصدير"
-                                        else -> "العودة للتحسين"
+                                        1 -> stringResource(R.string.action_next_enhance)
+                                        2 -> stringResource(R.string.action_view_export)
+                                        else -> stringResource(R.string.action_back_enhance)
                                     },
                                     fontWeight = FontWeight.Bold
                                 )
