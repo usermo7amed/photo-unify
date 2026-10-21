@@ -233,18 +233,18 @@ fun StepProgress(
                         label = "stepTextColor"
                     )
 
+                    val stepDescription = when {
+                        isCompleted -> stringResource(R.string.step_complete, index + 1, stepTitle)
+                        isCurrent -> stringResource(R.string.step_current, index + 1, stepTitle)
+                        else -> stringResource(R.string.step_upcoming, index + 1, stepTitle)
+                    }
+
                     Surface(
                         modifier = Modifier
                             .size(stepSize)
                             .semantics {
                                 role = Role.Button
-                                contentDescription = if (isCompleted) {
-                                    stringResource(R.string.step_complete, index + 1, stepTitle)
-                                } else if (isCurrent) {
-                                    stringResource(R.string.step_current, index + 1, stepTitle)
-                                } else {
-                                    stringResource(R.string.step_upcoming, index + 1, stepTitle)
-                                }
+                                contentDescription = stepDescription
                             }
                             .then(
                                 if (canNavigate) {
