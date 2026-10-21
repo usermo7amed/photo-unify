@@ -233,7 +233,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             sourcePreview = preview,
                             enhancedPreview = null,
                             resultPreview = null,
-                            status = "معاينة الصورة ${index + 1} من ${old.selected.size}"
+                            status = appContext.getString(R.string.status_image_preview, index + 1, old.selected.size)
                         )
                     }
                 }
@@ -249,7 +249,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         sourcePreview = null,
                         enhancedPreview = null,
                         resultPreview = null,
-                        status = "تعذر تحميل معاينة الصورة ${index + 1}: ${error.message ?: "خطأ"}"
+                        status = appContext.getString(R.string.status_image_preview_failed, index + 1, error.message ?: appContext.getString(R.string.error_generic))
                     )
                 }
             }
