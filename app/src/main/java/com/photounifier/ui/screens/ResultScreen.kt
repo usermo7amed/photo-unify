@@ -1,5 +1,8 @@
 package com.photounifier.ui.screens
 
+import androidx.compose.ui.res.stringResource
+import com.photounifier.R
+
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -515,7 +518,7 @@ private fun SuccessExportCard(
                             modifier = Modifier.size(PhotoUnifierIconSize.xs)
                         )
                         Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                        Text("تصدير PDF", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.action_export_pdf), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
 
                     // تصدير صور
@@ -534,7 +537,7 @@ private fun SuccessExportCard(
                             modifier = Modifier.size(PhotoUnifierIconSize.xs)
                         )
                         Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                        Text("حفظ كصور", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.action_save_images), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
 
