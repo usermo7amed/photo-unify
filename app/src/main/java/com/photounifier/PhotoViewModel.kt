@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.photounifier.R
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -30,14 +31,14 @@ data class PhotoUiState(
     val progress: Int = 0,
     val progressMax: Int = 1,
     val savedCount: Int = 0,
-    val status: String = "جاهز لاختيار الصور",
+    val status: String = "",
     val errors: List<String> = emptyList(),
     val processedImages: List<ExportImage> = emptyList(),
     val selectedExportIds: Set<String> = emptySet(),
     val exportBusy: Boolean = false,
     val exportProgress: Int = 0,
     val exportProgressMax: Int = 1,
-    val exportStatus: String = "جاهز للتصدير",
+    val exportStatus: String = "",
     val exportErrors: List<String> = emptyList(),
     val exportedCount: Int = 0,
     val sourcePreview: Bitmap? = null,
@@ -61,6 +62,7 @@ data class PhotoUiState(
 
 /** Owns screen state and coordinates background work; the Activity only renders state. */
 class PhotoViewModel(application: Application) : AndroidViewModel(application) {
+    private val appContext = application.applicationContext
     private val repository = PhotoRepository()
     private val exportRepository = ExportRepository()
     private val executor = Executors.newSingleThreadExecutor()
@@ -73,9 +75,13 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val cropGeneration = AtomicInteger(0)
     private val selectionGeneration = AtomicInteger(0)
     private val thumbnailRequests = mutableSetOf<Uri>()
-    private val mutableState = MutableLiveData(PhotoUiState())
+    private val initialUiState = PhotoUiState(
+        status = appContext.getString(R.string.status_ready_select),
+        exportStatus = appContext.getString(R.string.status_ready_export)
+    )
+    private val mutableState = MutableLiveData(initialUiState)
     val state: LiveData<PhotoUiState> = mutableState
-    @Volatile private var currentState = PhotoUiState()
+    @Volatile private var currentState = initialUiState
 
     @Synchronized
     private fun update(transform: (PhotoUiState) -> PhotoUiState) {
@@ -103,10 +109,10 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             exportBusy = false,
             exportProgress = 0,
             exportProgressMax = 1,
-            exportStatus = "جاهز للتصدير",
+            exportStatus = appContext.getString(R.string.status_ready_export),
             exportErrors = emptyList(),
             exportedCount = 0,
-            status = if (normalizedUris.isEmpty()) "لم يتم اختيار صور" else "تم اختيار ${normalizedUris.size} صورة",
+            status = if (normalizedUris.isEmpty()) appContext.getString(R.string.status_no_images) else appContext.getString(R.string.status_images_selected, normalizedUris.size),
             sourcePreview = null,
             enhancedPreview = null,
             resultPreview = null,
@@ -272,7 +278,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 if (generation != imagePreviewGeneration.get() || source.isRecycled) return@execute
                 processed = Processor.enhance(source, kind)
             } catch (_: Exception) {
-                failureMessage = "تعذر تجهيز معاينة التحسين. تقدر تراجع الأصل وتتابع لو مكتبة OpenCV متاحة."
+                failureMessage = appContext.getString(R.string.status_enhance_preview_failed)
             } finally {
                 runCatching { classifier?.close() }
             }
@@ -302,7 +308,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     old.copy(
                         enhancedPreview = enhanced,
                         resultPreview = null,
-                        status = "معاينة التحسين جاهزة للصورة ${old.previewIndex + 1} من ${old.selected.size}"
+                        status = appContext.getString(R.string.status_enhance_preview_ready, old.previewIndex + 1, old.selected.size)
                     )
                 }
             }
@@ -377,7 +383,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val index = snapshot.previewIndex
         val uri = snapshot.selected.getOrNull(index) ?: return
         if (!openCvReady) {
-            update { it.copy(status = "مكتبة OpenCV مش جاهزة") }
+            update { it.copy(status = appContext.getString(R.string.status_opencv_unavailable)) }
             return
         }
         if (snapshot.cropApplying) return
@@ -395,7 +401,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 cropDirty = false,
                 cropApplying = true,
                 cropOpen = true,
-                status = "جاري تجهيز الصفحة للقص..."
+                status = appContext.getString(R.string.status_crop_preparing)
             )
         }
 
@@ -490,9 +496,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             cropApplying = false,
                             cropApplied = old.cropEdits.isNotEmpty(),
                             status = when {
-                                savedEdit != null -> "تم تحميل تعديلات الصفحة ${index + 1}. تقدر تراجعها أو تدوّر الصفحة."
-                                detectedCorners == null -> "مفيش ورقة واضحة؛ ظبط الأربع زوايا يدويًا."
-                                else -> "تم اكتشاف حدود الورقة. اسحب النقاط للتعديل."
+                                savedEdit != null -> appContext.getString(R.string.status_crop_saved_edit_loaded, index + 1)
+                                detectedCorners == null -> appContext.getString(R.string.status_crop_no_document)
+                                else -> appContext.getString(R.string.status_crop_detected)
                             }
                         )
                     }
@@ -511,7 +517,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     if (generation != cropGeneration.get() || old.selected.getOrNull(index) != uri) old
                     else old.copy(
                         cropApplying = false,
-                        status = "تعذر تجهيز القص: ${error.message ?: error.javaClass.simpleName}"
+                        status = appContext.getString(R.string.status_crop_failed, error.message ?: error.javaClass.simpleName)
                     )
                 }
             }
@@ -526,7 +532,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
 
         val generation = cropGeneration.incrementAndGet()
         val nextRotation = (snapshot.cropRotationDegrees + 90) % 360
-        update { it.copy(cropApplying = true, status = "جاري تدوير الصفحة...") }
+        update { it.copy(cropApplying = true, status = appContext.getString(R.string.status_rotating_page)) }
 
         executor.execute {
             var rotated: Bitmap? = null
@@ -565,7 +571,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             cropRotationDegrees = nextRotation,
                             cropDirty = true,
                             cropApplying = false,
-                            status = "اتدورت الصفحة 90°. راجع الزوايا قبل الحفظ."
+                            status = appContext.getString(R.string.status_page_rotated)
                         )
                     }
                 }
@@ -583,7 +589,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     if (generation != cropGeneration.get()) old
                     else old.copy(
                         cropApplying = false,
-                        status = "تعذر تدوير الصفحة: ${error.message ?: error.javaClass.simpleName}"
+                        status = appContext.getString(R.string.status_rotate_failed, error.message ?: error.javaClass.simpleName)
                     )
                 }
             }
@@ -695,7 +701,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val previewSource = snapshot.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
         val previewCorners = mapCropPoints(source, previewSource, corners)
         val generation = cropGeneration.incrementAndGet()
-        update { it.copy(cropApplying = true, status = "جاري حفظ تعديل الصفحة...") }
+        update { it.copy(cropApplying = true, status = appContext.getString(R.string.status_saving_crop)) }
 
         executor.execute {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
@@ -706,7 +712,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     if (generation != cropGeneration.get()) old
                     else old.copy(
                         cropApplying = false,
-                        status = "تعذر تجهيز معاينة القص: ${error.message ?: error.javaClass.simpleName}"
+                        status = appContext.getString(R.string.status_crop_preview_failed, error.message ?: error.javaClass.simpleName)
                     )
                 }
                 return@execute
@@ -733,7 +739,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         cropApplying = false,
                         cropApplied = true,
                         cropDirty = false,
-                        status = "اتحفظ تعديل الصفحة ${snapshot.previewIndex + 1} من ${snapshot.selected.size}. اختار صفحة تانية أو انهي المراجعة."
+                        status = appContext.getString(R.string.status_crop_saved, snapshot.previewIndex + 1, snapshot.selected.size)
                     )
                 }
             }
@@ -787,7 +793,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val snapshot = currentState
         if (snapshot.busy || snapshot.selected.isEmpty()) return
         if (!openCvReady) {
-            update { it.copy(status = "مكتبة معالجة الصور غير جاهزة") }
+            update { it.copy(status = appContext.getString(R.string.status_image_processing_unavailable)) }
             return
         }
         imagePreviewGeneration.incrementAndGet()
@@ -808,10 +814,10 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 exportBusy = false,
                 exportProgress = 0,
                 exportProgressMax = 1,
-                exportStatus = "جاهز للتصدير",
+                exportStatus = appContext.getString(R.string.status_ready_export),
                 exportErrors = emptyList(),
                 exportedCount = 0,
-                status = "بدء معالجة الصور…"
+                status = appContext.getString(R.string.status_processing_started)
             )
         }
 
@@ -821,7 +827,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 object : PhotoRepository.Observer {
                     override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
                         update { it.copy(
-                            status = "تحليل الصورة $index من $total",
+                            status = appContext.getString(R.string.status_analyzing_image, index, total),
                             previewIndex = index - 1,
                             sourcePreview = bitmap,
                             enhancedPreview = null,
@@ -829,7 +835,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         ) }
                     }
                     override fun onClassification(index: Int, total: Int, kind: ImageKind) {
-                        update { it.copy(status = "معالجة الصورة $index من $total — ${kind.title}") }
+                        update { it.copy(status = appContext.getString(R.string.status_processing_image, index, total, getApplication<Application>().getString(kind.labelRes))) }
                     }
                     override fun onEnhanced(bitmap: Bitmap) {
                         update { it.copy(enhancedPreview = bitmap) }
@@ -849,23 +855,23 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                                 resultPreview = bitmap,
                                 processedImages = it.processedImages + item,
                                 selectedExportIds = it.selectedExportIds + item.id,
-                                status = "تم تجهيز الصورة ${it.savedCount + 1} من ${uris.size} للتصدير"
+                                status = appContext.getString(R.string.status_image_ready_export, it.savedCount + 1, uris.size)
                             )
                         }
                         // Reapply the latest manual settings after the saved-result event.
                         refreshPreview()
                     }
                     override fun onError(index: Int, total: Int, uri: Uri, message: String) {
-                        val item = "الصورة $index من $total (${uri.lastPathSegment ?: "ملف الصورة"}): $message"
-                        update { old -> old.copy(progress = maxOf(old.progress, index), errors = old.errors + item, status = "فشل معالجة الصورة $index من $total: $message") }
+                        val item = appContext.getString(R.string.status_image_error, index, total, uri.lastPathSegment ?: appContext.getString(R.string.error_image_file), message)
+                        update { old -> old.copy(progress = maxOf(old.progress, index), errors = old.errors + item, status = appContext.getString(R.string.status_image_processing_failed, index, total, message)) }
                     }
                     override fun onFinished(success: Int, failed: Int, error: String?) {
-                        val detail = error?.let { "\nآخر خطأ: $it" }.orEmpty()
+                        val detail = error?.let { appContext.getString(R.string.status_last_error, it) }.orEmpty()
                         update {
                             it.copy(
                                 busy = false,
                                 progress = it.progressMax,
-                                status = "اكتملت المعالجة: نجاح $success، فشل $failed$detail"
+                                status = appContext.getString(R.string.status_processing_complete, success, failed, detail)
                             )
                         }
                     }
@@ -901,7 +907,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         if (snapshot.busy || snapshot.exportBusy) return
         val items = snapshot.processedImages.filter { it.id in snapshot.selectedExportIds }
         if (items.isEmpty()) {
-            update { it.copy(exportStatus = "اختار صورة واحدة على الأقل قبل التصدير.") }
+            update { it.copy(exportStatus = appContext.getString(R.string.status_select_before_export)) }
             return
         }
 
@@ -911,8 +917,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 exportProgress = 0,
                 exportProgressMax = items.size,
                 exportStatus = if (format == ExportFormat.PDF)
-                    "جاري تجهيز ملف PDF..."
-                else "جاري تصدير الصور...",
+                    appContext.getString(R.string.status_preparing_pdf)
+                else appContext.getString(R.string.status_exporting_images),
                 exportErrors = emptyList(),
                 exportedCount = 0
             )
@@ -948,13 +954,13 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     update { old ->
                         val finalStatus = when {
                             failed == 0 && format == ExportFormat.PDF ->
-                                "تم تصدير ملف PDF بنجاح إلى Documents/PhotoUnifier. أُزيل تحديد الصور لتجنّب التكرار."
+                                appContext.getString(R.string.status_pdf_export_success)
                             failed == 0 ->
-                                "تم تصدير $success صورة بنجاح إلى Pictures/PhotoUnifier. أُزيل تحديد الصور المصدّرة لتجنّب التكرار."
+                                appContext.getString(R.string.status_images_export_success, success)
                             success > 0 ->
-                                "اكتمل التصدير جزئيًا: نجاح $success، فشل $failed. الصور الفاشلة ما زالت محددة لإعادة المحاولة."
+                                appContext.getString(R.string.status_export_partial, success, failed)
                             else ->
-                                "فشل التصدير: ${error ?: "راجع تفاصيل الأخطاء أدناه"}"
+                                appContext.getString(R.string.status_export_failed, error ?: appContext.getString(R.string.status_export_error_detail))
                         }
                         old.copy(
                             exportBusy = false,
@@ -992,7 +998,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 update { old ->
                     old.copy(
                         exportBusy = false,
-                        exportStatus = "فشل التصدير: $message",
+                        exportStatus = appContext.getString(R.string.status_export_failed, message),
                         exportErrors = old.exportErrors + message
                     )
                 }
