@@ -40,15 +40,12 @@
     <string name="action_rotate_90">تدوير 90 درجة</string>
     <string name="action_cancel_crop">إلغاء القص</string>
     <string name="action_open_crop_editor">ضبط الزوايا</string>
-    <string name="action_continue_pages">متابعة مراجعة الصفحات</string>
     <string name="action_hide_manual_adjustment">إخفاء الضبط اليدوي</string>
     <string name="action_show_manual_adjustment">فتح الضبط اليدوي</string>
     <string name="action_adjust">ضبط</string>
     <string name="action_reset_simple">تصفير</string>
     <string name="action_select_all">تحديد الكل</string>
     <string name="action_deselect">إلغاء التحديد</string>
-    <string name="action_new_scan">مسح مستند جديد</string>
-    <string name="action_edit_filters">تعديل الفلاتر</string>
     <string name="action_previous_page">السابقة</string>
     <string name="action_next_page">التالية</string>
     <string name="status_ready_select">جاهز لاختيار الصور</string>
@@ -180,7 +177,6 @@
     <string name="export_locations">الصور: Pictures/PhotoUnifier • ملفات PDF: Documents/PhotoUnifier</string>
     <string name="action_new_document">مسح / استيراد مستند جديد</string>
     <string name="action_return_filters">الرجوع لتعديل الفلاتر</string>
-    <string name="scan_progress">تجهيز ملف المسح</string>
     <string name="export_image_progress">تصدير الصورة %1$d من %2$d</string>
     <string name="export_pdf_progress">إضافة الصفحة %1$d من %2$d إلى PDF</string>
     <string name="error_generic">خطأ</string>
@@ -209,7 +205,6 @@
     <string name="error_invalid_preview_size">حجم المعاينة غير صالح</string>
     <string name="error_invalid_image_file">ملف الصورة غير صالح أو غير مدعوم</string>
     <string name="error_read_image">تعذر قراءة الصورة</string>
-    <string name="error_invalid_image_dimensions_preview">أبعاد الصورة أو حد المعاينة غير صالح</string>
     <string name="error_recycled_bitmap_preview">لا يمكن إنشاء معاينة من صورة محررة من الذاكرة</string>
     <string name="error_create_preview_copy">تعذر إنشاء نسخة المعاينة</string>
     <string name="error_prepare_export_directory">تعذر تجهيز مجلد التصدير</string>
