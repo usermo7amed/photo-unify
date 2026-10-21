@@ -1,5 +1,7 @@
 package com.photounifier.ui.components
 
+import com.photounifier.R
+
 import com.photounifier.ui.PhotoUnifierDuration
 import com.photounifier.ui.PhotoUnifierElevation
 import com.photounifier.ui.PhotoUnifierHeight
