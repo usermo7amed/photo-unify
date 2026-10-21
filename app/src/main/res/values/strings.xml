@@ -79,8 +79,7 @@
     <string name="status_image_ready_export">تم تجهيز الصورة %1$d من %2$d للتصدير</string>
     <string name="status_image_error">الصورة %1$d من %2$d (%3$s): %4$s</string>
     <string name="status_image_processing_failed">فشل معالجة الصورة %1$d من %2$d: %3$s</string>
-    <string name="status_last_error">
-آخر خطأ: %1$s</string>
+    <string name="status_last_error">\nآخر خطأ: %1$s</string>
     <string name="status_processing_complete">اكتملت المعالجة: نجاح %1$d، فشل %2$d%3$s</string>
     <string name="status_select_before_export">اختر صورة واحدة على الأقل قبل التصدير.</string>
     <string name="status_preparing_pdf">جاري تجهيز ملف PDF...</string>
