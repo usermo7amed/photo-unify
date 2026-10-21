@@ -81,13 +81,13 @@ object Processor {
     ): Bitmap = decode(context, uri, maxSide)
 
     private fun decode(context: Context, uri: Uri, maxSide: Int): Bitmap {
-        require(maxSide > 0) { "أقصى حجم للمعاينة لازم يكون أكبر من صفر" }
+        require(maxSide > 0) { context.getString(R.string.error_invalid_preview_size) }
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
 
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-            throw IllegalStateException("ملف الصورة غير صالح أو غير مدعوم")
+            throw IllegalStateException(context.getString(R.string.error_invalid_image_file))
         }
 
         val sample = calculateSampleSize(bounds.outWidth, bounds.outHeight, maxSide)
@@ -97,7 +97,7 @@ object Processor {
         }
         val bitmap = resolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it, null, options)
-        } ?: throw IllegalStateException("تعذر قراءة الصورة")
+        } ?: throw IllegalStateException(context.getString(R.string.error_read_image))
 
         val orientation = resolver.openInputStream(uri)?.use {
             ExifInterface(it).getAttributeInt(
@@ -110,7 +110,7 @@ object Processor {
 
     /** Pure sizing helper so the sampling policy can be tested without Android bitmap APIs. */
     internal fun calculateSampleSize(width: Int, height: Int, maxSide: Int): Int {
-        require(width > 0 && height > 0 && maxSide > 0) { "أبعاد الصورة أو حد المعاينة غير صالح" }
+        require(width > 0 && height > 0 && maxSide > 0) { "Image dimensions and preview limit must be positive" }
         var sample = 1
         while (max(width, height) / sample > maxSide && sample <= (1 shl 29)) {
             sample *= 2
@@ -119,15 +119,15 @@ object Processor {
     }
 
     /** Makes a UI-owned preview while capping memory use independently of processing resolution. */
-    fun createPreview(bitmap: Bitmap, maxSide: Int = PREVIEW_MAX_SIDE): Bitmap {
-        check(!bitmap.isRecycled) { "لا يمكن إنشاء معاينة من صورة محررة من الذاكرة" }
-        require(maxSide > 0) { "أقصى حجم للمعاينة لازم يكون أكبر من صفر" }
+    fun createPreview(bitmap: Bitmap, maxSide: Int = PREVIEW_MAX_SIDE, context: Context? = null): Bitmap {
+        check(!bitmap.isRecycled) { context?.getString(R.string.error_recycled_bitmap_preview) ?: "Cannot preview a recycled bitmap" }
+        require(maxSide > 0) { context?.getString(R.string.error_invalid_preview_size) ?: "Invalid preview size" }
         val scale = min(1.0, maxSide.toDouble() / max(bitmap.width, bitmap.height).toDouble())
         val targetWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
         val targetHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
         return if (targetWidth == bitmap.width && targetHeight == bitmap.height) {
             bitmap.copy(Bitmap.Config.ARGB_8888, false)
-                ?: throw IllegalStateException("تعذر إنشاء نسخة المعاينة")
+                ?: throw IllegalStateException(context?.getString(R.string.error_create_preview_copy) ?: "Could not create preview copy")
         } else {
             Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
         }
@@ -165,7 +165,7 @@ object Processor {
     fun saveTemporary(context: Context, bitmap: Bitmap, displayName: String): File {
         val directory = File(context.filesDir, "pending_exports")
         if (!directory.isDirectory && !directory.mkdirs()) {
-            throw IllegalStateException("تعذر تجهيز مجلد التصدير")
+            throw IllegalStateException(context.getString(R.string.error_prepare_export_directory))
         }
 
         val target = File(directory, displayName)
@@ -173,24 +173,24 @@ object Processor {
         try {
             temporary.outputStream().use { output ->
                 if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
-                    throw IllegalStateException("تعذر تجهيز الصورة للتصدير")
+                    throw IllegalStateException(context.getString(R.string.error_prepare_image_export))
                 }
                 output.flush()
             }
             if (target.exists() && !target.delete()) {
-                throw IllegalStateException("تعذر استبدال ملف التصدير المؤقت")
+                throw IllegalStateException(context.getString(R.string.error_replace_temp_export))
             }
             if (!temporary.renameTo(target)) {
-                throw IllegalStateException("تعذر إنهاء تجهيز الصورة للتصدير")
+                throw IllegalStateException(context.getString(R.string.error_finish_export_preparation))
             }
             return target
         } catch (error: Exception) {
             temporary.delete()
             target.delete()
-            if (error is IllegalStateException && error.message == "تعذر تجهيز الصورة للتصدير") {
+            if (error is IllegalStateException && error.message == context.getString(R.string.error_prepare_image_export)) {
                 throw error
             }
-            throw IllegalStateException("تعذر تجهيز الصورة للتصدير", error)
+            throw IllegalStateException(context.getString(R.string.error_prepare_image_export), error)
         }
     }
 
@@ -203,32 +203,32 @@ object Processor {
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            ?: throw IllegalStateException("تعذر إنشاء ملف الصورة")
+            ?: throw IllegalStateException(context.getString(R.string.error_create_image_file))
         try {
             val written = resolver.openOutputStream(uri)?.use {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)
             } ?: false
             if (!written) {
-                throw IllegalStateException("تعذر حفظ الصورة")
+                throw IllegalStateException(context.getString(R.string.error_bitmap_save_failed))
             }
 
             val publishValues = ContentValues().apply {
                 put(MediaStore.Images.Media.IS_PENDING, 0)
             }
             if (resolver.update(uri, publishValues, null, null) <= 0) {
-                throw IllegalStateException("تعذر إتاحة الصورة بعد الحفظ")
+                throw IllegalStateException(context.getString(R.string.error_publish_saved_image))
             }
             return uri
         } catch (error: Exception) {
             // A failed publish/update must not leave an invisible IS_PENDING item behind.
             runCatching { resolver.delete(uri, null, null) }
             if (error is IllegalStateException &&
-                (error.message == "تعذر حفظ الصورة" ||
-                    error.message == "تعذر إتاحة الصورة بعد الحفظ")
+                (error.message == context.getString(R.string.error_bitmap_save_failed) ||
+                    error.message == context.getString(R.string.error_publish_saved_image))
             ) {
                 throw error
             }
-            throw IllegalStateException("تعذر حفظ الصورة", error)
+            throw IllegalStateException(context.getString(R.string.error_bitmap_save_failed), error)
         }
     }
 
