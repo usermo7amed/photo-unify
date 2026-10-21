@@ -203,4 +203,19 @@
     <string name="error_saved_preview">تعذر تجهيز معاينة الصورة المحفوظة</string>
     <string name="error_temp_image_unavailable">ملف الصورة المؤقت غير متاح</string>
     <string name="error_unknown">خطأ غير معروف</string>
+    <string name="error_invalid_image_dimensions">أبعاد الصورة غير صالحة</string>
+    <string name="error_invalid_crop_corners">زوايا القص غير صالحة</string>
+    <string name="error_invalid_crop_preview_size">حجم معاينة القص غير صالح</string>
+    <string name="error_invalid_preview_size">حجم المعاينة غير صالح</string>
+    <string name="error_invalid_image_file">ملف الصورة غير صالح أو غير مدعوم</string>
+    <string name="error_read_image">تعذر قراءة الصورة</string>
+    <string name="error_invalid_image_dimensions_preview">أبعاد الصورة أو حد المعاينة غير صالح</string>
+    <string name="error_recycled_bitmap_preview">لا يمكن إنشاء معاينة من صورة محررة من الذاكرة</string>
+    <string name="error_create_preview_copy">تعذر إنشاء نسخة المعاينة</string>
+    <string name="error_prepare_export_directory">تعذر تجهيز مجلد التصدير</string>
+    <string name="error_prepare_image_export">تعذر تجهيز الصورة للتصدير</string>
+    <string name="error_replace_temp_export">تعذر استبدال ملف التصدير المؤقت</string>
+    <string name="error_finish_export_preparation">تعذر إنهاء تجهيز الصورة للتصدير</string>
+    <string name="error_bitmap_save_failed">تعذر حفظ الصورة</string>
+    <string name="error_publish_saved_image">تعذر إتاحة الصورة بعد الحفظ</string>
 </resources>
