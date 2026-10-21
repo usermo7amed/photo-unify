@@ -220,7 +220,7 @@ private fun ActiveBatchDashboard(
                     if (preview != null && !preview.isRecycled) {
                         Image(
                             bitmap = preview.asImageBitmap(),
-                            contentDescription = "معاينة الصفحة ${state.previewIndex + 1}",
+                            contentDescription = stringResource(R.string.crop_page_preview_description, state.previewIndex + 1),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit,
                             filterQuality = FilterQuality.Medium
@@ -231,7 +231,7 @@ private fun ActiveBatchDashboard(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "جاري تحميل معاينة الصفحة...",
+                                text = stringResource(R.string.home_preview_loading),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

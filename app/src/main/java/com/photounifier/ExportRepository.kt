@@ -35,7 +35,7 @@ class ExportRepository {
             var destination: Uri? = null
             var itemSucceeded = false
             try {
-                check(item.file.isFile) { "الملف المؤقت للصورة غير موجود" }
+                check(item.file.isFile) { context.getString(R.string.export_temp_image_missing) }
                 val name = "${item.file.nameWithoutExtension}_${stamp}_${index + 1}.jpg"
                 val values = ContentValues().apply {
                     put(MediaStore.Images.Media.DISPLAY_NAME, name)
@@ -47,9 +47,9 @@ class ExportRepository {
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 destination = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-                    ?: throw IllegalStateException("تعذر إنشاء ملف الصورة")
+                    ?: throw IllegalStateException(context.getString(R.string.error_create_image_file))
                 val output = resolver.openOutputStream(destination, "w")
-                    ?: throw IllegalStateException("تعذر فتح ملف الصورة للتصدير")
+                    ?: throw IllegalStateException(context.getString(R.string.error_open_image_export))
                 item.file.inputStream().use { input ->
                     output.use { input.copyTo(it) }
                 }
@@ -57,7 +57,7 @@ class ExportRepository {
                     put(MediaStore.Images.Media.IS_PENDING, 0)
                 }
                 if (resolver.update(destination, published, null, null) <= 0) {
-                    throw IllegalStateException("تعذر إتاحة الصورة بعد التصدير")
+                    throw IllegalStateException(context.getString(R.string.error_image_unavailable_after_export))
                 }
                 success++
                 itemSucceeded = true
@@ -68,14 +68,14 @@ class ExportRepository {
                 observer.onError("${item.displayName}: ${lastError}")
             } finally {
                 observer.onItemFinished(item.id, itemSucceeded)
-                observer.onProgress(index + 1, items.size, "تصدير الصورة ${index + 1} من ${items.size}")
+                observer.onProgress(index + 1, items.size, context.getString(R.string.export_image_progress, index + 1, items.size))
             }
         }
         observer.onFinished(success, failed, lastError)
     }
 
     fun exportAsPdf(context: Context, items: List<ExportImage>, observer: Observer) {
-        require(items.isNotEmpty()) { "اختار صورة واحدة على الأقل لإنشاء PDF" }
+        require(items.isNotEmpty()) { context.getString(R.string.error_select_images_for_pdf) }
         val resolver = context.contentResolver
         val stamp = timestamp()
         val name = "PhotoUnifier_${stamp}.pdf"
@@ -92,16 +92,16 @@ class ExportRepository {
         var document: PdfDocument? = null
         try {
             destination = resolver.insert(MediaStore.Files.getContentUri("external"), values)
-                ?: throw IllegalStateException("تعذر إنشاء ملف PDF")
+                ?: throw IllegalStateException(context.getString(R.string.error_create_pdf_file))
             val pdf = PdfDocument()
             document = pdf
             val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
             items.forEachIndexed { index, item ->
-                check(item.file.isFile) { "الملف المؤقت غير موجود للصورة: ${item.displayName}" }
+                check(item.file.isFile) { context.getString(R.string.error_temp_image_missing_for_item, item.displayName) }
                 val bitmap = item.file.inputStream().use { input ->
                     BitmapFactory.decodeStream(input)
-                } ?: throw IllegalStateException("تعذر قراءة الصورة: ${item.displayName}")
+                } ?: throw IllegalStateException(context.getString(R.string.error_read_image_for_export, item.displayName))
                 try {
                     val landscape = bitmap.width > bitmap.height
                     val pageWidth = if (landscape) PAGE_LONG_SIDE else PAGE_SHORT_SIDE
@@ -133,23 +133,23 @@ class ExportRepository {
                 } finally {
                     if (!bitmap.isRecycled) bitmap.recycle()
                 }
-                observer.onProgress(index + 1, items.size, "إضافة الصفحة ${index + 1} من ${items.size} إلى PDF")
+                observer.onProgress(index + 1, items.size, context.getString(R.string.export_pdf_progress, index + 1, items.size))
             }
 
             val output = resolver.openOutputStream(destination, "w")
-                ?: throw IllegalStateException("تعذر فتح ملف PDF للحفظ")
+                ?: throw IllegalStateException(context.getString(R.string.error_open_pdf_write))
             output.use { pdf.writeTo(it) }
             val published = ContentValues().apply {
                 put(MediaStore.MediaColumns.IS_PENDING, 0)
             }
             if (resolver.update(destination, published, null, null) <= 0) {
-                throw IllegalStateException("تعذر إتاحة ملف PDF بعد الحفظ")
+                throw IllegalStateException(context.getString(R.string.error_pdf_unavailable_after_save))
             }
             observer.onFinished(1, 0, null)
         } catch (error: Exception) {
             val message = error.message ?: error.javaClass.simpleName
             destination?.let { runCatching { resolver.delete(it, null, null) } }
-            observer.onError("ملف PDF: $message")
+            observer.onError(context.getString(R.string.error_pdf_export_item, message))
             observer.onFinished(0, items.size, message)
         } finally {
             runCatching { document?.close() }

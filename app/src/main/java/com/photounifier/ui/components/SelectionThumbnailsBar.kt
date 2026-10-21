@@ -1,5 +1,7 @@
 package com.photounifier.ui.components
 
+import com.photounifier.R
+
 import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
@@ -79,11 +82,11 @@ fun SelectionThumbnailsBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "الصفحات",
+                text = stringResource(R.string.pages),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            ValuePill("الصورة ${currentIndex + 1} من ${selectedUris.size}")
+            ValuePill(stringResource(R.string.image_index_of_total, currentIndex + 1, selectedUris.size))
         }
 
         if (thumbnails.isEmpty() && selectedUris.isNotEmpty()) {
@@ -149,7 +152,7 @@ fun SelectionThumbnailsBar(
                     ) {
                         Image(
                             bitmap = thumbnail.bitmap.asImageBitmap(),
-                            contentDescription = "صورة ${selectedIndex + 1}",
+                            contentDescription = stringResource(R.string.image_index, selectedIndex + 1),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             filterQuality = FilterQuality.Medium
@@ -189,7 +192,7 @@ fun SelectionThumbnailsBar(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
-                                    contentDescription = "إزالة الصورة ${selectedIndex + 1}",
+                                    contentDescription = stringResource(R.string.remove_image_index, selectedIndex + 1),
                                     modifier = Modifier.size(16.dp),
                                     tint = Color.White
                                 )
@@ -245,12 +248,12 @@ fun SelectionThumbnailsBar(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.AddPhotoAlternate,
-                                contentDescription = "إضافة صورة جديدة",
+                                contentDescription = stringResource(R.string.add_image_new),
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "إضافة",
+                                text = stringResource(R.string.action_add),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -296,7 +299,7 @@ fun PreviewNavigationControls(
                     modifier = Modifier.size(PhotoUnifierIconSize.xs)
                 )
                 Text(
-                    text = "السابقة",
+                    text = stringResource(R.string.action_previous_page),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -345,7 +348,7 @@ fun PreviewNavigationControls(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "التالية",
+                    text = stringResource(R.string.action_next_page),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
                 )

@@ -1,5 +1,7 @@
 package com.photounifier.ui.components
 
+import com.photounifier.R
+
 import com.photounifier.ui.PhotoUnifierDuration
 import com.photounifier.ui.PhotoUnifierElevation
 import com.photounifier.ui.PhotoUnifierHeight
@@ -57,6 +59,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -179,17 +182,17 @@ fun StepProgress(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "مسار العمل",
+                        text = stringResource(R.string.workflow_path),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "الخطوة ${currentStep + 1} من ${titles.size} • ${titles.getOrElse(currentStep) { "" }}",
+                        text = stringResource(R.string.workflow_step_count, currentStep + 1, titles.size, titles.getOrElse(currentStep) { "" }),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                ValuePill(if (selectedCount == 0) "اختر الصور" else "${selectedCount} صورة")
+                ValuePill(if (selectedCount == 0) stringResource(R.string.choose_images) else stringResource(R.string.selected_count, selectedCount))
             }
 
             // Stepper indicators مع خط رابط متحرك
@@ -232,18 +235,18 @@ fun StepProgress(
                         label = "stepTextColor"
                     )
 
+                    val stepDescription = when {
+                        isCompleted -> stringResource(R.string.step_complete, index + 1, stepTitle)
+                        isCurrent -> stringResource(R.string.step_current, index + 1, stepTitle)
+                        else -> stringResource(R.string.step_upcoming, index + 1, stepTitle)
+                    }
+
                     Surface(
                         modifier = Modifier
                             .size(stepSize)
                             .semantics {
                                 role = Role.Button
-                                contentDescription = if (isCompleted) {
-                                    "خطوة مكتملة ${index + 1}: $stepTitle"
-                                } else if (isCurrent) {
-                                    "الخطوة الحالية ${index + 1}: $stepTitle"
-                                } else {
-                                    "خطوة قادمة ${index + 1}: $stepTitle"
-                                }
+                                contentDescription = stepDescription
                             }
                             .then(
                                 if (canNavigate) {
@@ -394,7 +397,7 @@ fun CropResultPreview(
                 if (bitmap != null && !bitmap.isRecycled) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "معاينة ناتج القص",
+                        contentDescription = stringResource(R.string.crop_preview_title),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
                         filterQuality = FilterQuality.Medium
@@ -412,15 +415,15 @@ fun CropResultPreview(
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
             ) {
                 Text(
-                    text = "معاينة ناتج القص",
+                    text = stringResource(R.string.crop_preview_title),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (bitmap != null && !bitmap.isRecycled)
-                        "تم تصحيح المنظور؛ راجع استقامة المستند قبل المتابعة."
+                        stringResource(R.string.crop_preview_corrected_notice)
                     else
-                        "ستظهر هنا نتيجة ضبط زوايا الورقة وتصحيح المنظور.",
+                        stringResource(R.string.crop_preview_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

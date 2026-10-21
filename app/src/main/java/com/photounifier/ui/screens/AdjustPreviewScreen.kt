@@ -90,8 +90,8 @@ import kotlin.math.roundToInt
 private data class FilterPreset(
     val id: String,
     val badge: String,
-    val title: String,
-    val subtitle: String,
+    val titleRes: Int,
+    val subtitleRes: Int,
     val brightness: Int,
     val contrast: Int,
     val isAi: Boolean = false
@@ -101,8 +101,8 @@ private val ScannerFilterPresets = listOf(
     FilterPreset(
         id = "magic",
         badge = "DOC",
-        title = "تفتيح ذكي",
-        subtitle = "تنقية الورق وإبراز الخط",
+        titleRes = R.string.filter_magic_title,
+        subtitleRes = R.string.filter_magic_subtitle,
         brightness = 18,
         contrast = 135,
         isAi = true
@@ -110,40 +110,40 @@ private val ScannerFilterPresets = listOf(
     FilterPreset(
         id = "sharp",
         badge = "DOC",
-        title = "مستند ناصع",
-        subtitle = "إزالة تامة للظلال والاصفرار",
+        titleRes = R.string.filter_white_title,
+        subtitleRes = R.string.filter_white_subtitle,
         brightness = 24,
         contrast = 155
     ),
     FilterPreset(
         id = "bold",
         badge = "B/W",
-        title = "نص بارز",
-        subtitle = "للكتابة الباهتة والرصاص",
+        titleRes = R.string.filter_bold_title,
+        subtitleRes = R.string.filter_bold_subtitle,
         brightness = -5,
         contrast = 160
     ),
     FilterPreset(
         id = "soft",
         badge = "LGT",
-        title = "إضاءة ناعمة",
-        subtitle = "تفتيح خفيف متوازن وطبيعي",
+        titleRes = R.string.filter_soft_title,
+        subtitleRes = R.string.filter_soft_subtitle,
         brightness = 10,
         contrast = 115
     ),
     FilterPreset(
         id = "color",
         badge = "CLR",
-        title = "ألوان حيوية",
-        subtitle = "إبراز الخرائط والرسومات الملونة",
+        titleRes = R.string.filter_color_title,
+        subtitleRes = R.string.filter_color_subtitle,
         brightness = 8,
         contrast = 125
     ),
     FilterPreset(
         id = "original",
         badge = "RAW",
-        title = "محايد",
-        subtitle = "بدون ضبط إضافي فوق التحسين",
+        titleRes = R.string.filter_neutral_title,
+        subtitleRes = R.string.filter_neutral_subtitle,
         brightness = 0,
         contrast = 100
     )
@@ -183,7 +183,7 @@ fun AdjustPreviewScreen(
             selectedCount = state.selected.size,
             currentIndex = state.previewIndex,
             onIndexChange = onPreviewSelect,
-            activePresetTitle = activePreset?.title,
+            activePresetTitle = activePreset?.let { stringResource(it.titleRes) },
             isCustomAdjusted = isCustomAdjusted || (activePreset != null && activePreset.id != "original"),
             onResetAdjustments = {
                 onBrightnessChange(0)
@@ -234,7 +234,7 @@ fun AdjustPreviewScreen(
                                 strokeWidth = 3.dp
                             )
                             Text(
-                                text = "جاري تحضير المعاينة عالية الدقة...",
+                                text = stringResource(R.string.adjust_preview_loading),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -265,12 +265,12 @@ fun AdjustPreviewScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Tune,
-                    contentDescription = if (showFineTuneSliders) "إخفاء الضبط اليدوي" else "فتح الضبط اليدوي",
+                    contentDescription = if (showFineTuneSliders) stringResource(R.string.action_hide_manual_adjustment) else stringResource(R.string.action_show_manual_adjustment),
                     modifier = Modifier.size(PhotoUnifierIconSize.xs)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (showFineTuneSliders) "إخفاء الضبط" else "ضبط",
+                    text = if (showFineTuneSliders) stringResource(R.string.action_hide_manual_adjustment) else stringResource(R.string.action_adjust),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -329,7 +329,7 @@ fun AdjustPreviewScreen(
                 )
                 Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
                 Text(
-                    text = "جاري المعالجة والحفظ...",
+                    text = stringResource(R.string.adjust_processing_saving),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -341,7 +341,7 @@ fun AdjustPreviewScreen(
                 )
                 Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
                 Text(
-                    text = "حفظ وتصدير المستندات (${state.selected.size})",
+                    text = stringResource(R.string.save_export_documents, state.selected.size),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -435,6 +435,9 @@ private fun FilterPresetCard(
     onClick: () -> Unit,
     enabled: Boolean
 ) {
+    val presetTitle = stringResource(preset.titleRes)
+    val presetSubtitle = stringResource(preset.subtitleRes)
+    val presetDescription = "$presetTitle. $presetSubtitle"
     Surface(
         modifier = Modifier
             .width(112.dp)
@@ -444,7 +447,7 @@ private fun FilterPresetCard(
                 onClick = onClick
             )
             .semantics {
-                contentDescription = "${preset.title}. ${preset.subtitle}"
+                contentDescription = presetDescription
                 selected = isSelected
             },
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
@@ -519,7 +522,7 @@ private fun FilterPresetCard(
                 }
 
                 Text(
-                    text = preset.title,
+                    text = presetTitle,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -528,7 +531,7 @@ private fun FilterPresetCard(
                 )
 
                 Text(
-                    text = preset.subtitle,
+                    text = presetSubtitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp,
@@ -592,7 +595,7 @@ private fun FineTuneSlidersCard(
                                 enabled = enabled,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                             ) {
-                                Text("تصفير", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.action_reset_simple), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -600,6 +603,7 @@ private fun FineTuneSlidersCard(
                     ValuePill(if (brightness > 0) "+$brightness" else "$brightness")
                 }
 
+                val brightnessDescription = stringResource(R.string.brightness_description, brightness)
                 Slider(
                     value = brightness.toFloat(),
                     onValueChange = { onBrightnessChange(it.roundToInt()) },
@@ -611,7 +615,7 @@ private fun FineTuneSlidersCard(
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     modifier = Modifier.semantics {
-                        contentDescription = "ضبط السطوع: $brightness"
+                        contentDescription = brightnessDescription
                     }
                 )
 
@@ -620,7 +624,7 @@ private fun FineTuneSlidersCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    listOf(-20 to "-20", 0 to "0 (محايد)", 15 to "+15", 30 to "+30").forEach { (valStep, label) ->
+                    listOf(-20 to "-20", 0 to stringResource(R.string.neutral_setting), 15 to "+15", 30 to "+30").forEach { (valStep, label) ->
                         val isCurr = brightness == valStep
                         Surface(
                             modifier = Modifier
@@ -675,7 +679,7 @@ private fun FineTuneSlidersCard(
                                 enabled = enabled,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                             ) {
-                                Text("تصفير", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                Text(stringResource(R.string.action_reset_simple), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -683,6 +687,7 @@ private fun FineTuneSlidersCard(
                     ValuePill("$contrastPercent%")
                 }
 
+                val contrastDescription = stringResource(R.string.contrast_description, contrastPercent)
                 Slider(
                     value = contrastPercent.toFloat(),
                     onValueChange = { onContrastChange(it.roundToInt()) },
@@ -694,7 +699,7 @@ private fun FineTuneSlidersCard(
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     modifier = Modifier.semantics {
-                        contentDescription = "ضبط التباين: $contrastPercent%"
+                        contentDescription = contrastDescription
                     }
                 )
 

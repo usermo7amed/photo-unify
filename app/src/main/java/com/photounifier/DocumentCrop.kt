@@ -243,7 +243,7 @@ object DocumentCrop {
                 )
             } ?: return null
             return scalePointsToSource(
-                detected, bitmap.width, bitmap.height, analysis.cols(), analysis.rows()
+                detected, bitmap.width, bitmap.height, analysis.cols(), analysis.rows(), context
             )
         } finally {
             contours.forEach { it.release() }
@@ -322,10 +322,11 @@ object DocumentCrop {
         sourceWidth: Int,
         sourceHeight: Int,
         analysisWidth: Int,
-        analysisHeight: Int
+        analysisHeight: Int,
+        context: Context? = null
     ): List<CropPoint> {
         require(sourceWidth > 0 && sourceHeight > 0 && analysisWidth > 0 && analysisHeight > 0) {
-            "أبعاد الصورة غير صالحة"
+            context?.getString(R.string.error_invalid_image_dimensions) ?: "Invalid image dimensions"
         }
         // Align the first and last pixel centers so detected frame edges map exactly.
         val scaleX = (sourceWidth - 1).toFloat() / (analysisWidth - 1).coerceAtLeast(1)
@@ -372,10 +373,15 @@ object DocumentCrop {
     fun warp(
         bitmap: Bitmap,
         points: List<CropPoint>,
-        maxOutputSide: Int? = null
+        maxOutputSide: Int? = null,
+        context: Context? = null
     ): Bitmap {
-        require(isValid(points, bitmap.width, bitmap.height)) { "زوايا القص غير صالحة" }
-        require(maxOutputSide == null || maxOutputSide > 1) { "حجم معاينة القص غير صالح" }
+        require(isValid(points, bitmap.width, bitmap.height)) {
+            context?.getString(R.string.error_invalid_crop_corners) ?: "Invalid crop corners"
+        }
+        require(maxOutputSide == null || maxOutputSide > 1) {
+            context?.getString(R.string.error_invalid_crop_preview_size) ?: "Invalid crop preview size"
+        }
 
         // For interactive previews, scale the source before converting it to an OpenCV
         // Mat. This avoids allocating a full-resolution native matrix on every drag.

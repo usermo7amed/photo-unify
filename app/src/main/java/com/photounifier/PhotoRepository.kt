@@ -52,12 +52,12 @@ class PhotoRepository {
                         val pageEdit = pageEdits[uri]
                         source = if (pageEdit == null && index == 0 && firstSourceOverride != null) {
                             firstSourceOverride.copy(Bitmap.Config.ARGB_8888, false)
-                                ?: throw IllegalStateException("تعذر تجهيز الصورة المقصوصة")
+                                ?: throw IllegalStateException(context.getString(R.string.error_crop_prepare))
                         } else {
                             Processor.load(context, uri)
                         }
                         if (pageEdit != null) {
-                            var editedSource: Bitmap = source ?: throw IllegalStateException("تعذر تحميل الصورة")
+                            var editedSource: Bitmap = source ?: throw IllegalStateException(context.getString(R.string.error_load_image))
                             val rotated = rotatePageBitmap(editedSource, pageEdit.rotationDegrees)
                             if (rotated !== editedSource) {
                                 if (!editedSource.isRecycled) editedSource.recycle()
@@ -67,9 +67,9 @@ class PhotoRepository {
                             pageEdit.normalizedCorners?.let { normalized ->
                                 val corners = mapNormalizedCropPoints(normalized, editedSource.width, editedSource.height)
                                 check(DocumentCrop.isValid(corners, editedSource.width, editedSource.height)) {
-                                    "حدود القص المحفوظة للصفحة غير صالحة"
+                                    context.getString(R.string.error_saved_crop_bounds)
                                 }
-                                val cropped = DocumentCrop.warp(editedSource, corners)
+                                val cropped = DocumentCrop.warp(editedSource, corners, context = context)
                                 if (cropped !== editedSource) editedSource.recycle()
                                 editedSource = cropped
                                 source = cropped
@@ -79,12 +79,12 @@ class PhotoRepository {
                         Trace.endSection()
                         loadMs = elapsedMs(loadStarted)
                     }
-                    val loadedSource = source ?: throw IllegalStateException("تعذر تحميل الصورة")
+                    val loadedSource = source ?: throw IllegalStateException(context.getString(R.string.error_load_image))
 
                     val sourcePreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.source")
                     try {
-                        observer.onSource(index + 1, uris.size, Processor.createPreview(loadedSource))
+                        observer.onSource(index + 1, uris.size, Processor.createPreview(loadedSource, context = context))
                     } finally {
                         Trace.endSection()
                         sourcePreviewMs = elapsedMs(sourcePreviewStarted)
@@ -119,7 +119,7 @@ class PhotoRepository {
                     val enhancedPreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.enhanced")
                     try {
-                        observer.onEnhanced(Processor.createPreview(finalEnhanced))
+                        observer.onEnhanced(Processor.createPreview(finalEnhanced, context = context))
                     } finally {
                         Trace.endSection()
                         enhancedPreviewMs = elapsedMs(enhancedPreviewStarted)
@@ -139,7 +139,7 @@ class PhotoRepository {
                     try {
                         temporaryFile = Processor.saveTemporary(
                             context,
-                            output ?: throw IllegalStateException("تعذر تجهيز الصورة للحفظ"),
+                            output ?: throw IllegalStateException(context.getString(R.string.error_save_image)),
                             "PU_%s_%03d.jpg".format(Locale.US, stamp, index + 1)
                         )
                     } finally {
@@ -153,8 +153,8 @@ class PhotoRepository {
                         observer.onSaved(
                             index + 1,
                             Processor.createPreview(output
-                                ?: throw IllegalStateException("تعذر تجهيز معاينة الصورة المحفوظة")),
-                            temporaryFile ?: throw IllegalStateException("ملف الصورة المؤقت غير متاح")
+                                ?: throw IllegalStateException(context.getString(R.string.error_saved_preview)), context = context),
+                            temporaryFile ?: throw IllegalStateException(context.getString(R.string.error_temp_image_unavailable))
                         )
                         temporaryFile = null
                     } finally {
@@ -180,7 +180,7 @@ class PhotoRepository {
                         "image=${index + 1}/${uris.size} failed after ${String.format(Locale.US, "%.1f", elapsedMs(imageStarted))}ms: ${lastError}; ${memorySnapshot()}",
                         error
                     )
-                    observer.onError(index + 1, uris.size, uri, lastError ?: "خطأ غير معروف")
+                    observer.onError(index + 1, uris.size, uri, lastError ?: context.getString(R.string.error_unknown))
                 } finally {
                     source?.let { if (!it.isRecycled) it.recycle() }
                     enhanced?.let { if (!it.isRecycled) it.recycle() }
