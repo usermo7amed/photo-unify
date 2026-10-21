@@ -604,7 +604,7 @@ fun CropWorkspaceBottomBar(
                 Text(
                     text = when {
                         state.cropApplying -> "جارٍ الحفظ..."
-                        state.cropDirty -> "حفظ القص"
+                        state.cropDirty -> stringResource(R.string.action_crop)
                         else -> "إنهاء"
                     },
                     style = MaterialTheme.typography.labelMedium,
