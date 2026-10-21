@@ -185,4 +185,15 @@
     <string name="export_pdf_progress">إضافة الصفحة %1$d من %2$d إلى PDF</string>
     <string name="error_generic">خطأ</string>
     <string name="error_image_file">ملف الصورة</string>
+    <string name="export_temp_image_missing">الملف المؤقت للصورة غير موجود</string>
+    <string name="error_create_image_file">تعذر إنشاء ملف الصورة</string>
+    <string name="error_open_image_export">تعذر فتح ملف الصورة للتصدير</string>
+    <string name="error_image_unavailable_after_export">تعذر إتاحة الصورة بعد التصدير</string>
+    <string name="error_select_images_for_pdf">اختر صورة واحدة على الأقل لإنشاء PDF</string>
+    <string name="error_create_pdf_file">تعذر إنشاء ملف PDF</string>
+    <string name="error_temp_image_missing_for_item">الملف المؤقت غير موجود للصورة: %1$s</string>
+    <string name="error_read_image_for_export">تعذر قراءة الصورة: %1$s</string>
+    <string name="error_open_pdf_write">تعذر فتح ملف PDF للحفظ</string>
+    <string name="error_pdf_unavailable_after_save">تعذر إتاحة ملف PDF بعد الحفظ</string>
+    <string name="error_pdf_export_item">ملف PDF: %1$s</string>
 </resources>
