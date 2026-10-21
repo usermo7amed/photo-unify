@@ -139,8 +139,8 @@ fun CropReviewCard(
                 }
 
                 ValuePill(
-                    if (state.cropEdits.isNotEmpty()) "تم تعديل ${state.cropEdits.size} صفحة"
-                    else "جاهز للمراجعة"
+                    if (state.cropEdits.isNotEmpty()) stringResource(R.string.crop_page_modified_count, state.cropEdits.size)
+                    else stringResource(R.string.crop_ready_review)
                 )
             }
 
@@ -156,14 +156,14 @@ fun CropReviewCard(
                 if (preview != null && !preview.isRecycled) {
                     Image(
                         bitmap = preview.asImageBitmap(),
-                        contentDescription = "معاينة الصفحة ${state.previewIndex + 1}",
+                        contentDescription = stringResource(R.string.crop_page_preview_description, state.previewIndex + 1),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
                         filterQuality = FilterQuality.Medium
                     )
                 } else {
                     Text(
-                        text = "ستظهر معاينة المستند هنا",
+                        text = stringResource(R.string.crop_preview_placeholder),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -188,19 +188,19 @@ fun CropReviewCard(
                 )
                 Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
                 Text(
-                    text = if (state.cropEdits.isNotEmpty()) "استكمال مراجعة الصفحات (${state.cropEdits.size}/${state.selected.size})"
-                    else "فتح محرر زوايا الورقة",
+                    text = if (state.cropEdits.isNotEmpty()) stringResource(R.string.crop_continue_review, state.cropEdits.size, state.selected.size)
+                    else stringResource(R.string.action_open_crop_editor),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             val hintText = when {
-                state.cropApplying -> "جاري تجهيز القص وتصحيح المنظور بجودة فائقة..."
-                state.selected.isEmpty() -> "اختر صورة أولاً لتتمكن من مراجعة حدودها."
-                !openCvReady -> "مكتبة معالجة الصور (OpenCV) غير جاهزة حالياً."
-                state.cropEdits.isNotEmpty() -> "تم حفظ تعديلات ${state.cropEdits.size} من ${state.selected.size} صفحة. اضغط «التالي» للمتابعة للتحسين."
-                else -> "خطوة اختيارية: يمكنك الانتقال للخطوة التالية مباشرة إذا كانت الصور لا تحتاج إلى قص."
+                state.cropApplying -> stringResource(R.string.crop_processing)
+                state.selected.isEmpty() -> stringResource(R.string.crop_select_first)
+                !openCvReady -> stringResource(R.string.crop_opencv_unavailable)
+                state.cropEdits.isNotEmpty() -> stringResource(R.string.crop_edits_saved_summary, state.cropEdits.size, state.selected.size)
+                else -> stringResource(R.string.crop_optional_hint)
             }
 
             Surface(
@@ -290,7 +290,7 @@ fun CropWorkspaceView(
                             )
                         }
                     }
-                    ValuePill("صفحة ${state.previewIndex + 1} / ${state.selected.size}")
+                    ValuePill(stringResource(R.string.page_counter, state.previewIndex + 1, state.selected.size))
                 }
             }
 
@@ -323,7 +323,7 @@ fun CropWorkspaceView(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "جاري تجهيز معاينة الصفحة...",
+                            text = stringResource(R.string.crop_page_preview_loading),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -370,7 +370,7 @@ fun CropWorkspaceView(
                             IconButton(onClick = { showCropResultPreview = false }) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
-                                    contentDescription = "إغلاق المعاينة"
+                                    contentDescription = stringResource(R.string.action_close_preview)
                                 )
                             }
                         }
@@ -379,7 +379,7 @@ fun CropWorkspaceView(
                         if (preview != null && !preview.isRecycled) {
                             Image(
                                 bitmap = preview.asImageBitmap(),
-                                contentDescription = "ناتج القص وتصحيح المنظور",
+                                contentDescription = stringResource(R.string.crop_preview_title),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(max = 560.dp),
@@ -431,7 +431,7 @@ private fun DocumentPageThumbnailStrip(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "صفحات المستند",
+                text = stringResource(R.string.document_pages),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -440,7 +440,7 @@ private fun DocumentPageThumbnailStrip(
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
             ) {
                 Text(
-                    text = "${state.cropEdits.size} من ${state.selected.size} معدلة",
+                    text = stringResource(R.string.edited_pages_count, state.cropEdits.size, state.selected.size),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -482,7 +482,7 @@ private fun DocumentPageThumbnailStrip(
                         if (thumbnail != null && !thumbnail.bitmap.isRecycled) {
                             Image(
                                 bitmap = thumbnail.bitmap.asImageBitmap(),
-                                contentDescription = "صفحة ${index + 1}",
+                                contentDescription = stringResource(R.string.page_number, index + 1),
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(2.dp)
@@ -492,7 +492,7 @@ private fun DocumentPageThumbnailStrip(
                             )
                         } else {
                             Text(
-                                "صفحة ${index + 1}",
+                                stringResource(R.string.page_number, index + 1),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -509,7 +509,7 @@ private fun DocumentPageThumbnailStrip(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
-                                    contentDescription = "تم تعديل الصفحة ${index + 1}",
+                                    contentDescription = stringResource(R.string.page_edited, index + 1),
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .size(12.dp),
@@ -520,7 +520,7 @@ private fun DocumentPageThumbnailStrip(
                     }
 
                     Text(
-                        text = "صفحة ${index + 1}",
+                        text = stringResource(R.string.page_number, index + 1),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
@@ -563,25 +563,25 @@ fun CropWorkspaceBottomBar(
         ) {
             CropToolIconButton(
                 icon = Icons.AutoMirrored.Filled.Undo,
-                label = "تراجع",
+                label = stringResource(R.string.action_undo),
                 enabled = state.cropUndoStack.isNotEmpty() && !state.cropApplying && !state.busy,
                 onClick = onUndoCrop
             )
             CropToolIconButton(
                 icon = Icons.Filled.RestartAlt,
-                label = "إعادة ضبط",
+                label = stringResource(R.string.action_reset),
                 enabled = !state.cropApplying && !state.busy && state.cropSource != null,
                 onClick = onResetCrop
             )
             CropToolIconButton(
                 icon = Icons.AutoMirrored.Filled.RotateRight,
-                label = "تدوير 90 درجة",
+                label = stringResource(R.string.action_rotate_90),
                 enabled = !state.cropApplying && !state.busy && state.cropSource != null,
                 onClick = onRotatePage
             )
             CropToolIconButton(
                 icon = Icons.Filled.Close,
-                label = "إلغاء وإغلاق محرر القص",
+                label = stringResource(R.string.action_cancel_crop),
                 enabled = !state.cropApplying && !state.busy,
                 onClick = onCancelCrop
             )
@@ -603,9 +603,9 @@ fun CropWorkspaceBottomBar(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = when {
-                        state.cropApplying -> "جارٍ الحفظ..."
+                        state.cropApplying -> stringResource(R.string.crop_saving)
                         state.cropDirty -> stringResource(R.string.action_crop)
-                        else -> "إنهاء"
+                        else -> stringResource(R.string.action_finish)
                     },
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
