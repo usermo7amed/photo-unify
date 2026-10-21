@@ -183,7 +183,7 @@ fun AdjustPreviewScreen(
             selectedCount = state.selected.size,
             currentIndex = state.previewIndex,
             onIndexChange = onPreviewSelect,
-            activePresetTitle = activePreset?.title,
+            activePresetTitle = activePreset?.let { stringResource(it.titleRes) },
             isCustomAdjusted = isCustomAdjusted || (activePreset != null && activePreset.id != "original"),
             onResetAdjustments = {
                 onBrightnessChange(0)
@@ -603,6 +603,7 @@ private fun FineTuneSlidersCard(
                     ValuePill(if (brightness > 0) "+$brightness" else "$brightness")
                 }
 
+                val brightnessDescription = stringResource(R.string.brightness_description, brightness)
                 Slider(
                     value = brightness.toFloat(),
                     onValueChange = { onBrightnessChange(it.roundToInt()) },
@@ -614,7 +615,7 @@ private fun FineTuneSlidersCard(
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     modifier = Modifier.semantics {
-                        contentDescription = stringResource(R.string.brightness_description, brightness)
+                        contentDescription = brightnessDescription
                     }
                 )
 
@@ -686,6 +687,7 @@ private fun FineTuneSlidersCard(
                     ValuePill("$contrastPercent%")
                 }
 
+                val contrastDescription = stringResource(R.string.contrast_description, contrastPercent)
                 Slider(
                     value = contrastPercent.toFloat(),
                     onValueChange = { onContrastChange(it.roundToInt()) },
@@ -697,7 +699,7 @@ private fun FineTuneSlidersCard(
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     modifier = Modifier.semantics {
-                        contentDescription = stringResource(R.string.contrast_description, contrastPercent)
+                        contentDescription = contrastDescription
                     }
                 )
 
