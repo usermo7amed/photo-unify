@@ -189,7 +189,7 @@ private fun ProcessingStateCard(
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Text(
-                    text = "جاري تحسين وحفظ المستندات...",
+                    text = stringResource(R.string.status_processing_documents),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -212,7 +212,7 @@ private fun ProcessingStateCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "المستند $current من $total",
+                        text = stringResource(R.string.status_document_progress, current, total),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -317,7 +317,7 @@ private fun SuccessExportCard(
                     horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                 ) {
                     Text(
-                        text = if (isSuccess) "تم تحسين المستندات بنجاح!" else "تعذّر حفظ بعض المستندات",
+                        text = if (isSuccess) stringResource(R.string.result_success_title) else stringResource(R.string.result_failure_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -332,7 +332,7 @@ private fun SuccessExportCard(
                     }
                 }
                 Text(
-                    text = if (isSuccess) "المستندات جاهزة الآن للتصدير كملف PDF موحّد أو صور مستقلة."
+                    text = if (isSuccess) stringResource(R.string.result_success_description)
                     else state.status,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -346,9 +346,9 @@ private fun SuccessExportCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatSummaryChip(label = "الصفحات", value = "${state.savedCount} صفحة")
-                    StatSummaryChip(label = "الدقة", value = "جودة أصلية")
-                    StatSummaryChip(label = "المعالجة", value = "محلية 100%")
+                    StatSummaryChip(label = stringResource(R.string.result_pages), value = stringResource(R.string.selected_count, state.savedCount))
+                    StatSummaryChip(label = stringResource(R.string.result_quality), value = stringResource(R.string.result_quality_original))
+                    StatSummaryChip(label = stringResource(R.string.result_processing), value = stringResource(R.string.result_processing_local))
                 }
             }
 
@@ -369,7 +369,7 @@ private fun SuccessExportCard(
                 ) {
                     Image(
                         bitmap = finalPreview.asImageBitmap(),
-                        contentDescription = "المستند النهائي",
+                        contentDescription = stringResource(R.string.final_document),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
                         filterQuality = FilterQuality.Medium
@@ -383,7 +383,7 @@ private fun SuccessExportCard(
                         color = Color.Black.copy(alpha = 0.75f)
                     ) {
                         Text(
-                            text = "معاينة الجودة الكاملة ✓",
+                            text = stringResource(R.string.full_quality_preview),
                             modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = 2.dp),
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
@@ -428,12 +428,12 @@ private fun SuccessExportCard(
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Text(
-                                    text = "الصور الجاهزة للتصدير",
+                                    text = stringResource(R.string.images_ready_export),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${state.processedImages.count { it.id in state.selectedExportIds }} من ${state.processedImages.size} محددة",
+                                    text = stringResource(R.string.selected_count_of_total, state.processedImages.count { it.id in state.selectedExportIds }, state.processedImages.size),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -443,7 +443,7 @@ private fun SuccessExportCard(
                                 enabled = !state.exportBusy
                             ) {
                                 Text(
-                                    text = if (allExportImagesSelected) "إلغاء التحديد" else "تحديد الكل",
+                                    text = if (allExportImagesSelected) stringResource(R.string.action_deselect) else stringResource(R.string.action_select_all),
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -461,7 +461,7 @@ private fun SuccessExportCard(
                                     },
                                     enabled = !state.exportBusy,
                                     modifier = Modifier.semantics {
-                                        contentDescription = "تضمين ${image.displayName} في التصدير"
+                                        contentDescription = stringResource(R.string.include_image_export, image.displayName)
                                     }
                                 )
                                 Column(
@@ -478,7 +478,7 @@ private fun SuccessExportCard(
                                     )
                                     Text(
                                         text = if (image.id in state.selectedExportIds)
-                                            "محددة للتصدير" else "غير محددة",
+                                            stringResource(R.string.selected_for_export) else stringResource(R.string.not_selected),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -495,7 +495,7 @@ private fun SuccessExportCard(
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
             ) {
                 Text(
-                    text = "خيارات التصدير والمشاركة",
+                    text = stringResource(R.string.export_options_share),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -543,7 +543,7 @@ private fun SuccessExportCard(
 
                 // حالة التصدير
                 if (state.exportBusy || state.exportProgress > 0 ||
-                    state.exportErrors.isNotEmpty() || state.exportStatus != "جاهز للتصدير"
+                    state.exportErrors.isNotEmpty() || state.exportStatus != stringResource(R.string.status_ready_export)
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -570,7 +570,7 @@ private fun SuccessExportCard(
                             } else {
                                 Text(
                                     text = if (state.exportErrors.isEmpty())
-                                        "اكتمل التصدير بنجاح." else "انتهى التصدير مع بعض الملاحظات؛ يمكنك إعادة المحاولة.",
+                                        stringResource(R.string.export_success) else stringResource(R.string.export_finished_with_notes),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (state.exportErrors.isEmpty())
                                         MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -593,7 +593,7 @@ private fun SuccessExportCard(
                         verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
                     ) {
                         Text(
-                            text = "تعذّر تصدير بعض العناصر",
+                            text = stringResource(R.string.export_some_failed),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Bold
@@ -629,7 +629,7 @@ private fun SuccessExportCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "الصور: Pictures/PhotoUnifier • ملفات PDF: Documents/PhotoUnifier",
+                        text = stringResource(R.string.export_locations),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -657,7 +657,7 @@ private fun SuccessExportCard(
                     )
                     Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
                     Text(
-                        text = "مسح / استيراد مستند جديد",
+                        text = stringResource(R.string.action_new_document),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -677,7 +677,7 @@ private fun SuccessExportCard(
                     )
                     Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
                     Text(
-                        text = "الرجوع لتعديل الفلاتر",
+                        text = stringResource(R.string.action_return_filters),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
