@@ -69,7 +69,7 @@ class PhotoRepository {
                                 check(DocumentCrop.isValid(corners, editedSource.width, editedSource.height)) {
                                     context.getString(R.string.error_saved_crop_bounds)
                                 }
-                                val cropped = DocumentCrop.warp(editedSource, corners)
+                                val cropped = DocumentCrop.warp(editedSource, corners, context = context)
                                 if (cropped !== editedSource) editedSource.recycle()
                                 editedSource = cropped
                                 source = cropped
@@ -84,7 +84,7 @@ class PhotoRepository {
                     val sourcePreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.source")
                     try {
-                        observer.onSource(index + 1, uris.size, Processor.createPreview(loadedSource))
+                        observer.onSource(index + 1, uris.size, Processor.createPreview(loadedSource, context = context))
                     } finally {
                         Trace.endSection()
                         sourcePreviewMs = elapsedMs(sourcePreviewStarted)
@@ -119,7 +119,7 @@ class PhotoRepository {
                     val enhancedPreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.enhanced")
                     try {
-                        observer.onEnhanced(Processor.createPreview(finalEnhanced))
+                        observer.onEnhanced(Processor.createPreview(finalEnhanced, context = context))
                     } finally {
                         Trace.endSection()
                         enhancedPreviewMs = elapsedMs(enhancedPreviewStarted)
@@ -153,7 +153,7 @@ class PhotoRepository {
                         observer.onSaved(
                             index + 1,
                             Processor.createPreview(output
-                                ?: throw IllegalStateException(context.getString(R.string.error_saved_preview))),
+                                ?: throw IllegalStateException(context.getString(R.string.error_saved_preview)), context = context),
                             temporaryFile ?: throw IllegalStateException(context.getString(R.string.error_temp_image_unavailable))
                         )
                         temporaryFile = null
