@@ -1150,7 +1150,14 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         previewExecutor.shutdown()
         thumbnailExecutor.shutdown()
         imagePreviewExecutor.shutdown()
-        previous.processedImages.forEach { runCatching { it.file.delete() } }
+        val filesToDelete = previous.processedImages.map { it.file }
+        try {
+            exportExecutor.execute {
+                filesToDelete.forEach { file -> runCatching { file.delete() } }
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            filesToDelete.forEach { file -> runCatching { file.delete() } }
+        }
         super.onCleared()
     }
     private fun createCropPreviewSource(source: Bitmap): Bitmap {
