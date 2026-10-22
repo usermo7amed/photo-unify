@@ -5,6 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+import java.io.FileOutputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -205,4 +210,125 @@ class DocumentCropInstrumentedTest {
             if (!source.isRecycled) source.recycle()
         }
     }
+
+    @Test
+    fun repositoryAppliesSavedCropEditToProcessedOutput() {
+        assertTrue("OpenCV native library must load for the crop processing pipeline", OpenCVLoader.initLocal())
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sourceWidth = 220
+        val sourceHeight = 170
+        val source = Bitmap.createBitmap(sourceWidth, sourceHeight, Bitmap.Config.ARGB_8888)
+        val inputFile = File(context.cacheDir, "crop-pipeline-${System.nanoTime()}.png")
+        var sourcePreview: Bitmap? = null
+        var enhancedPreview: Bitmap? = null
+        var savedPreview: Bitmap? = null
+        var savedFile: File? = null
+        var errorMessage: String? = null
+        var finishedSuccess = -1
+        var finishedFailed = -1
+
+        try {
+            val pixels = IntArray(sourceWidth * sourceHeight) { Color.RED }
+            for (y in 10 until 140) {
+                for (x in 20 until 180) {
+                    pixels[y * sourceWidth + x] = Color.GREEN
+                }
+            }
+            source.setPixels(pixels, 0, sourceWidth, 0, 0, sourceWidth, sourceHeight)
+            FileOutputStream(inputFile).use { output ->
+                assertTrue("Synthetic source image must be written", source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            val uri = Uri.fromFile(inputFile)
+            val corners = normalizeCropPoints(
+                listOf(
+                    CropPoint(20f, 10f),
+                    CropPoint(180f, 10f),
+                    CropPoint(180f, 140f),
+                    CropPoint(20f, 140f)
+                ),
+                sourceWidth,
+                sourceHeight
+            )
+            val observer = object : PhotoRepository.Observer {
+                override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
+                    sourcePreview = bitmap
+                }
+
+                override fun onClassification(index: Int, total: Int, kind: ImageKind) = Unit
+
+                override fun onEnhanced(bitmap: Bitmap) {
+                    enhancedPreview = bitmap
+                }
+
+                override fun onSaved(index: Int, bitmap: Bitmap, file: File) {
+                    savedPreview = bitmap
+                    savedFile = file
+                }
+
+                override fun onError(index: Int, total: Int, uri: Uri, message: String) {
+                    errorMessage = message
+                }
+
+                override fun onFinished(success: Int, failed: Int, error: String?) {
+                    finishedSuccess = success
+                    finishedFailed = failed
+                    if (error != null) errorMessage = error
+                }
+            }
+
+            PhotoRepository().process(
+                context = context,
+                uris = listOf(uri),
+                brightness = 0,
+                contrastPercent = 100,
+                observer = observer,
+                pageEdits = mapOf(
+                    uri to DocumentPageEdit(
+                        rotationDegrees = 0,
+                        normalizedCorners = corners
+                    )
+                )
+            )
+
+            assertEquals("Saved crop should complete as one successful processing item", 1, finishedSuccess)
+            assertEquals("Crop processing must not report a failed item: $errorMessage", 0, finishedFailed)
+            assertEquals("Crop processing must not report an error: $errorMessage", null, errorMessage)
+
+            val croppedSourcePreview = sourcePreview
+                ?: throw AssertionError("Repository should publish the cropped source preview")
+            assertEquals("Crop width should reach the processing pipeline", 160, croppedSourcePreview.width)
+            assertEquals("Crop height should reach the processing pipeline", 130, croppedSourcePreview.height)
+            assertEquals(
+                "The source preview should contain pixels from inside the selected crop",
+                Color.GREEN,
+                croppedSourcePreview.getPixel(croppedSourcePreview.width / 2, croppedSourcePreview.height / 2)
+            )
+
+            val finalPreview = savedPreview
+                ?: throw AssertionError("Repository should publish the processed output preview")
+            assertEquals("Final processing output must retain crop width", 160, finalPreview.width)
+            assertEquals("Final processing output must retain crop height", 130, finalPreview.height)
+
+            val file = savedFile ?: throw AssertionError("Repository should write its output image")
+            val finalBitmap = BitmapFactory.decodeFile(file.absolutePath)
+                ?: throw AssertionError("Saved output must be a readable image")
+            try {
+                assertEquals("Saved file must contain cropped pixels, not the original frame width", 160, finalBitmap.width)
+                assertEquals("Saved file must contain cropped pixels, not the original frame height", 130, finalBitmap.height)
+            } finally {
+                if (!finalBitmap.isRecycled) finalBitmap.recycle()
+            }
+        } finally {
+            sourcePreview?.let { if (!it.isRecycled) it.recycle() }
+            enhancedPreview?.let { if (!it.isRecycled) it.recycle() }
+            savedPreview?.let { if (!it.isRecycled) it.recycle() }
+            if (!source.isRecycled) source.recycle()
+            inputFile.delete()
+            savedFile?.delete()
+        }
+    }
+
+
 }
