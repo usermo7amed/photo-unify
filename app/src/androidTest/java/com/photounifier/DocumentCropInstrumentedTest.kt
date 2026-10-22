@@ -9,6 +9,8 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import java.io.File
 import java.io.FileOutputStream
 import org.junit.Assert.assertEquals
@@ -338,7 +340,11 @@ class DocumentCropInstrumentedTest {
         assertTrue("OpenCV native library must load for crop preview lifecycle tests", OpenCVLoader.initLocal())
 
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
-        val viewModel = PhotoViewModel(app)
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
         val sourceFile = File(app.cacheDir, "crop-preview-lifecycle-${System.nanoTime()}.png")
         val source = Bitmap.createBitmap(220, 170, Bitmap.Config.ARGB_8888)
         try {
@@ -415,7 +421,7 @@ class DocumentCropInstrumentedTest {
             state = awaitReplacement(oldPreview, "preview after reset")
             assertTrue("Reset must recycle the replaced preview bitmap", oldPreview.isRecycled)
         } finally {
-            viewModel.onCleared()
+            viewModelStore.clear()
             sourceFile.delete()
         }
     }
