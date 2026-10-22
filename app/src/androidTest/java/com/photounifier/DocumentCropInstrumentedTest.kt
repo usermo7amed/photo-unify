@@ -16,6 +16,64 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 @RunWith(AndroidJUnit4::class)
 class DocumentCropInstrumentedTest {
 
+
+    @Test
+    fun warpCorrectsPerspectiveAndKeepsOutputWithinPreviewLimit() {
+        assertTrue("OpenCV native library must load for perspective cropping", OpenCVLoader.initLocal())
+
+        val sourceWidth = 220
+        val sourceHeight = 170
+        val source = Bitmap.createBitmap(sourceWidth, sourceHeight, Bitmap.Config.ARGB_8888)
+        try {
+            val pixels = IntArray(sourceWidth * sourceHeight) { Color.RED }
+            for (y in 5 until 150) {
+                for (x in 10 until 200) {
+                    pixels[y * sourceWidth + x] = Color.GREEN
+                }
+            }
+            source.setPixels(pixels, 0, sourceWidth, 0, 0, sourceWidth, sourceHeight)
+
+            val cropped = DocumentCrop.warp(
+                source,
+                listOf(
+                    CropPoint(30f, 10f),
+                    CropPoint(180f, 20f),
+                    CropPoint(170f, 140f),
+                    CropPoint(20f, 130f)
+                )
+            )
+            try {
+                assertEquals(150, cropped.width)
+                assertEquals(120, cropped.height)
+                assertEquals(Color.GREEN, cropped.getPixel(cropped.width / 2, cropped.height / 2))
+                assertTrue(cropped.width < source.width)
+                assertTrue(cropped.height < source.height)
+            } finally {
+                if (!cropped.isRecycled) cropped.recycle()
+            }
+
+            val preview = DocumentCrop.warp(
+                source,
+                listOf(
+                    CropPoint(10f, 10f),
+                    CropPoint(200f, 10f),
+                    CropPoint(200f, 150f),
+                    CropPoint(10f, 150f)
+                ),
+                maxOutputSide = 80
+            )
+            try {
+                assertTrue("Preview width must not exceed configured limit", preview.width <= 80)
+                assertTrue("Preview height must not exceed configured limit", preview.height <= 80)
+                assertTrue(preview.width > 1 && preview.height > 1)
+            } finally {
+                if (!preview.isRecycled) preview.recycle()
+            }
+        } finally {
+            if (!source.isRecycled) source.recycle()
+        }
+    }
+
     @Test
     fun warpProducesCroppedBitmapWithCroppedPixelContent() {
         assertTrue("OpenCV native library must load for perspective cropping", OpenCVLoader.initLocal())
