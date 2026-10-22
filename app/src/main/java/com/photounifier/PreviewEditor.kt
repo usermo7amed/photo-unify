@@ -351,7 +351,7 @@ internal fun CropCornerEditor(
     var magnifierPosition by remember(bitmap) { mutableStateOf(Offset.Zero) }
     val cropAccent = MaterialTheme.colorScheme.primary
     val selectedCornerColor = MaterialTheme.colorScheme.tertiary
-    BoxWithConstraints(
+    Box(
         modifier = modifier.fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF16191D))
