@@ -609,10 +609,27 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
             val preview = try { DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, candidate), Processor.PREVIEW_MAX_SIDE, context = appContext) } catch (_: Exception) { return@execute }
-            if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
+            if (generation != cropGeneration.get()) {
+                releaseBitmaps(listOf(preview))
+                return@execute
+            }
+            var installed = false
+            var replacedPreview: Bitmap? = null
             update { old ->
-                if (!old.cropOpen || old.cropCorners != candidate) { preview.recycle(); old }
-                else old.copy(cropPreview = preview)
+                if (generation != cropGeneration.get() || !old.cropOpen ||
+                    old.cropSource !== source || old.cropCorners != candidate
+                ) {
+                    old
+                } else {
+                    installed = true
+                    replacedPreview = old.cropPreview
+                    old.copy(cropPreview = preview)
+                }
+            }
+            if (installed) {
+                releaseBitmaps(listOf(replacedPreview), setOf(preview))
+            } else {
+                releaseBitmaps(listOf(preview))
             }
         }
     }
@@ -629,12 +646,27 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
                 DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, previous), Processor.PREVIEW_MAX_SIDE, context = appContext)
             } catch (_: Exception) { return@execute }
-            if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
+            if (generation != cropGeneration.get()) {
+                releaseBitmaps(listOf(preview))
+                return@execute
+            }
+            var installed = false
+            var replacedPreview: Bitmap? = null
             update { old ->
-                if (old.cropCorners != previous || old.cropSource !== source) {
-                    preview.recycle()
+                if (generation != cropGeneration.get() || !old.cropOpen ||
+                    old.cropCorners != previous || old.cropSource !== source
+                ) {
                     old
-                } else old.copy(cropPreview = preview)
+                } else {
+                    installed = true
+                    replacedPreview = old.cropPreview
+                    old.copy(cropPreview = preview)
+                }
+            }
+            if (installed) {
+                releaseBitmaps(listOf(replacedPreview), setOf(preview))
+            } else {
+                releaseBitmaps(listOf(preview))
             }
         }
     }
@@ -650,12 +682,27 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
                 DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE, context = appContext)
             } catch (_: Exception) { return@execute }
-            if (generation != cropGeneration.get()) { preview.recycle(); return@execute }
+            if (generation != cropGeneration.get()) {
+                releaseBitmaps(listOf(preview))
+                return@execute
+            }
+            var installed = false
+            var replacedPreview: Bitmap? = null
             update { old ->
-                if (!old.cropOpen || old.cropCorners != corners || old.cropSource !== source) {
-                    preview.recycle()
+                if (generation != cropGeneration.get() || !old.cropOpen ||
+                    old.cropCorners != corners || old.cropSource !== source
+                ) {
                     old
-                } else old.copy(cropPreview = preview)
+                } else {
+                    installed = true
+                    replacedPreview = old.cropPreview
+                    old.copy(cropPreview = preview)
+                }
+            }
+            if (installed) {
+                releaseBitmaps(listOf(replacedPreview), setOf(preview))
+            } else {
+                releaseBitmaps(listOf(preview))
             }
         }
     }
