@@ -370,6 +370,38 @@ object DocumentCrop {
         return crosses.all { it > 0f } || crosses.all { it < 0f }
     }
 
+    /**
+     * Computes the perspective-corrected bitmap size from ordered crop corners.
+     * This is shared by warp() and unit tests so crop geometry cannot silently
+     * regress to returning the full source dimensions for a smaller selected area.
+     *
+     * points must be ordered top-left, top-right, bottom-right, bottom-left.
+     */
+    internal fun calculateWarpOutputSize(
+        points: List<CropPoint>,
+        maxOutputSide: Int? = null
+    ): Pair<Int, Int> {
+        require(points.size == 4) { "A perspective crop needs four ordered corners" }
+        require(maxOutputSide == null || maxOutputSide > 1) { "Invalid crop preview size" }
+
+        fun distance(a: CropPoint, b: CropPoint): Double {
+            val dx = a.x.toDouble() - b.x.toDouble()
+            val dy = a.y.toDouble() - b.y.toDouble()
+            return sqrt(dx * dx + dy * dy)
+        }
+
+        var outWidth = max(distance(points[0], points[1]), distance(points[3], points[2]))
+            .roundToInt().coerceIn(2, 4096)
+        var outHeight = max(distance(points[0], points[3]), distance(points[1], points[2]))
+            .roundToInt().coerceIn(2, 4096)
+        if (maxOutputSide != null) {
+            val outputScale = min(1.0, maxOutputSide.toDouble() / max(outWidth, outHeight).toDouble())
+            outWidth = (outWidth * outputScale).roundToInt().coerceIn(2, 4096)
+            outHeight = (outHeight * outputScale).roundToInt().coerceIn(2, 4096)
+        }
+        return outWidth to outHeight
+    }
+
     fun warp(
         bitmap: Bitmap,
         points: List<CropPoint>,
@@ -401,13 +433,10 @@ object DocumentCrop {
             points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
         }
         val ordered = order(workingPoints.map { Point(it.x.toDouble(), it.y.toDouble()) }.toTypedArray())
-        var outWidth = max(distance(ordered[0], ordered[1]), distance(ordered[3], ordered[2])).roundToInt().coerceIn(2, 4096)
-        var outHeight = max(distance(ordered[0], ordered[3]), distance(ordered[1], ordered[2])).roundToInt().coerceIn(2, 4096)
-        if (maxOutputSide != null) {
-            val outputScale = min(1.0, maxOutputSide.toDouble() / max(outWidth, outHeight).toDouble())
-            outWidth = (outWidth * outputScale).roundToInt().coerceIn(2, 4096)
-            outHeight = (outHeight * outputScale).roundToInt().coerceIn(2, 4096)
-        }
+        val (outWidth, outHeight) = calculateWarpOutputSize(
+            ordered.map { CropPoint(it.x.toFloat(), it.y.toFloat()) },
+            maxOutputSide
+        )
         val source = MatOfPoint2f(*ordered)
         val target = MatOfPoint2f(
             Point(0.0, 0.0), Point((outWidth - 1).toDouble(), 0.0),

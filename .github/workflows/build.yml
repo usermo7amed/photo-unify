@@ -26,7 +26,26 @@ jobs:
         run: ./gradlew lintDebug --no-daemon --stacktrace
 
       - name: Run unit tests and build debug APK
-        run: ./gradlew testDebugUnitTest assembleDebug --no-daemon --stacktrace
+        run: ./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo chmod 0666 /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          ls -l /dev/kvm
+
+      - name: Run document crop instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
