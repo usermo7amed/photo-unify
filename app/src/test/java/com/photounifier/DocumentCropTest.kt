@@ -30,6 +30,38 @@ class DocumentCropTest {
         ))
     }
 
+    @Test fun calculatesOutputSizeForSelectedCropInsteadOfWholeSource() {
+        val cropCorners = listOf(
+            CropPoint(20f, 10f),
+            CropPoint(180f, 10f),
+            CropPoint(180f, 140f),
+            CropPoint(20f, 140f)
+        )
+
+        val outputSize = DocumentCrop.calculateWarpOutputSize(cropCorners)
+
+        assertEquals(160 to 130, outputSize)
+        assertTrue(outputSize.first < 220)
+        assertTrue(outputSize.second < 170)
+    }
+
+    @Test fun limitsCropPreviewSizeWithoutChangingAspectRatio() {
+        val cropCorners = listOf(
+            CropPoint(20f, 10f),
+            CropPoint(180f, 10f),
+            CropPoint(180f, 140f),
+            CropPoint(20f, 140f)
+        )
+
+        assertEquals(80 to 65, DocumentCrop.calculateWarpOutputSize(cropCorners, maxOutputSide = 80))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsWarpSizeCalculationWithoutFourCorners() {
+        DocumentCrop.calculateWarpOutputSize(listOf(CropPoint(0f, 0f), CropPoint(10f, 0f)))
+    }
+
+
     @Test fun rejectsCrossedCorners() {
         assertFalse(DocumentCrop.isValid(
             listOf(CropPoint(10f, 10f), CropPoint(90f, 90f), CropPoint(90f, 10f), CropPoint(10f, 90f)),
