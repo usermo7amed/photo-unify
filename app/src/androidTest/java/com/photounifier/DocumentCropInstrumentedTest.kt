@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.FileOutputStream
@@ -327,6 +328,95 @@ class DocumentCropInstrumentedTest {
             if (!source.isRecycled) source.recycle()
             inputFile.delete()
             savedFile?.delete()
+        }
+    }
+
+
+
+    @Test
+    fun replacingCropPreviewsRecyclesPreviousBitmapsAfterDragUndoAndReset() {
+        assertTrue("OpenCV native library must load for crop preview lifecycle tests", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModel = PhotoViewModel(app)
+        val sourceFile = File(app.cacheDir, "crop-preview-lifecycle-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(220, 170, Bitmap.Config.ARGB_8888)
+        try {
+            source.eraseColor(Color.rgb(230, 230, 225))
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+        } finally {
+            if (!source.isRecycled) source.recycle()
+        }
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for crop preview state: $description")
+        }
+
+        fun awaitReplacement(previous: Bitmap, description: String): PhotoUiState =
+            awaitState(description) {
+                it.cropOpen && it.cropPreview != null &&
+                    it.cropPreview !== previous && !it.cropApplying
+            }
+
+        fun moveTopLeftInward(state: PhotoUiState) {
+            val sourceBitmap = state.cropSource
+                ?: throw AssertionError("Crop source must remain available while editing")
+            val topLeft = state.cropCorners.firstOrNull()
+                ?: throw AssertionError("Crop corners must be initialized")
+            val moved = CropPoint(
+                (topLeft.x + 4f).coerceAtMost((sourceBitmap.width - 1).toFloat()),
+                (topLeft.y + 4f).coerceAtMost((sourceBitmap.height - 1).toFloat())
+            )
+            val candidate = state.cropCorners.toMutableList().apply { set(0, moved) }
+            assertTrue("The test drag must leave a valid crop quadrilateral", DocumentCrop.isValid(candidate, sourceBitmap.width, sourceBitmap.height))
+            viewModel.moveCropCorner(0, moved.x, moved.y)
+        }
+
+        try {
+            viewModel.selectImages(listOf(Uri.fromFile(sourceFile)))
+            viewModel.openCropEditor(openCvReady = true)
+            var state = awaitState("initial crop editor") {
+                it.cropOpen && !it.cropApplying && it.cropSource != null && it.cropPreview != null
+            }
+
+            var oldPreview = state.cropPreview
+                ?: throw AssertionError("Initial crop preview must exist")
+            moveTopLeftInward(state)
+            state = awaitReplacement(oldPreview, "preview after first drag")
+            assertTrue("First drag must recycle the replaced preview bitmap", oldPreview.isRecycled)
+
+            oldPreview = state.cropPreview
+                ?: throw AssertionError("Preview after first drag must exist")
+            moveTopLeftInward(state)
+            state = awaitReplacement(oldPreview, "preview after second drag")
+            assertTrue("Second drag must recycle the replaced preview bitmap", oldPreview.isRecycled)
+
+            oldPreview = state.cropPreview
+                ?: throw AssertionError("Preview after second drag must exist")
+            viewModel.undoCrop()
+            state = awaitReplacement(oldPreview, "preview after undo")
+            assertTrue("Undo must recycle the replaced preview bitmap", oldPreview.isRecycled)
+
+            oldPreview = state.cropPreview
+                ?: throw AssertionError("Preview after undo must exist")
+            viewModel.resetCrop()
+            state = awaitReplacement(oldPreview, "preview after reset")
+            assertTrue("Reset must recycle the replaced preview bitmap", oldPreview.isRecycled)
+        } finally {
+            viewModel.onCleared()
+            sourceFile.delete()
         }
     }
 
