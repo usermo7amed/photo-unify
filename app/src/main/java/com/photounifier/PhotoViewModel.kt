@@ -82,16 +82,20 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val mutableState = MutableLiveData(initialUiState)
     val state: LiveData<PhotoUiState> = mutableState
     @Volatile private var currentState = initialUiState
+    @Volatile private var cleared = false
 
     @Synchronized
-    private fun update(transform: (PhotoUiState) -> PhotoUiState) {
+    private fun update(transform: (PhotoUiState) -> PhotoUiState): Boolean {
+        if (cleared) return false
         currentState = transform(currentState)
         mutableState.postValue(currentState)
+        return true
     }
 
     fun selectImages(uris: List<Uri>) {
-        if (currentState.busy || currentState.exportBusy) return
-        currentState.processedImages.forEach { runCatching { it.file.delete() } }
+        if (cleared || currentState.busy || currentState.exportBusy) return
+        val previous = currentState
+        previous.processedImages.forEach { runCatching { it.file.delete() } }
         val normalizedUris = uris.distinct()
         previewGeneration.incrementAndGet()
         imagePreviewGeneration.incrementAndGet()
@@ -129,6 +133,20 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             cropRotationDegrees = 0,
             cropDirty = false
         ) }
+        // Each owner executor is serial, so release old bitmaps only after its
+        // queued work has finished reading them.
+        releaseBitmapsAfterQueuedWork(
+            previewExecutor,
+            listOf(previous.sourcePreview, previous.enhancedPreview, previous.resultPreview)
+        )
+        releaseBitmapsAfterQueuedWork(
+            executor,
+            listOf(previous.cropSource, previous.cropPreviewSource, previous.cropPreview)
+        )
+        releaseBitmapsAfterQueuedWork(
+            thumbnailExecutor,
+            previous.selectionThumbnails.map { it.bitmap }
+        )
         if (normalizedUris.isEmpty()) return
 
         val context = getApplication<Application>().applicationContext
@@ -157,7 +175,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     thumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
                     return@execute
                 }
-                update { old ->
+                val retained = update { old ->
                     if (selectionGeneration.get() != thumbnailToken || old.selected != normalizedUris) {
                         thumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
                         old
@@ -165,6 +183,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         old.copy(selectionThumbnails = thumbnails.toList())
                     }
                 }
+                if (!retained) thumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
             } catch (_: Exception) {
                 thumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
             }
@@ -177,6 +196,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
      * decodes from older selections from overwriting the image currently being reviewed.
      */
     fun showPreview(index: Int) {
+        if (cleared) return
         val snapshot = currentState
         if (snapshot.busy || snapshot.cropApplying) return
         val uri = snapshot.selected.getOrNull(index) ?: return
@@ -185,15 +205,24 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
 
         val generation = imagePreviewGeneration.incrementAndGet()
         previewGeneration.incrementAndGet()
+        var replacedPreviews: List<Bitmap?> = emptyList()
+        var clearedPreviews = false
         update { old ->
             if (old.selected.getOrNull(index) != uri) old
-            else old.copy(
-                previewIndex = index,
-                sourcePreview = null,
-                enhancedPreview = null,
-                resultPreview = null,
-                status = appContext.getString(R.string.status_loading_image_preview, index + 1, old.selected.size)
-            )
+            else {
+                clearedPreviews = true
+                replacedPreviews = listOf(old.sourcePreview, old.enhancedPreview, old.resultPreview)
+                old.copy(
+                    previewIndex = index,
+                    sourcePreview = null,
+                    enhancedPreview = null,
+                    resultPreview = null,
+                    status = appContext.getString(R.string.status_loading_image_preview, index + 1, old.selected.size)
+                )
+            }
+        }
+        if (clearedPreviews) {
+            releaseBitmapsAfterQueuedWork(previewExecutor, replacedPreviews)
         }
 
         imagePreviewExecutor.execute {
@@ -221,12 +250,13 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                update { old ->
+                var stalePreview = false
+                val retained = update { old ->
                     if (generation != imagePreviewGeneration.get() ||
                         old.previewIndex != index ||
                         old.selected.getOrNull(index) != uri
                     ) {
-                        if (!preview.isRecycled) preview.recycle()
+                        stalePreview = true
                         old
                     } else {
                         old.copy(
@@ -237,7 +267,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 }
-                if (generation == imagePreviewGeneration.get() &&
+                if (!retained || stalePreview) releaseBitmaps(listOf(preview))
+                if (retained && !stalePreview && generation == imagePreviewGeneration.get() &&
                     currentState.sourcePreview === preview
                 ) {
                     generateEnhancedPreview(preview, generation)
@@ -708,6 +739,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun cancelCrop() {
+        if (cleared) return
         cropGeneration.incrementAndGet()
         imagePreviewGeneration.incrementAndGet()
         val snapshot = currentState
@@ -730,7 +762,14 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 resultPreview = null
             )
         }
-        releaseBitmaps(listOf(snapshot.cropSource, snapshot.cropPreviewSource, snapshot.cropPreview))
+        releaseBitmapsAfterQueuedWork(
+            executor,
+            listOf(snapshot.cropSource, snapshot.cropPreviewSource, snapshot.cropPreview)
+        )
+        releaseBitmapsAfterQueuedWork(
+            previewExecutor,
+            listOf(snapshot.sourcePreview, snapshot.enhancedPreview, snapshot.resultPreview)
+        )
         if (snapshot.selected.isNotEmpty()) showPreview(index)
     }
 
@@ -810,6 +849,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun refreshPreview() {
+        if (cleared) return
         val snapshot = currentState
         // Before processing, use the loaded (or cropped) source as the preview base.
         // After processing starts producing enhanced frames, prefer those instead.
@@ -826,13 +866,18 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 preview.recycle()
                 return@execute
             }
+            var installed = false
             update { old ->
                 if ((old.enhancedPreview !== base && old.sourcePreview !== base) ||
-                    generation != previewGeneration.get()) {
-                    preview.recycle()
+                    generation != previewGeneration.get() || base.isRecycled
+                ) {
                     old
-                } else old.copy(resultPreview = preview)
+                } else {
+                    installed = true
+                    old.copy(resultPreview = preview)
+                }
             }
+            if (!installed) releaseBitmaps(listOf(preview))
         }
     }
 
@@ -1053,24 +1098,36 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     override fun onCleared() {
+        cleared = true
         imagePreviewGeneration.incrementAndGet()
         previewGeneration.incrementAndGet()
-        executor.shutdownNow()
-        exportExecutor.shutdownNow()
-        previewExecutor.shutdownNow()
-        thumbnailExecutor.shutdownNow()
-        imagePreviewExecutor.shutdownNow()
-        currentState.sourcePreview?.let { if (!it.isRecycled) it.recycle() }
-        currentState.enhancedPreview?.let { if (!it.isRecycled) it.recycle() }
-        currentState.resultPreview?.let { if (!it.isRecycled) it.recycle() }
-        currentState.cropSource?.let { if (!it.isRecycled) it.recycle() }
-        currentState.cropPreviewSource?.let { bitmap ->
-            if (bitmap !== currentState.cropSource && !bitmap.isRecycled) bitmap.recycle()
-        }
-        currentState.cropPreview?.let { if (!it.isRecycled) it.recycle() }
-        currentState.selectionThumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
-        currentState.processedImages.forEach { runCatching { it.file.delete() } }
+        cropGeneration.incrementAndGet()
+        selectionGeneration.incrementAndGet()
+        val previous = currentState
+
+        // Retire each bitmap group on the same serial executor that may still be
+        // reading it. Enqueue cleanup before shutting executors down gracefully.
+        releaseBitmapsAfterQueuedWork(
+            previewExecutor,
+            listOf(previous.sourcePreview, previous.enhancedPreview, previous.resultPreview)
+        )
+        releaseBitmapsAfterQueuedWork(
+            executor,
+            listOf(previous.cropSource, previous.cropPreviewSource, previous.cropPreview)
+        )
+        releaseBitmapsAfterQueuedWork(
+            thumbnailExecutor,
+            previous.selectionThumbnails.map { it.bitmap }
+        )
+
+        executor.shutdown()
+        exportExecutor.shutdown()
+        previewExecutor.shutdown()
+        thumbnailExecutor.shutdown()
+        imagePreviewExecutor.shutdown()
+        previous.processedImages.forEach { runCatching { it.file.delete() } }
         super.onCleared()
     }
     private fun createCropPreviewSource(source: Bitmap): Bitmap {
@@ -1087,6 +1144,21 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val scaleX = (target.width - 1).toFloat() / (source.width - 1).coerceAtLeast(1)
         val scaleY = (target.height - 1).toFloat() / (source.height - 1).coerceAtLeast(1)
         return points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
+    }
+
+    private fun releaseBitmapsAfterQueuedWork(
+        owner: java.util.concurrent.ExecutorService,
+        bitmaps: Iterable<Bitmap?>,
+        keep: Set<Bitmap> = emptySet()
+    ) {
+        val pending = bitmaps.filterNotNull().distinct().filter { it !in keep && !it.isRecycled }
+        if (pending.isEmpty()) return
+        try {
+            owner.execute { releaseBitmaps(pending, keep) }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            // A rejected cleanup must not recycle synchronously while an in-flight
+            // worker could still be reading the bitmap.
+        }
     }
 
     private fun releaseBitmaps(bitmaps: Iterable<Bitmap?>, keep: Set<Bitmap> = emptySet()) {
