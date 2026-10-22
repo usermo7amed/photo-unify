@@ -16,16 +16,31 @@ val bundledLicenseFile = layout.projectDirectory.file("fairscan/FAIRSCAN-LICENSE
 
 val cairoResourcesDir = layout.buildDirectory.dir("generated/cairoRes")
 val cairoFontFile = cairoResourcesDir.map { it.file("font/cairo.ttf") }
+val cairoFontSha256 = "667c987182391c91f4e57a2f455b1794fb5e3ee6ca4ef3383e86bb690fa9c964"
 
 val prepareCairoFont by tasks.registering {
     val output = cairoFontFile.get().asFile
     outputs.file(output)
     doLast {
-        if (output.isFile && output.length() > 100_000L) return@doLast
+        fun sha256(file: File): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    digest.update(buffer, 0, count)
+                }
+            }
+            return digest.digest().joinToString("") { "%02x".format(it) }
+        }
+
+        if (output.isFile && sha256(output) == cairoFontSha256) return@doLast
+
         output.parentFile.mkdirs()
         val temporary = File(output.parentFile, "cairo.ttf.download")
         try {
-            URL("https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf")
+            URL("https://raw.githubusercontent.com/google/fonts/d2528f6d1f43e7d9d0d2e1794afe2ad6fd7d56ba/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf")
                 .openConnection()
                 .apply {
                     connectTimeout = 30_000
@@ -35,6 +50,12 @@ val prepareCairoFont by tasks.registering {
                 .getInputStream().use { input ->
                     temporary.outputStream().use { destination -> input.copyTo(destination) }
                 }
+
+            val actualSha256 = sha256(temporary)
+            check(actualSha256 == cairoFontSha256) {
+                "Cairo font SHA-256 mismatch: expected $cairoFontSha256, got $actualSha256"
+            }
+
             val signature = temporary.inputStream().use { input ->
                 ByteArray(4).also { bytes ->
                     check(input.read(bytes) == 4) { "Downloaded Cairo font is incomplete" }
@@ -47,14 +68,13 @@ val prepareCairoFont by tasks.registering {
             ) {
                 "Downloaded Cairo font is not a valid OpenType font"
             }
-            if (output.exists()) output.delete()
-            check(temporary.renameTo(output)) { "Could not install Cairo font" }
+            if (output.exists()) check(output.delete()) { "Could not replace invalid Cairo font" }
+            check(temporary.renameTo(output)) { "Could not install verified Cairo font" }
         } finally {
             temporary.delete()
         }
     }
 }
-
 val prepareFairScanModel by tasks.registering {
     // Re-check the cached file's digest every build; download only if absent or invalid.
     outputs.files(fairScanModelFile, fairScanLicenseFile)
