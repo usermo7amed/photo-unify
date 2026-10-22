@@ -427,4 +427,149 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun switchingSelectionRecyclesSupersededPreviewAndThumbnailBitmaps() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val firstFile = File(app.cacheDir, "bitmap-selection-first-${System.nanoTime()}.png")
+        val secondFile = File(app.cacheDir, "bitmap-selection-second-${System.nanoTime()}.png")
+
+        fun writeImage(file: File, color: Int) {
+            val bitmap = Bitmap.createBitmap(240, 180, Bitmap.Config.ARGB_8888)
+            try {
+                bitmap.eraseColor(color)
+                FileOutputStream(file).use { output ->
+                    assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
+                }
+            } finally {
+                if (!bitmap.isRecycled) bitmap.recycle()
+            }
+        }
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for bitmap lifecycle state: $description")
+        }
+
+        try {
+            writeImage(firstFile, Color.rgb(232, 229, 220))
+            writeImage(secondFile, Color.rgb(220, 229, 235))
+            val firstUri = Uri.fromFile(firstFile)
+            val secondUri = Uri.fromFile(secondFile)
+
+            viewModel.selectImages(listOf(firstUri))
+            awaitState("first selection preview and thumbnail") {
+                it.selected == listOf(firstUri) &&
+                    it.sourcePreview != null &&
+                    it.selectionThumbnails.any { thumbnail -> thumbnail.uri == firstUri }
+            }
+            viewModel.setBrightness(8)
+            val previousState = awaitState("first result preview") {
+                it.selected == listOf(firstUri) && it.sourcePreview != null && it.resultPreview != null
+            }
+            val oldBitmaps = (
+                listOf(previousState.sourcePreview, previousState.enhancedPreview, previousState.resultPreview) +
+                    previousState.selectionThumbnails.map { it.bitmap }
+                ).filterNotNull().distinct()
+            assertTrue("The first selection must produce bitmaps to retire", oldBitmaps.isNotEmpty())
+
+            viewModel.selectImages(listOf(secondUri))
+            awaitState("second selection and release of old bitmaps") {
+                it.selected == listOf(secondUri) &&
+                    it.sourcePreview != null &&
+                    oldBitmaps.all { bitmap -> bitmap.isRecycled }
+            }
+            assertTrue(
+                "All prior selection thumbnails must be recycled when the selection changes",
+                previousState.selectionThumbnails.all { it.bitmap.isRecycled }
+            )
+        } finally {
+            viewModelStore.clear()
+            firstFile.delete()
+            secondFile.delete()
+        }
+    }
+
+    @Test
+    fun cancelCropReleasesCropAndPreviewBitmapsAfterQueuedWorkFinishes() {
+        assertTrue("OpenCV native library must load for crop lifecycle tests", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "bitmap-cancel-crop-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(240, 180, Bitmap.Config.ARGB_8888)
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for crop cancellation state: $description")
+        }
+
+        try {
+            source.eraseColor(Color.rgb(230, 230, 225))
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+            viewModel.selectImages(listOf(Uri.fromFile(sourceFile)))
+            awaitState("source preview before crop") { it.sourcePreview != null }
+            viewModel.openCropEditor(openCvReady = true)
+            val cropState = awaitState("crop editor bitmaps") {
+                it.cropOpen && !it.cropApplying &&
+                    it.cropSource != null && it.cropPreview != null
+            }
+            val retired = (
+                listOf(
+                    cropState.sourcePreview,
+                    cropState.enhancedPreview,
+                    cropState.resultPreview,
+                    cropState.cropSource,
+                    cropState.cropPreviewSource,
+                    cropState.cropPreview
+                )
+                ).filterNotNull().distinct()
+            assertTrue("Crop cancellation test needs active crop bitmaps", retired.any { it === cropState.cropSource })
+
+            viewModel.cancelCrop()
+            awaitState("crop cancellation and safe bitmap release") {
+                !it.cropOpen &&
+                    it.cropSource == null &&
+                    it.cropPreviewSource == null &&
+                    it.cropPreview == null &&
+                    it.sourcePreview != null &&
+                    retired.all { bitmap -> bitmap.isRecycled }
+            }
+            assertTrue("Cancel must recycle the full-resolution crop source", cropState.cropSource!!.isRecycled)
+        } finally {
+            viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
