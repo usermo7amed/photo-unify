@@ -1,7 +1,10 @@
 package com.photounifier
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,6 +18,94 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
  */
 @RunWith(AndroidJUnit4::class)
 class DocumentCropInstrumentedTest {
+
+    @Test
+    fun detectFindsSkewedDocumentAndItsCornersProduceACroppedBitmap() {
+        assertTrue("OpenCV native library must load for automatic detection", OpenCVLoader.initLocal())
+
+        val sourceWidth = 320
+        val sourceHeight = 260
+        val source = Bitmap.createBitmap(sourceWidth, sourceHeight, Bitmap.Config.ARGB_8888)
+        try {
+            val paperColor = Color.rgb(245, 245, 235)
+            Canvas(source).apply {
+                drawColor(Color.rgb(48, 50, 54))
+                val paper = Path().apply {
+                    moveTo(55f, 30f)
+                    lineTo(270f, 45f)
+                    lineTo(250f, 225f)
+                    lineTo(35f, 210f)
+                    close()
+                }
+                drawPath(
+                    paper,
+                    Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = paperColor
+                        style = Paint.Style.FILL
+                    }
+                )
+            }
+
+            // Null context deliberately exercises the OpenCV fallback without
+            // making this geometry regression depend on neural-model inference.
+            val detected = DocumentCrop.detect(source)
+                ?: throw AssertionError("A high-contrast skewed document should be detected")
+            assertEquals("Detection must return exactly four crop corners", 4, detected.size)
+            assertTrue(
+                "Detected crop corners must form a valid quadrilateral",
+                DocumentCrop.isValid(detected, sourceWidth, sourceHeight)
+            )
+
+            val expectedCorners = listOf(
+                CropPoint(55f, 30f),
+                CropPoint(270f, 45f),
+                CropPoint(250f, 225f),
+                CropPoint(35f, 210f)
+            )
+            detected.forEachIndexed { index, point ->
+                val expected = expectedCorners[index]
+                val dx = point.x - expected.x
+                val dy = point.y - expected.y
+                assertTrue(
+                    "Corner $index was too far from the rendered document boundary: $point",
+                    dx * dx + dy * dy <= 18f * 18f
+                )
+            }
+
+            val cropped = DocumentCrop.warp(source, detected)
+            try {
+                assertTrue("Detected crop should be narrower than the source", cropped.width < source.width)
+                assertTrue("Detected crop should be shorter than the source", cropped.height < source.height)
+                assertEquals(
+                    "The warped center should contain document pixels, not background",
+                    paperColor,
+                    cropped.getPixel(cropped.width / 2, cropped.height / 2)
+                )
+            } finally {
+                if (!cropped.isRecycled) cropped.recycle()
+            }
+        } finally {
+            if (!source.isRecycled) source.recycle()
+        }
+    }
+
+    @Test
+    fun detectReturnsNullForFeaturelessImageInsteadOfInventingCropCorners() {
+        assertTrue("OpenCV native library must load for automatic detection", OpenCVLoader.initLocal())
+
+        val source = Bitmap.createBitmap(320, 260, Bitmap.Config.ARGB_8888)
+        try {
+            source.eraseColor(Color.rgb(128, 128, 128))
+            assertEquals(
+                "A featureless image must fall back to manual cropping",
+                null,
+                DocumentCrop.detect(source)
+            )
+        } finally {
+            if (!source.isRecycled) source.recycle()
+        }
+    }
+
 
 
     @Test
