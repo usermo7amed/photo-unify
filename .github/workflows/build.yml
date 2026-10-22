@@ -22,6 +22,9 @@ jobs:
         with:
           gradle-version: "8.7"
 
+      - name: Run Android lint
+        run: gradle lintDebug --no-daemon --stacktrace
+
       - name: Run unit tests and build debug APK
         run: gradle testDebugUnitTest assembleDebug --no-daemon --stacktrace
 
