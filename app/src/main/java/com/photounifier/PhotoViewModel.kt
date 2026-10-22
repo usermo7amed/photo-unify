@@ -918,19 +918,34 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 getApplication<Application>().applicationContext, uris, brightness, contrast,
                 object : PhotoRepository.Observer {
                     override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
-                        update { it.copy(
-                            status = appContext.getString(R.string.status_analyzing_image, index, total),
-                            previewIndex = index - 1,
-                            sourcePreview = bitmap,
-                            enhancedPreview = null,
-                            resultPreview = null
-                        ) }
+                        var replaced: List<Bitmap?> = emptyList()
+                        val retained = update { old ->
+                            replaced = listOf(old.sourcePreview, old.enhancedPreview, old.resultPreview)
+                            old.copy(
+                                status = appContext.getString(R.string.status_analyzing_image, index, total),
+                                previewIndex = index - 1,
+                                sourcePreview = bitmap,
+                                enhancedPreview = null,
+                                resultPreview = null
+                            )
+                        }
+                        if (retained) releaseBitmapsAfterQueuedWork(previewExecutor, replaced)
+                        else releaseBitmaps(listOf(bitmap))
                     }
                     override fun onClassification(index: Int, total: Int, kind: ImageKind) {
                         update { it.copy(status = appContext.getString(R.string.status_processing_image, index, total, getApplication<Application>().getString(kind.labelRes))) }
                     }
                     override fun onEnhanced(bitmap: Bitmap) {
-                        update { it.copy(enhancedPreview = bitmap) }
+                        var replaced: List<Bitmap?> = emptyList()
+                        val retained = update { old ->
+                            replaced = listOf(old.enhancedPreview, old.resultPreview)
+                            old.copy(enhancedPreview = bitmap, resultPreview = null)
+                        }
+                        if (!retained) {
+                            releaseBitmaps(listOf(bitmap))
+                            return
+                        }
+                        releaseBitmapsAfterQueuedWork(previewExecutor, replaced)
                         refreshPreview()
                     }
                     override fun onSaved(index: Int, bitmap: Bitmap, file: File) {
@@ -940,16 +955,24 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                             file = file,
                             displayName = file.name
                         )
-                        update {
-                            it.copy(
+                        var replacedResult: Bitmap? = null
+                        val retained = update { old ->
+                            replacedResult = old.resultPreview
+                            old.copy(
                                 progress = index,
-                                savedCount = it.savedCount + 1,
+                                savedCount = old.savedCount + 1,
                                 resultPreview = bitmap,
-                                processedImages = it.processedImages + item,
-                                selectedExportIds = it.selectedExportIds + item.id,
-                                status = appContext.getString(R.string.status_image_ready_export, it.savedCount + 1, uris.size)
+                                processedImages = old.processedImages + item,
+                                selectedExportIds = old.selectedExportIds + item.id,
+                                status = appContext.getString(R.string.status_image_ready_export, old.savedCount + 1, uris.size)
                             )
                         }
+                        if (!retained) {
+                            releaseBitmaps(listOf(bitmap))
+                            runCatching { file.delete() }
+                            return
+                        }
+                        releaseBitmapsAfterQueuedWork(previewExecutor, listOf(replacedResult))
                         // Reapply the latest manual settings after the saved-result event.
                         refreshPreview()
                     }
