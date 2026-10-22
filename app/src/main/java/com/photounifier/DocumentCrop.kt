@@ -298,8 +298,8 @@ object DocumentCrop {
         for (index in points.indices) {
             val a = points[index]
             val b = points[(index + 1) % points.size]
-            val dx = a.x.toDouble() - b.x.toDouble()
-            val dy = a.y.toDouble() - b.y.toDouble()
+            val dx = (a.x - b.x).toDouble()
+            val dy = (a.y - b.y).toDouble()
             if (sqrt(dx * dx + dy * dy) < minimumSide) return false
         }
 
@@ -385,8 +385,8 @@ object DocumentCrop {
         require(maxOutputSide == null || maxOutputSide > 1) { "Invalid crop preview size" }
 
         fun distance(a: CropPoint, b: CropPoint): Double {
-            val dx = (a.x - b.x).toDouble()
-            val dy = (a.y - b.y).toDouble()
+            val dx = a.x.toDouble() - b.x.toDouble()
+            val dy = a.y.toDouble() - b.y.toDouble()
             return sqrt(dx * dx + dy * dy)
         }
 
