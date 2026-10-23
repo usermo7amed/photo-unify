@@ -45,6 +45,36 @@ class ExportStreamCleanupTest {
         }
     }
 
+    @Test
+    fun observerFailureIsReportedWithoutEscapingIntoExportFlow() {
+        val expected = IllegalStateException("UI observer failed")
+        var reported: Exception? = null
+        var continued = false
+
+        safelyNotifyExportObserver(
+            callback = { throw expected },
+            onFailure = { reported = it }
+        )
+        continued = true
+
+        assertTrue("Export flow should continue after an observer failure", continued)
+        assertTrue("The original observer exception should be reported", reported === expected)
+    }
+
+    @Test
+    fun successfulObserverCallbackDoesNotReportFailure() {
+        var reported = false
+        var invoked = false
+
+        safelyNotifyExportObserver(
+            callback = { invoked = true },
+            onFailure = { reported = true }
+        )
+
+        assertTrue("Observer callback should run", invoked)
+        assertFalse("Successful observer callbacks should not report errors", reported)
+    }
+
     private class TrackingOutputStream : ByteArrayOutputStream() {
         var wasClosed = false
             private set
