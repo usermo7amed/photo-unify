@@ -1235,7 +1235,7 @@ class DocumentCropInstrumentedTest {
 
         try {
             repeat(2) { index ->
-                val inputFile = File(context.cacheDir, "bitmap-release-input-\${System.nanoTime()}-$index.png")
+                val inputFile = File(context.cacheDir, "bitmap-release-input-${System.nanoTime()}-$index.png")
                 val source = Bitmap.createBitmap(240, 180, Bitmap.Config.ARGB_8888)
                 try {
                     source.eraseColor(Color.rgb(210 - index * 35, 220 - index * 25, 230 - index * 30))
@@ -1294,7 +1294,7 @@ class DocumentCropInstrumentedTest {
 
             assertEquals("Both images must finish successfully. Errors: $errors; last error: $finishedError", 2, finishedSuccess)
             assertEquals("No image in the batch should fail. Errors: $errors", 0, finishedFailed)
-            assertEquals(null, finishedError)
+            assertTrue("No batch-level error is expected", finishedError == null)
             assertEquals("Each image should publish source, enhanced and saved previews", 6, previews.size)
             assertEquals("Each image should produce one retained temporary output", 2, outputFiles.size)
 
