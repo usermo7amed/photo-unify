@@ -664,4 +664,104 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun clearingViewModelDefersOutputDeletionUntilExportExecutorDrains() {
+        assertTrue("OpenCV native library must load for export cleanup tests", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "export-cleanup-source-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(300, 240, Bitmap.Config.ARGB_8888)
+        val uri = Uri.fromFile(sourceFile)
+        var storeCleared = false
+        val releaseExportQueue = java.util.concurrent.CountDownLatch(1)
+        val exportTaskStarted = java.util.concurrent.CountDownLatch(1)
+        val fileExistedBeforeQueueDrained = java.util.concurrent.atomic.AtomicBoolean(false)
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for export cleanup state: $description")
+        }
+
+        try {
+            val pixels = IntArray(source.width * source.height) { Color.RED }
+            for (y in 10 until source.height - 10) {
+                for (x in 10 until source.width - 10) {
+                    pixels[y * source.width + x] = Color.GREEN
+                }
+            }
+            source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            viewModel.selectImages(listOf(uri))
+            awaitState("selected image preview") {
+                it.selected == listOf(uri) && it.sourcePreview != null
+            }
+
+            viewModel.process(openCvReady = true)
+            val processed = awaitState("completed processing output") {
+                !it.busy && it.processedImages.isNotEmpty()
+            }
+            val outputFile = processed.processedImages.first().file
+            assertTrue("The processed output must exist before teardown", outputFile.exists())
+
+            // Occupy the same serial executor used by exports. The cleanup task
+            // must queue behind this gate rather than deleting output synchronously.
+            val executorField = PhotoViewModel::class.java.getDeclaredField("exportExecutor")
+            executorField.isAccessible = true
+            val exportExecutor = executorField.get(viewModel) as java.util.concurrent.ExecutorService
+            exportExecutor.execute {
+                exportTaskStarted.countDown()
+                releaseExportQueue.await(15, java.util.concurrent.TimeUnit.SECONDS)
+                fileExistedBeforeQueueDrained.set(outputFile.exists())
+            }
+            assertTrue(
+                "The export executor blocker must start before clearing the ViewModel",
+                exportTaskStarted.await(5, java.util.concurrent.TimeUnit.SECONDS)
+            )
+
+            viewModelStore.clear()
+            storeCleared = true
+            assertTrue(
+                "ViewModel teardown must not delete a processed file while export work is still active",
+                outputFile.exists()
+            )
+
+            releaseExportQueue.countDown()
+            val deleteDeadline = SystemClock.uptimeMillis() + 15_000
+            while (SystemClock.uptimeMillis() < deleteDeadline && outputFile.exists()) {
+                SystemClock.sleep(50)
+            }
+            assertTrue(
+                "The file should remain readable until the export queue reaches cleanup",
+                fileExistedBeforeQueueDrained.get()
+            )
+            assertTrue(
+                "The queued cleanup should eventually delete the processed temporary file",
+                !outputFile.exists()
+            )
+        } finally {
+            releaseExportQueue.countDown()
+            if (!storeCleared) viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
