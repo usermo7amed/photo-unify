@@ -18,6 +18,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Android SDK command-line tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+          accept-android-sdk-licenses: 'yes'
+          log-accepted-android-sdk-licenses: 'false'
+
       - uses: gradle/actions/wrapper-validation@v4
 
       - uses: gradle/actions/setup-gradle@v4
@@ -40,13 +47,14 @@ jobs:
       - name: Install Android 34 emulator image with retries
         shell: bash
         run: |
-          # Do not use pipefail here: 'yes' may be closed by sdkmanager after all
-          # licenses are accepted, while sdkmanager itself can still succeed.
           set -eu
           sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           image_package="system-images;android-34;google_apis;x86_64"
 
-          yes | sdkmanager --licenses > /dev/null
+          # android-actions/setup-android installs command-line tools, configures PATH,
+          # and accepts the SDK licenses before this step runs.
+          command -v sdkmanager
+          sdkmanager --version
 
           for attempt in 1 2 3; do
             echo "Installing ${image_package} (attempt ${attempt}/3)"
