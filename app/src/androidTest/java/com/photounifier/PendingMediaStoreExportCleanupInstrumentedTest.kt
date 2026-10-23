@@ -184,10 +184,13 @@ class PendingMediaStoreExportCleanupInstrumentedTest {
         val resolver = context.contentResolver
         val projection = arrayOf(
             MediaStore.MediaColumns._ID,
-            MediaStore.MediaColumns.DISPLAY_NAME
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.RELATIVE_PATH
         )
-        val selection = "${MediaStore.MediaColumns.IS_PENDING} = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
-        val selectionArgs = arrayOf("1", relativePath)
+        // Match the folder prefix in SQL, then compare normalized paths below because
+        // MediaStore providers may normalize RELATIVE_PATH with a trailing slash.
+        val selection = "${MediaStore.MediaColumns.IS_PENDING} = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?"
+        val selectionArgs = arrayOf("1", relativePath + "%")
         val cursor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val queryArgs = Bundle().apply {
                 putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE)
@@ -204,7 +207,10 @@ class PendingMediaStoreExportCleanupInstrumentedTest {
         return cursor.use { rows ->
             buildSet {
                 while (rows.moveToNext()) {
-                    add("${rows.getLong(0)}|${rows.getString(1)}")
+                    val path = rows.getString(2)?.trimEnd('/') ?: continue
+                    if (path == relativePath) {
+                        add("${rows.getLong(0)}|${rows.getString(1)}")
+                    }
                 }
             }
         }
