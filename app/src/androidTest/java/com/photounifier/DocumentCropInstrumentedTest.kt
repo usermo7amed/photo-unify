@@ -932,4 +932,107 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun processingIsIgnoredWhileExportIsReadingExistingOutputs() {
+        assertTrue("OpenCV native library must load for export/processing lifecycle tests", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "process-during-export-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(300, 240, Bitmap.Config.ARGB_8888)
+        val releaseExportQueue = java.util.concurrent.CountDownLatch(1)
+        val exportTaskStarted = java.util.concurrent.CountDownLatch(1)
+        var storeCleared = false
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for export/process state: $description")
+        }
+
+        try {
+            val pixels = IntArray(source.width * source.height) { Color.RED }
+            for (y in 10 until source.height - 10) {
+                for (x in 10 until source.width - 10) {
+                    pixels[y * source.width + x] = Color.GREEN
+                }
+            }
+            source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            val uri = Uri.fromFile(sourceFile)
+            viewModel.selectImages(listOf(uri))
+            awaitState("source preview") { it.selected == listOf(uri) && it.sourcePreview != null }
+
+            viewModel.process(openCvReady = true)
+            val processed = awaitState("first processing result") {
+                !it.busy && it.processedImages.isNotEmpty() && it.selectedExportIds.isNotEmpty()
+            }
+            val output = processed.processedImages.first()
+            assertTrue("Processed temporary output must exist before export", output.file.exists())
+
+            // Hold the export executor at a deterministic queue barrier so the
+            // test can call process() while exportBusy is definitely true.
+            val executorField = PhotoViewModel::class.java.getDeclaredField("exportExecutor")
+            executorField.isAccessible = true
+            val exportExecutor = executorField.get(viewModel) as java.util.concurrent.ExecutorService
+            exportExecutor.execute {
+                exportTaskStarted.countDown()
+                releaseExportQueue.await()
+            }
+            assertTrue(
+                "Export executor barrier should start before beginning export",
+                exportTaskStarted.await(5, java.util.concurrent.TimeUnit.SECONDS)
+            )
+
+            viewModel.exportSelected(ExportFormat.IMAGES)
+            awaitState("export is queued and owns the current result list") {
+                it.exportBusy && !it.busy &&
+                    it.processedImages.any { image -> image.id == output.id }
+            }
+
+            // This used to delete the output and clear exportBusy while the export
+            // task was pending, leaving the exporter with a missing input file.
+            viewModel.process(openCvReady = true)
+            awaitState("reprocessing ignored during export", timeoutMillis = 5_000) {
+                it.exportBusy && !it.busy &&
+                    it.processedImages.any { image -> image.id == output.id } &&
+                    output.file.exists()
+            }
+
+            assertTrue(
+                "Processing must preserve the currently exported temporary file",
+                output.file.exists()
+            )
+        } finally {
+            releaseExportQueue.countDown()
+            if (!storeCleared) {
+                // Wait for an accepted export to settle before destroying its owner.
+                val deadline = SystemClock.uptimeMillis() + 10_000
+                while (SystemClock.uptimeMillis() < deadline && viewModel.state.value?.exportBusy == true) {
+                    SystemClock.sleep(50)
+                }
+                viewModelStore.clear()
+                storeCleared = true
+            }
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
