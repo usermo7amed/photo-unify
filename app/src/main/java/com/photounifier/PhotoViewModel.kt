@@ -237,17 +237,19 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
 
         imagePreviewExecutor.execute {
             if (generation != imagePreviewGeneration.get()) return@execute
+            var previewInFlight: Bitmap? = null
             try {
                 var preview = Processor.loadPreview(
                     getApplication<Application>().applicationContext,
                     uri
-                )
+                ).also { previewInFlight = it }
                 val savedEdit = snapshot.cropEdits[uri]
                 if (savedEdit != null) {
                     val rotated = rotatePageBitmap(preview, savedEdit.rotationDegrees)
                     if (rotated !== preview) {
                         preview.recycle()
                         preview = rotated
+                        previewInFlight = rotated
                     }
                     savedEdit.normalizedCorners?.let { normalized ->
                         val cropped = DocumentCrop.warp(
@@ -257,6 +259,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         )
                         if (cropped !== preview) preview.recycle()
                         preview = cropped
+                        previewInFlight = cropped
                     }
                 }
 
@@ -277,21 +280,59 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 }
-                if (!retained || stalePreview) releaseBitmaps(listOf(preview))
+                if (!retained || stalePreview) {
+                    releaseBitmaps(listOf(preview))
+                    previewInFlight = null
+                }
                 if (retained && !stalePreview && generation == imagePreviewGeneration.get() &&
                     currentState.sourcePreview === preview
                 ) {
                     generateEnhancedPreview(preview, generation)
                 }
+                // The bitmap is now owned by PhotoUiState (or has already been released).
+                previewInFlight = null
             } catch (error: Exception) {
+                val failedPreview = previewInFlight
+                var detachedPreview = false
                 update { old ->
                     if (generation != imagePreviewGeneration.get() || old.previewIndex != index) old
-                    else old.copy(
-                        sourcePreview = null,
-                        enhancedPreview = null,
-                        resultPreview = null,
-                        status = appContext.getString(R.string.status_image_preview_failed, index + 1, error.message ?: appContext.getString(R.string.error_generic))
-                    )
+                    else {
+                        detachedPreview = failedPreview != null && old.sourcePreview === failedPreview
+                        old.copy(
+                            sourcePreview = null,
+                            enhancedPreview = null,
+                            resultPreview = null,
+                            status = appContext.getString(R.string.status_image_preview_failed, index + 1, error.message ?: appContext.getString(R.string.error_generic))
+                        )
+                    }
+                }
+
+                failedPreview?.let { bitmap ->
+                    when {
+                        detachedPreview -> {
+                            // The enhancement worker may already be reading this bitmap.
+                            releaseBitmapsAfterQueuedWork(previewExecutor, listOf(bitmap))
+                            previewInFlight = null
+                        }
+                        currentState.sourcePreview !== bitmap &&
+                            currentState.enhancedPreview !== bitmap &&
+                            currentState.resultPreview !== bitmap -> {
+                            releaseBitmaps(listOf(bitmap))
+                            previewInFlight = null
+                        }
+                        // If the state still owns this bitmap, leave cleanup to that owner.
+                    }
+                }
+            } finally {
+                // Covers non-Exception failures (including allocation errors) during decode,
+                // rotation, or perspective warp without recycling a bitmap retained by UI state.
+                previewInFlight?.let { bitmap ->
+                    if (currentState.sourcePreview !== bitmap &&
+                        currentState.enhancedPreview !== bitmap &&
+                        currentState.resultPreview !== bitmap
+                    ) {
+                        releaseBitmaps(listOf(bitmap))
+                    }
                 }
             }
         }
