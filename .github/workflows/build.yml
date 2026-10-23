@@ -18,6 +18,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Android SDK command-line tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+
       - uses: gradle/actions/wrapper-validation@v4
 
       - uses: gradle/actions/setup-gradle@v4
@@ -30,12 +37,45 @@ jobs:
 
       - name: Enable KVM for Android emulator
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=0666"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           sudo chmod 0666 /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
           ls -l /dev/kvm
+
+      - name: Install Android 34 emulator image with retries
+        shell: bash
+        run: |
+          set -eu
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          image_package="system-images;android-34;google_apis;x86_64"
+
+          # android-actions/setup-android installs command-line tools, configures PATH,
+          # and accepts the SDK licenses before this step runs.
+          command -v sdkmanager
+          sdkmanager --version
+
+          for attempt in 1 2 3; do
+            echo "Installing ${image_package} (attempt ${attempt}/3)"
+            if sdkmanager --install "${image_package}" --channel=0 && \
+              test -f "${sdk_root}/system-images/android-34/google_apis/x86_64/package.xml"; then
+              echo "Android emulator system image is installed."
+              exit 0
+            fi
+
+            echo "::warning::Android system image installation failed on attempt ${attempt}."
+            # Remove any partially extracted package or damaged download before retrying.
+            rm -rf "${sdk_root}/system-images/android-34/google_apis/x86_64"
+            rm -rf "${sdk_root}/.temp"
+
+            if [[ "${attempt}" -lt 3 ]]; then
+              sleep $((attempt * 10))
+            fi
+          done
+
+          echo "::error::Could not install the Android 34 emulator image after 3 attempts."
+          exit 1
 
       - name: Run document crop instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
