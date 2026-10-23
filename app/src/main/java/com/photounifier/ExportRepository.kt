@@ -99,9 +99,8 @@ class ExportRepository {
 
             items.forEachIndexed { index, item ->
                 check(item.file.isFile) { context.getString(R.string.error_temp_image_missing_for_item, item.displayName) }
-                val bitmap = item.file.inputStream().use { input ->
-                    BitmapFactory.decodeStream(input)
-                } ?: throw IllegalStateException(context.getString(R.string.error_read_image_for_export, item.displayName))
+                val bitmap = decodePdfExportBitmap(item.file)
+                    ?: throw IllegalStateException(context.getString(R.string.error_read_image_for_export, item.displayName))
                 try {
                     val landscape = bitmap.width > bitmap.height
                     val pageWidth = if (landscape) PAGE_LONG_SIDE else PAGE_SHORT_SIDE
