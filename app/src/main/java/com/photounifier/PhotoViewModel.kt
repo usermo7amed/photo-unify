@@ -81,6 +81,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private var previewRefreshScheduled = false
     // Guarded by this ViewModel's monitor; rapid corner moves share one worker.
     private var cropPreviewRefreshScheduled = false
+    private var cropPreviewRefreshOperationGeneration: Int? = null
+    private var cropPreviewRefreshRequested = false
     private val initialUiState = PhotoUiState(
         status = appContext.getString(R.string.status_ready_select),
         exportStatus = appContext.getString(R.string.status_ready_export)
@@ -677,17 +679,30 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     /** Must be called while holding this ViewModel's monitor. */
     private fun scheduleCropPreviewRefreshLocked() {
         val snapshot = currentState
-        if (cleared || cropPreviewRefreshScheduled || !snapshot.cropOpen ||
-            snapshot.cropApplying || snapshot.busy || snapshot.cropSource == null ||
-            snapshot.cropSource.isRecycled || snapshot.cropCorners.size != 4
+        if (cleared || !snapshot.cropOpen || snapshot.cropApplying || snapshot.busy ||
+            snapshot.cropSource == null || snapshot.cropSource.isRecycled ||
+            snapshot.cropCorners.size != 4
         ) return
 
         val operationGeneration = cropGeneration.get()
+        if (cropPreviewRefreshScheduled) {
+            // A non-drag crop operation invalidated the active worker. Remember
+            // a newer drag request so it can be scheduled when that worker exits.
+            if (cropPreviewRefreshOperationGeneration != operationGeneration) {
+                cropPreviewRefreshRequested = true
+            }
+            return
+        }
+
         cropPreviewRefreshScheduled = true
+        cropPreviewRefreshOperationGeneration = operationGeneration
+        cropPreviewRefreshRequested = false
         try {
             executor.execute { refreshLatestCropPreview(operationGeneration) }
         } catch (_: java.util.concurrent.RejectedExecutionException) {
             cropPreviewRefreshScheduled = false
+            cropPreviewRefreshOperationGeneration = null
+            cropPreviewRefreshRequested = false
         }
     }
 
@@ -762,13 +777,16 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             }
         } finally {
             synchronized(this) {
+                val shouldReschedule = cropPreviewRefreshRequested ||
+                    (!cleared && operationGeneration == cropGeneration.get() &&
+                        currentState.cropOpen && !currentState.cropApplying && !currentState.busy &&
+                        currentState.cropSource?.isRecycled == false &&
+                        currentState.cropCorners.size == 4 &&
+                        cropPreviewGeneration.get() != lastProcessedPreviewGeneration)
                 cropPreviewRefreshScheduled = false
-                if (!cleared && operationGeneration == cropGeneration.get() &&
-                    currentState.cropOpen && !currentState.cropApplying && !currentState.busy &&
-                    currentState.cropSource?.isRecycled == false &&
-                    currentState.cropCorners.size == 4 &&
-                    cropPreviewGeneration.get() != lastProcessedPreviewGeneration
-                ) {
+                cropPreviewRefreshOperationGeneration = null
+                cropPreviewRefreshRequested = false
+                if (!cleared && shouldReschedule) {
                     scheduleCropPreviewRefreshLocked()
                 }
             }
