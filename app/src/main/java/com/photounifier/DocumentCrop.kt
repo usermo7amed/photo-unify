@@ -422,36 +422,72 @@ object DocumentCrop {
             min(1.0, maxOutputSide.toDouble() / max(bitmap.width, bitmap.height).toDouble())
         val workingWidth = (bitmap.width * previewScale).roundToInt().coerceAtLeast(2)
         val workingHeight = (bitmap.height * previewScale).roundToInt().coerceAtLeast(2)
-        val workingBitmap = if (workingWidth == bitmap.width && workingHeight == bitmap.height) {
-            bitmap
-        } else {
-            Bitmap.createScaledBitmap(bitmap, workingWidth, workingHeight, true)
-        }
-        val workingPoints = if (workingBitmap === bitmap) points else {
-            val scaleX = (workingWidth - 1).toFloat() / (bitmap.width - 1).coerceAtLeast(1)
-            val scaleY = (workingHeight - 1).toFloat() / (bitmap.height - 1).coerceAtLeast(1)
-            points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
-        }
-        val ordered = order(workingPoints.map { Point(it.x.toDouble(), it.y.toDouble()) }.toTypedArray())
-        val (outWidth, outHeight) = calculateWarpOutputSize(
-            ordered.map { CropPoint(it.x.toFloat(), it.y.toFloat()) },
-            maxOutputSide
-        )
-        val source = MatOfPoint2f(*ordered)
-        val target = MatOfPoint2f(
-            Point(0.0, 0.0), Point((outWidth - 1).toDouble(), 0.0),
-            Point((outWidth - 1).toDouble(), (outHeight - 1).toDouble()),
-            Point(0.0, (outHeight - 1).toDouble())
-        )
-        val transform = Imgproc.getPerspectiveTransform(source, target, Core.DECOMP_LU)
-        val rgba = Mat()
-        val output = Mat()
+
+        // Native allocations and the temporary scaled bitmap are owned by this
+        // scope from the moment they are created. If any later OpenCV call fails,
+        // the finally block still releases everything that was successfully made.
+        var workingBitmap: Bitmap = bitmap
+        var resultBitmap: Bitmap? = null
+        var source: MatOfPoint2f? = null
+        var target: MatOfPoint2f? = null
+        var transform: Mat? = null
+        var rgba: Mat? = null
+        var output: Mat? = null
         try {
-            Utils.bitmapToMat(workingBitmap, rgba)
-            Imgproc.warpPerspective(rgba, output, transform, Size(outWidth.toDouble(), outHeight.toDouble()), Imgproc.INTER_CUBIC)
-            return Bitmap.createBitmap(outWidth, outHeight, Bitmap.Config.ARGB_8888).also { Utils.matToBitmap(output, it) }
+            workingBitmap = if (workingWidth == bitmap.width && workingHeight == bitmap.height) {
+                bitmap
+            } else {
+                Bitmap.createScaledBitmap(bitmap, workingWidth, workingHeight, true)
+            }
+
+            val workingPoints = if (workingBitmap === bitmap) points else {
+                val scaleX = (workingWidth - 1).toFloat() / (bitmap.width - 1).coerceAtLeast(1)
+                val scaleY = (workingHeight - 1).toFloat() / (bitmap.height - 1).coerceAtLeast(1)
+                points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
+            }
+            val ordered = order(workingPoints.map {
+                Point(it.x.toDouble(), it.y.toDouble())
+            }.toTypedArray())
+            val (outWidth, outHeight) = calculateWarpOutputSize(
+                ordered.map { CropPoint(it.x.toFloat(), it.y.toFloat()) },
+                maxOutputSide
+            )
+
+            val sourceMat = MatOfPoint2f(*ordered).also { source = it }
+            val targetMat = MatOfPoint2f(
+                Point(0.0, 0.0), Point((outWidth - 1).toDouble(), 0.0),
+                Point((outWidth - 1).toDouble(), (outHeight - 1).toDouble()),
+                Point(0.0, (outHeight - 1).toDouble())
+            ).also { target = it }
+            val transformMat = Imgproc.getPerspectiveTransform(
+                sourceMat,
+                targetMat,
+                Core.DECOMP_LU
+            ).also { transform = it }
+            val rgbaMat = Mat().also { rgba = it }
+            val outputMat = Mat().also { output = it }
+
+            Utils.bitmapToMat(workingBitmap, rgbaMat)
+            Imgproc.warpPerspective(
+                rgbaMat,
+                outputMat,
+                transformMat,
+                Size(outWidth.toDouble(), outHeight.toDouble()),
+                Imgproc.INTER_CUBIC
+            )
+
+            val result = Bitmap.createBitmap(outWidth, outHeight, Bitmap.Config.ARGB_8888)
+            resultBitmap = result
+            Utils.matToBitmap(outputMat, result)
+            resultBitmap = null
+            return result
         } finally {
-            source.release(); target.release(); transform.release(); rgba.release(); output.release()
+            resultBitmap?.let { if (!it.isRecycled) it.recycle() }
+            source?.release()
+            target?.release()
+            transform?.release()
+            rgba?.release()
+            output?.release()
             if (workingBitmap !== bitmap && !workingBitmap.isRecycled) workingBitmap.recycle()
         }
     }
