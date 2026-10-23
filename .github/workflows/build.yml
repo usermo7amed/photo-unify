@@ -22,8 +22,8 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: ''
-          accept-android-sdk-licenses: 'yes'
-          log-accepted-android-sdk-licenses: 'false'
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
 
       - uses: gradle/actions/wrapper-validation@v4
 
