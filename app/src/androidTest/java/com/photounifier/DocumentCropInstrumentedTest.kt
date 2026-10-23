@@ -1218,4 +1218,107 @@ class DocumentCropInstrumentedTest {
         }
     }
 
+
+
+    @Test
+    fun processingMultipleImagesKeepsOutputsValidAfterIntermediateBitmapRelease() {
+        assertTrue("OpenCV native library must load for processing lifecycle tests", OpenCVLoader.initLocal())
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val inputFiles = mutableListOf<File>()
+        val outputFiles = mutableListOf<File>()
+        val previews = mutableListOf<Bitmap>()
+        val errors = mutableListOf<String>()
+        var finishedSuccess = -1
+        var finishedFailed = -1
+        var finishedError: String? = null
+
+        try {
+            repeat(2) { index ->
+                val inputFile = File(context.cacheDir, "bitmap-release-input-${System.nanoTime()}-$index.png")
+                val source = Bitmap.createBitmap(240, 180, Bitmap.Config.ARGB_8888)
+                try {
+                    source.eraseColor(Color.rgb(210 - index * 35, 220 - index * 25, 230 - index * 30))
+                    Canvas(source).apply {
+                        val paint = Paint().apply {
+                            color = if (index == 0) Color.DKGRAY else Color.WHITE
+                            strokeWidth = 4f
+                            style = Paint.Style.STROKE
+                        }
+                        drawRect(8f, 8f, source.width - 9f, source.height - 9f, paint)
+                        drawLine(15f, source.height / 2f, source.width - 15f, source.height / 2f, paint)
+                    }
+                    FileOutputStream(inputFile).use { output ->
+                        assertTrue("Synthetic input image must be written", source.compress(Bitmap.CompressFormat.PNG, 100, output))
+                    }
+                } finally {
+                    if (!source.isRecycled) source.recycle()
+                }
+                inputFiles += inputFile
+            }
+
+            val observer = object : PhotoRepository.Observer {
+                override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
+                    previews += bitmap
+                }
+
+                override fun onClassification(index: Int, total: Int, kind: ImageKind) = Unit
+
+                override fun onEnhanced(bitmap: Bitmap) {
+                    previews += bitmap
+                }
+
+                override fun onSaved(index: Int, bitmap: Bitmap, file: File) {
+                    previews += bitmap
+                    outputFiles += file
+                }
+
+                override fun onError(index: Int, total: Int, uri: Uri, message: String) {
+                    errors += "Image $index: $message"
+                }
+
+                override fun onFinished(success: Int, failed: Int, error: String?) {
+                    finishedSuccess = success
+                    finishedFailed = failed
+                    finishedError = error
+                }
+            }
+
+            PhotoRepository().process(
+                context = context,
+                uris = inputFiles.map { Uri.fromFile(it) },
+                brightness = 0,
+                contrastPercent = 100,
+                observer = observer
+            )
+
+            assertEquals("Both images must finish successfully. Errors: $errors; last error: $finishedError", 2, finishedSuccess)
+            assertEquals("No image in the batch should fail. Errors: $errors", 0, finishedFailed)
+            assertTrue("No batch-level error is expected", finishedError == null)
+            assertEquals("Each image should publish source, enhanced and saved previews", 6, previews.size)
+            assertEquals("Each image should produce one retained temporary output", 2, outputFiles.size)
+
+            outputFiles.forEachIndexed { index, file ->
+                assertTrue("Output file $index must exist after its callback", file.isFile && file.length() > 0)
+                val decoded = BitmapFactory.decodeFile(file.absolutePath)
+                    ?: throw AssertionError("Output file $index must remain a readable image")
+                try {
+                    assertTrue("Output $index must have positive dimensions", decoded.width > 0 && decoded.height > 0)
+                    val savedPreview = previews[index * 3 + 2]
+                    assertEquals("Saved preview width must match the exported output", savedPreview.width, decoded.width)
+                    assertEquals("Saved preview height must match the exported output", savedPreview.height, decoded.height)
+                } finally {
+                    if (!decoded.isRecycled) decoded.recycle()
+                }
+            }
+            previews.forEachIndexed { index, bitmap ->
+                assertTrue("Published preview $index must remain usable after processing", !bitmap.isRecycled && bitmap.width > 0 && bitmap.height > 0)
+            }
+        } finally {
+            previews.forEach { if (!it.isRecycled) it.recycle() }
+            inputFiles.forEach { it.delete() }
+            outputFiles.forEach { it.delete() }
+        }
+    }
+
 }
