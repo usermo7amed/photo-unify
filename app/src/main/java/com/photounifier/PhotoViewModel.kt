@@ -92,6 +92,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
+    @Synchronized
     fun selectImages(uris: List<Uri>) {
         if (cleared || currentState.busy || currentState.exportBusy) return
         val previous = currentState
@@ -195,6 +196,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
      * Loads the active image at preview resolution. A generation token prevents slow
      * decodes from older selections from overwriting the image currently being reviewed.
      */
+    @Synchronized
     fun showPreview(index: Int) {
         if (cleared) return
         val snapshot = currentState
@@ -292,7 +294,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
      * The full-resolution pipeline still runs independently when the user processes
      * the batch; this result is for interactive review only.
      */
+    @Synchronized
     private fun generateEnhancedPreview(source: Bitmap, generation: Int) {
+        if (cleared) return
         previewExecutor.execute {
             if (generation != imagePreviewGeneration.get() || source.isRecycled) return@execute
 
@@ -355,6 +359,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
 
     @Synchronized
     fun ensurePageThumbnail(index: Int) {
+        if (cleared) return
         val snapshot = currentState
         val uri = snapshot.selected.getOrNull(index) ?: return
         if (index < MAX_SELECTION_THUMBNAILS) return
@@ -409,7 +414,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun openCropEditor(openCvReady: Boolean) {
+        if (cleared) return
         val snapshot = currentState
         val index = snapshot.previewIndex
         val uri = snapshot.selected.getOrNull(index) ?: return
@@ -555,7 +562,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun rotateCropPage() {
+        if (cleared) return
         val snapshot = currentState
         val source = snapshot.cropSource ?: return
         val uri = snapshot.cropPageUri ?: return
@@ -627,7 +636,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun moveCropCorner(index: Int, x: Float, y: Float) {
+        if (cleared) return
         val snapshot = currentState
         val source = snapshot.cropSource ?: return
         if (!snapshot.cropOpen || index !in 0..3 || snapshot.cropCorners.size != 4) return
@@ -665,7 +676,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun undoCrop() {
+        if (cleared) return
         val snapshot = currentState
         val previous = snapshot.cropUndoStack.lastOrNull() ?: return
         val source = snapshot.cropSource ?: return
@@ -702,7 +715,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun resetCrop() {
+        if (cleared) return
         val source = currentState.cropSource ?: return
         val corners = DocumentCrop.fullFrame(source.width, source.height)
         val generation = cropGeneration.incrementAndGet()
@@ -738,6 +753,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun cancelCrop() {
         if (cleared) return
         cropGeneration.incrementAndGet()
@@ -774,7 +790,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
+    @Synchronized
     fun applyCrop() {
+        if (cleared) return
         val snapshot = currentState
         val source = snapshot.cropSource ?: return
         val uri = snapshot.cropPageUri ?: return
@@ -838,16 +856,21 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
+    @Synchronized
     fun setBrightness(value: Int) {
+        if (cleared) return
         update { it.copy(brightness = value.coerceIn(-50, 50)) }
         refreshPreview()
     }
 
+    @Synchronized
     fun setContrast(value: Int) {
+        if (cleared) return
         update { it.copy(contrastPercent = value.coerceIn(50, 200)) }
         refreshPreview()
     }
 
+    @Synchronized
     private fun refreshPreview() {
         if (cleared) return
         val snapshot = currentState
@@ -881,7 +904,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun process(openCvReady: Boolean) {
+        if (cleared) return
         val snapshot = currentState
         if (snapshot.busy || snapshot.selected.isEmpty()) return
         if (!openCvReady) {
@@ -996,7 +1021,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun toggleExportImage(id: String, selected: Boolean) {
+        if (cleared) return
         if (currentState.busy || currentState.exportBusy) return
         update { old ->
             if (old.processedImages.none { it.id == id }) old
@@ -1007,7 +1034,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun selectAllExportImages(selected: Boolean) {
+        if (cleared) return
         if (currentState.busy || currentState.exportBusy) return
         update { old ->
             old.copy(
@@ -1017,7 +1046,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    @Synchronized
     fun exportSelected(format: ExportFormat) {
+        if (cleared) return
         val snapshot = currentState
         if (snapshot.busy || snapshot.exportBusy) return
         val items = snapshot.processedImages.filter { it.id in snapshot.selectedExportIds }

@@ -764,4 +764,106 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun backgroundActionsAfterViewModelClearAreIgnored() {
+        assertTrue("OpenCV native library must load for ViewModel teardown guards", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "bitmap-clear-guard-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(300, 240, Bitmap.Config.ARGB_8888)
+        var storeCleared = false
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for lifecycle guard state: $description")
+        }
+
+        val pixels = IntArray(source.width * source.height) { Color.RED }
+        for (y in 10 until source.height - 10) {
+            for (x in 10 until source.width - 10) {
+                pixels[y * source.width + x] = Color.GREEN
+            }
+        }
+        source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+
+        try {
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+            val uri = Uri.fromFile(sourceFile)
+            viewModel.selectImages(listOf(uri))
+            awaitState("source preview") { it.sourcePreview != null }
+
+            viewModel.process(openCvReady = true)
+            val processed = awaitState("processed image output") {
+                !it.busy && it.processedImages.isNotEmpty()
+            }
+            val output = processed.processedImages.first()
+            viewModel.toggleExportImage(output.id, true)
+
+            viewModel.openCropEditor(openCvReady = true)
+            val active = awaitState("crop editor before ViewModel clear") {
+                it.cropOpen && !it.cropApplying &&
+                    it.cropSource != null && it.cropPreview != null
+            }
+            val selectedBeforeClear = active.selected
+            val cropUriBeforeClear = active.cropPageUri
+            val selectedExportIdsBeforeClear = active.selectedExportIds
+
+            viewModelStore.clear()
+            storeCleared = true
+
+            try {
+                // These methods previously could submit to executors already shut
+                // down by onCleared(), or touch bitmaps that teardown was recycling.
+                viewModel.selectImages(emptyList())
+                viewModel.showPreview(0)
+                viewModel.ensurePageThumbnail(10)
+                viewModel.openCropEditor(openCvReady = true)
+                viewModel.rotateCropPage()
+                viewModel.moveCropCorner(0, 8f, 8f)
+                viewModel.undoCrop()
+                viewModel.resetCrop()
+                viewModel.cancelCrop()
+                viewModel.applyCrop()
+                viewModel.setBrightness(10)
+                viewModel.setContrast(120)
+                viewModel.process(openCvReady = true)
+                viewModel.toggleExportImage(output.id, false)
+                viewModel.selectAllExportImages(false)
+                viewModel.exportSelected(ExportFormat.IMAGES)
+            } catch (error: Throwable) {
+                throw AssertionError(
+                    "Public background actions must safely no-op after ViewModel teardown",
+                    error
+                )
+            }
+
+            val afterClear = viewModel.state.value
+                ?: throw AssertionError("ViewModel should retain its last immutable state snapshot")
+            assertEquals("Selection should not be mutated after clear", selectedBeforeClear, afterClear.selected)
+            assertEquals("Crop session should not be mutated after clear", cropUriBeforeClear, afterClear.cropPageUri)
+            assertEquals("Export selection should not be mutated after clear", selectedExportIdsBeforeClear, afterClear.selectedExportIds)
+        } finally {
+            if (!storeCleared) viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
