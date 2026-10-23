@@ -1191,4 +1191,31 @@ class DocumentCropInstrumentedTest {
         }
     }
 
+
+
+    @Test
+    fun warpRejectsInvalidPreviewLimitWithoutRecyclingCallerBitmap() {
+        assertTrue("OpenCV native library must load for crop resource tests", OpenCVLoader.initLocal())
+
+        val source = Bitmap.createBitmap(120, 90, Bitmap.Config.ARGB_8888)
+        try {
+            source.eraseColor(Color.LTGRAY)
+            var rejected = false
+            try {
+                DocumentCrop.warp(
+                    source,
+                    DocumentCrop.fullFrame(source.width, source.height),
+                    maxOutputSide = 1
+                )
+            } catch (_: IllegalArgumentException) {
+                rejected = true
+            }
+
+            assertTrue("An invalid preview size must be rejected", rejected)
+            assertTrue("A failed crop request must not recycle the caller-owned source", !source.isRecycled)
+        } finally {
+            if (!source.isRecycled) source.recycle()
+        }
+    }
+
 }
