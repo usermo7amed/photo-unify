@@ -75,6 +75,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val cropGeneration = AtomicInteger(0)
     private val selectionGeneration = AtomicInteger(0)
     private val thumbnailRequests = mutableSetOf<Uri>()
+    // Guarded by this ViewModel's monitor; only one queued/running adjustment
+    // refresh is allowed at a time, regardless of how often the sliders change.
+    private var previewRefreshScheduled = false
     private val initialUiState = PhotoUiState(
         status = appContext.getString(R.string.status_ready_select),
         exportStatus = appContext.getString(R.string.status_ready_export)
@@ -873,46 +876,87 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     @Synchronized
     private fun refreshPreview() {
         if (cleared) return
-        val snapshot = currentState
-        // Before processing, use the loaded (or cropped) source as the preview base.
-        // After processing starts producing enhanced frames, prefer those instead.
-        val base = snapshot.enhancedPreview ?: snapshot.sourcePreview ?: return
-        val generation = previewGeneration.incrementAndGet()
-        previewExecutor.execute {
-            // Slider changes can queue faster than a full-resolution bitmap can be drawn.
-            // Skip obsolete work before allocating or touching the bitmap.
-            if (generation != previewGeneration.get() || base.isRecycled) return@execute
-            val preview = try {
-                BitmapAdjustments.apply(base, snapshot.brightness, snapshot.contrastPercent / 100f)
-            } catch (_: Exception) { return@execute }
-            if (generation != previewGeneration.get()) {
-                preview.recycle()
-                return@execute
-            }
-            var installed = false
-            var replacedResult: Bitmap? = null
-            update { old ->
-                if ((old.enhancedPreview !== base && old.sourcePreview !== base) ||
-                    generation != previewGeneration.get() || base.isRecycled
-                ) {
-                    old
-                } else {
-                    installed = true
-                    replacedResult = old.resultPreview
-                    old.copy(resultPreview = preview)
+        previewGeneration.incrementAndGet()
+        schedulePreviewRefreshLocked()
+    }
+
+    /** Must be called while holding this ViewModel's monitor. */
+    private fun schedulePreviewRefreshLocked() {
+        if (cleared || previewRefreshScheduled) return
+        if (currentState.enhancedPreview == null && currentState.sourcePreview == null) return
+        previewRefreshScheduled = true
+        try {
+            previewExecutor.execute { refreshLatestPreview() }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            previewRefreshScheduled = false
+        }
+    }
+
+    /**
+     * Coalesces rapid slider changes into one worker. A render made stale while
+     * in progress is discarded, then the loop reads the latest state instead of
+     * adding one queued task per intermediate slider value.
+     */
+    private fun refreshLatestPreview() {
+        var lastProcessedGeneration = previewGeneration.get()
+        try {
+            while (!cleared) {
+                val generation = previewGeneration.get()
+                lastProcessedGeneration = generation
+                val snapshot = currentState
+                val base = snapshot.enhancedPreview ?: snapshot.sourcePreview ?: return
+                if (base.isRecycled) return
+
+                val preview = try {
+                    BitmapAdjustments.apply(
+                        base,
+                        snapshot.brightness,
+                        snapshot.contrastPercent / 100f
+                    )
+                } catch (_: Exception) {
+                    return
                 }
+
+                if (generation != previewGeneration.get()) {
+                    releaseBitmaps(listOf(preview))
+                    continue
+                }
+
+                var installed = false
+                var replacedResult: Bitmap? = null
+                update { old ->
+                    if ((old.enhancedPreview !== base && old.sourcePreview !== base) ||
+                        generation != previewGeneration.get() || base.isRecycled
+                    ) {
+                        old
+                    } else {
+                        installed = true
+                        replacedResult = old.resultPreview
+                        old.copy(resultPreview = preview)
+                    }
+                }
+                if (installed) {
+                    // Retire a previous result only after work already queued on
+                    // this executor has drained; source and new result stay alive.
+                    releaseBitmapsAfterQueuedWork(
+                        previewExecutor,
+                        listOf(replacedResult),
+                        setOf(base, preview)
+                    )
+                } else {
+                    releaseBitmaps(listOf(preview))
+                }
+
+                if (generation == previewGeneration.get()) return
             }
-            if (installed) {
-                // Result previews are replaced on repeated slider changes. Retire
-                // the old result after work already queued on the preview executor
-                // has finished, while keeping the source and newly installed preview.
-                releaseBitmapsAfterQueuedWork(
-                    previewExecutor,
-                    listOf(replacedResult),
-                    setOf(base, preview)
-                )
-            } else {
-                releaseBitmaps(listOf(preview))
+        } finally {
+            synchronized(this) {
+                previewRefreshScheduled = false
+                // If a request arrived just after the last generation check, it
+                // could not enqueue while this worker owned the scheduled flag.
+                if (!cleared && previewGeneration.get() != lastProcessedGeneration) {
+                    schedulePreviewRefreshLocked()
+                }
             }
         }
     }
