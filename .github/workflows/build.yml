@@ -40,11 +40,12 @@ jobs:
       - name: Install Android 34 emulator image with retries
         shell: bash
         run: |
-          set -euo pipefail
+          # Do not use pipefail here: 'yes' may be closed by sdkmanager after all
+          # licenses are accepted, while sdkmanager itself can still succeed.
+          set -eu
           sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           image_package="system-images;android-34;google_apis;x86_64"
 
-          # Accept licenses before installing so retries target download/extraction failures.
           yes | sdkmanager --licenses > /dev/null
 
           for attempt in 1 2 3; do
