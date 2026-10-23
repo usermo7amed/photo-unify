@@ -921,7 +921,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     fun process(openCvReady: Boolean) {
         if (cleared) return
         val snapshot = currentState
-        if (snapshot.busy || snapshot.selected.isEmpty()) return
+        // Reprocessing replaces and deletes current output files. Never start it
+        // while an export may still be reading those files from its own queue.
+        if (snapshot.busy || snapshot.exportBusy || snapshot.selected.isEmpty()) return
         if (!openCvReady) {
             update { it.copy(status = appContext.getString(R.string.status_image_processing_unavailable)) }
             return
