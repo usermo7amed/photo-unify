@@ -11,6 +11,7 @@ import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import java.io.File
 import java.io.OutputStream
 import java.text.SimpleDateFormat
@@ -65,13 +66,15 @@ class ExportRepository {
                 failed++
                 lastError = error.message ?: error.javaClass.simpleName
                 destination?.let { runCatching { resolver.delete(it, null, null) } }
-                observer.onError("${item.displayName}: ${lastError}")
+                notifyObserver("onError") { observer.onError("${item.displayName}: ${lastError}") }
             } finally {
-                observer.onItemFinished(item.id, itemSucceeded)
-                observer.onProgress(index + 1, items.size, context.getString(R.string.export_image_progress, index + 1, items.size))
+                notifyObserver("onItemFinished") { observer.onItemFinished(item.id, itemSucceeded) }
+                notifyObserver("onProgress") {
+                    observer.onProgress(index + 1, items.size, context.getString(R.string.export_image_progress, index + 1, items.size))
+                }
             }
         }
-        observer.onFinished(success, failed, lastError)
+        notifyObserver("onFinished") { observer.onFinished(success, failed, lastError) }
     }
 
     fun exportAsPdf(context: Context, items: List<ExportImage>, observer: Observer) {
@@ -90,6 +93,9 @@ class ExportRepository {
         }
         var destination: Uri? = null
         var document: PdfDocument? = null
+        var completed = 0
+        var failed = items.size
+        var resultError: String? = null
         try {
             destination = resolver.insert(MediaStore.Files.getContentUri("external"), values)
                 ?: throw IllegalStateException(context.getString(R.string.error_create_pdf_file))
@@ -133,7 +139,9 @@ class ExportRepository {
                 } finally {
                     if (!bitmap.isRecycled) bitmap.recycle()
                 }
-                observer.onProgress(index + 1, items.size, context.getString(R.string.export_pdf_progress, index + 1, items.size))
+                notifyObserver("onProgress") {
+                    observer.onProgress(index + 1, items.size, context.getString(R.string.export_pdf_progress, index + 1, items.size))
+                }
             }
 
             val output = resolver.openOutputStream(destination, "w")
@@ -145,14 +153,26 @@ class ExportRepository {
             if (resolver.update(destination, published, null, null) <= 0) {
                 throw IllegalStateException(context.getString(R.string.error_pdf_unavailable_after_save))
             }
-            observer.onFinished(1, 0, null)
+            // Publication is the commit point. Observer callbacks happen only after
+            // this point and must never turn a completed export into a failed one.
+            completed = 1
+            failed = 0
         } catch (error: Exception) {
             val message = error.message ?: error.javaClass.simpleName
+            resultError = message
             destination?.let { runCatching { resolver.delete(it, null, null) } }
-            observer.onError(context.getString(R.string.error_pdf_export_item, message))
-            observer.onFinished(0, items.size, message)
+            notifyObserver("onError") {
+                observer.onError(context.getString(R.string.error_pdf_export_item, message))
+            }
         } finally {
             runCatching { document?.close() }
+        }
+        notifyObserver("onFinished") { observer.onFinished(completed, failed, resultError) }
+    }
+
+    private fun notifyObserver(name: String, callback: () -> Unit) {
+        safelyNotifyExportObserver(callback) { error ->
+            Log.w(EXPORT_LOG_TAG, "Export observer callback $name failed", error)
         }
     }
 
@@ -163,6 +183,19 @@ class ExportRepository {
         const val PAGE_SHORT_SIDE = 595
         const val PAGE_LONG_SIDE = 842
         const val PAGE_MARGIN = 24
+        const val EXPORT_LOG_TAG = "PhotoUnifierExport"
+    }
+}
+
+/** Observer/UI failures must not roll back a file that has already been published. */
+internal fun safelyNotifyExportObserver(
+    callback: () -> Unit,
+    onFailure: (Exception) -> Unit
+) {
+    try {
+        callback()
+    } catch (error: Exception) {
+        onFailure(error)
     }
 }
 
