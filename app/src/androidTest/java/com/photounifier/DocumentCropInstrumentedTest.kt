@@ -376,6 +376,17 @@ class DocumentCropInstrumentedTest {
                     it.cropPreview !== previous && !it.cropApplying
             }
 
+        // LiveData.postValue can publish the replacement before the worker gets its
+        // next instruction to recycle the retired bitmap. Wait for both lifecycle
+        // events instead of racing the cleanup thread with an immediate assertion.
+        fun awaitRecycled(bitmap: Bitmap, description: String) {
+            val deadline = SystemClock.uptimeMillis() + 10_000
+            while (SystemClock.uptimeMillis() < deadline && !bitmap.isRecycled) {
+                SystemClock.sleep(10)
+            }
+            assertTrue("$description must recycle the replaced preview bitmap", bitmap.isRecycled)
+        }
+
         fun moveTopLeftInward(state: PhotoUiState) {
             val sourceBitmap = state.cropSource
                 ?: throw AssertionError("Crop source must remain available while editing")
@@ -401,25 +412,25 @@ class DocumentCropInstrumentedTest {
                 ?: throw AssertionError("Initial crop preview must exist")
             moveTopLeftInward(state)
             state = awaitReplacement(oldPreview, "preview after first drag")
-            assertTrue("First drag must recycle the replaced preview bitmap", oldPreview.isRecycled)
+            awaitRecycled(oldPreview, "First drag")
 
             oldPreview = state.cropPreview
                 ?: throw AssertionError("Preview after first drag must exist")
             moveTopLeftInward(state)
             state = awaitReplacement(oldPreview, "preview after second drag")
-            assertTrue("Second drag must recycle the replaced preview bitmap", oldPreview.isRecycled)
+            awaitRecycled(oldPreview, "Second drag")
 
             oldPreview = state.cropPreview
                 ?: throw AssertionError("Preview after second drag must exist")
             viewModel.undoCrop()
             state = awaitReplacement(oldPreview, "preview after undo")
-            assertTrue("Undo must recycle the replaced preview bitmap", oldPreview.isRecycled)
+            awaitRecycled(oldPreview, "Undo")
 
             oldPreview = state.cropPreview
                 ?: throw AssertionError("Preview after undo must exist")
             viewModel.resetCrop()
             state = awaitReplacement(oldPreview, "preview after reset")
-            assertTrue("Reset must recycle the replaced preview bitmap", oldPreview.isRecycled)
+            awaitRecycled(oldPreview, "Reset")
         } finally {
             viewModelStore.clear()
             sourceFile.delete()
