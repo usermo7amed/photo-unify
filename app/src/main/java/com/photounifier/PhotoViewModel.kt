@@ -890,6 +890,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 return@execute
             }
             var installed = false
+            var replacedResult: Bitmap? = null
             update { old ->
                 if ((old.enhancedPreview !== base && old.sourcePreview !== base) ||
                     generation != previewGeneration.get() || base.isRecycled
@@ -897,10 +898,22 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     old
                 } else {
                     installed = true
+                    replacedResult = old.resultPreview
                     old.copy(resultPreview = preview)
                 }
             }
-            if (!installed) releaseBitmaps(listOf(preview))
+            if (installed) {
+                // Result previews are replaced on repeated slider changes. Retire
+                // the old result after work already queued on the preview executor
+                // has finished, while keeping the source and newly installed preview.
+                releaseBitmapsAfterQueuedWork(
+                    previewExecutor,
+                    listOf(replacedResult),
+                    setOf(base, preview)
+                )
+            } else {
+                releaseBitmaps(listOf(preview))
+            }
         }
     }
 
