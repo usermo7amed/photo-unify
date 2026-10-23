@@ -99,13 +99,28 @@ object Processor {
             BitmapFactory.decodeStream(it, null, options)
         } ?: throw IllegalStateException(context.getString(R.string.error_read_image))
 
-        val orientation = resolver.openInputStream(uri)?.use {
-            ExifInterface(it).getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
-            )
-        } ?: ExifInterface.ORIENTATION_NORMAL
-        return applyOrientation(bitmap, orientation)
+        // The decoded bitmap is a native-memory allocation. If opening or parsing
+        // the EXIF stream fails, release it before propagating the decode error.
+        val orientation = try {
+            resolver.openInputStream(uri)?.use {
+                ExifInterface(it).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+            } ?: ExifInterface.ORIENTATION_NORMAL
+        } catch (error: Exception) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+            throw error
+        }
+
+        // Orientation transforms can fail for malformed images or platform allocation
+        // pressure. In that case the original decoded bitmap is still owned here.
+        return try {
+            applyOrientation(bitmap, orientation)
+        } catch (error: Exception) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+            throw error
+        }
     }
 
     /** Pure sizing helper so the sampling policy can be tested without Android bitmap APIs. */
