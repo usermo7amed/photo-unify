@@ -572,4 +572,96 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun clearingViewModelRecyclesOwnedBitmapsAfterQueuedReadersFinish() {
+        assertTrue("OpenCV native library must load for ViewModel teardown tests", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "bitmap-viewmodel-clear-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(300, 240, Bitmap.Config.ARGB_8888)
+        var storeCleared = false
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for ViewModel teardown state: $description")
+        }
+
+        try {
+            source.eraseColor(Color.rgb(231, 229, 222))
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            val uri = Uri.fromFile(sourceFile)
+            viewModel.selectImages(listOf(uri))
+            awaitState("source preview and selection thumbnail") {
+                it.sourcePreview != null &&
+                    it.selectionThumbnails.any { thumbnail -> thumbnail.uri == uri }
+            }
+
+            viewModel.setBrightness(12)
+            awaitState("enhanced and adjusted previews") {
+                it.sourcePreview != null &&
+                    it.enhancedPreview != null &&
+                    it.resultPreview != null
+            }
+
+            viewModel.openCropEditor(openCvReady = true)
+            val active = awaitState("active crop editor with previews") {
+                it.cropOpen && !it.cropApplying &&
+                    it.cropSource != null && it.cropPreview != null &&
+                    it.selectionThumbnails.isNotEmpty()
+            }
+            val trackedBitmaps = (
+                listOf(
+                    active.sourcePreview,
+                    active.enhancedPreview,
+                    active.resultPreview,
+                    active.cropSource,
+                    active.cropPreviewSource,
+                    active.cropPreview
+                ) + active.selectionThumbnails.map { it.bitmap }
+                ).filterNotNull().distinct()
+            assertTrue(
+                "Teardown test should track source, crop, and thumbnail bitmap ownership",
+                trackedBitmaps.any { it === active.cropSource } &&
+                    trackedBitmaps.any { it === active.sourcePreview } &&
+                    active.selectionThumbnails.any { thumbnail -> trackedBitmaps.contains(thumbnail.bitmap) }
+            )
+
+            viewModelStore.clear()
+            storeCleared = true
+
+            val deadline = SystemClock.uptimeMillis() + 10_000
+            while (SystemClock.uptimeMillis() < deadline && trackedBitmaps.any { !it.isRecycled }) {
+                SystemClock.sleep(50)
+            }
+            val unrecycled = trackedBitmaps.filterNot { it.isRecycled }
+            assertTrue(
+                "ViewModel teardown must recycle all owned bitmaps after serial executor queues drain; " +
+                    "remaining=${unrecycled.size}",
+                unrecycled.isEmpty()
+            )
+        } finally {
+            if (!storeCleared) viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
