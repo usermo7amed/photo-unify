@@ -1,5 +1,6 @@
 package com.photounifier
 
+import android.content.ContextWrapper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -14,7 +15,13 @@ class PendingExportCleanupInstrumentedTest {
 
     @Test
     fun cleanupRemovesOnlyFilesInThePrivatePendingExportDirectory() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        // Isolate this test from pending files owned by other instrumentation tests.
+        val isolatedRoot = File(targetContext.cacheDir, "pending-cleanup-test-${System.nanoTime()}")
+        assertTrue("Isolated test directory should be creatable", isolatedRoot.mkdirs())
+        val context = object : ContextWrapper(targetContext) {
+            override fun getFilesDir(): File = isolatedRoot
+        }
         val pendingDirectory = File(context.filesDir, "pending_exports")
         assertTrue("Pending export directory should be creatable", pendingDirectory.mkdirs() || pendingDirectory.isDirectory)
 
@@ -45,6 +52,8 @@ class PendingExportCleanupInstrumentedTest {
             nestedFile.delete()
             nestedDirectory.delete()
             unrelatedFile.delete()
+            pendingDirectory.delete()
+            isolatedRoot.delete()
         }
     }
 }
