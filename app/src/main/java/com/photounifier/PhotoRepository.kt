@@ -80,6 +80,9 @@ class PhotoRepository {
                         loadMs = elapsedMs(loadStarted)
                     }
                     val loadedSource = source ?: throw IllegalStateException(context.getString(R.string.error_load_image))
+                    // Preserve dimensions for diagnostics before releasing the full-size source.
+                    val loadedSourceWidth = loadedSource.width
+                    val loadedSourceHeight = loadedSource.height
 
                     val sourcePreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.source")
@@ -113,6 +116,12 @@ class PhotoRepository {
                         enhanceMs = elapsedMs(enhanceStarted)
                     }
                     enhanced = finalEnhanced
+                    // The source is no longer needed once enhancement completes.
+                    // Transfer ownership when a processor ever returns the same bitmap.
+                    if (source !== finalEnhanced) {
+                        source?.let { if (!it.isRecycled) it.recycle() }
+                    }
+                    source = null
 
                     // UI callbacks receive bounded previews; full-resolution processing
                     // bitmaps stay local to this one image and are released in finally.
@@ -133,6 +142,12 @@ class PhotoRepository {
                         Trace.endSection()
                         adjustmentMs = elapsedMs(adjustmentStarted)
                     }
+                    // The adjusted output now owns the pixels needed for saving;
+                    // release the full-resolution enhanced bitmap before disk I/O.
+                    if (enhanced !== output) {
+                        enhanced?.let { if (!it.isRecycled) it.recycle() }
+                    }
+                    enhanced = null
 
                     val saveStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.save")
@@ -161,13 +176,17 @@ class PhotoRepository {
                         Trace.endSection()
                         savedPreviewMs = elapsedMs(savedPreviewStarted)
                     }
+                    // The temporary file and the UI-owned preview are now the
+                    // retained output; drop the full-size bitmap immediately.
+                    output?.let { if (!it.isRecycled) it.recycle() }
+                    output = null
                     success++
                     Log.i(
                         PERF_TAG,
                         String.format(
                             Locale.US,
                             "image=%d/%d size=%dx%d load=%.1fms classify=%.1fms sourcePreview=%.1fms enhance=%.1fms enhancedPreview=%.1fms adjust=%.1fms save=%.1fms savedPreview=%.1fms total=%.1fms %s",
-                            index + 1, uris.size, loadedSource.width, loadedSource.height,
+                            index + 1, uris.size, loadedSourceWidth, loadedSourceHeight,
                             loadMs, classifyMs, sourcePreviewMs, enhanceMs, enhancedPreviewMs,
                             adjustmentMs, saveMs, savedPreviewMs, elapsedMs(imageStarted), memorySnapshot()
                         )
