@@ -5,17 +5,15 @@ import android.content.Context
 import java.io.File
 
 /**
- * Removes private processing outputs left behind by a previous app process.
- *
- * Pending exports are only referenced by in-memory ViewModel state. When a new
- * process starts, that state no longer exists, so these files are safe to
- * remove before the user creates a new processing session.
+ * Removes abandoned processing files and unpublished MediaStore exports left
+ * behind by a previous app process. Completed public exports are preserved.
  */
 class PhotoUnifierApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // Cleanup must be best-effort: a failed deletion must never prevent startup.
         runCatching { PendingExportCleanup.removeOrphanedFiles(this) }
+        runCatching { PendingMediaStoreExportCleanup.removeOrphanedRows(this) }
     }
 }
 
