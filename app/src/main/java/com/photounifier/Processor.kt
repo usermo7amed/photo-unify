@@ -108,7 +108,9 @@ object Processor {
                     ExifInterface.ORIENTATION_NORMAL
                 )
             } ?: ExifInterface.ORIENTATION_NORMAL
-        } catch (error: Exception) {
+        } catch (error: Throwable) {
+            // Preserve the original failure while releasing the native bitmap even for
+            // allocation errors (for example OutOfMemoryError) during EXIF parsing.
             if (!bitmap.isRecycled) bitmap.recycle()
             throw error
         }
@@ -117,7 +119,9 @@ object Processor {
         // pressure. In that case the original decoded bitmap is still owned here.
         return try {
             applyOrientation(bitmap, orientation)
-        } catch (error: Exception) {
+        } catch (error: Throwable) {
+            // Bitmap.createBitmap may throw an Error under memory pressure, not only an
+            // Exception. Release the still-owned source before propagating it.
             if (!bitmap.isRecycled) bitmap.recycle()
             throw error
         }
