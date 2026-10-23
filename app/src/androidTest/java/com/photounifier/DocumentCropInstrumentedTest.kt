@@ -1181,8 +1181,7 @@ class DocumentCropInstrumentedTest {
                     initialPreview.isRecycled
             }
             assertEquals("The latest crop corner must be retained", targetCorner, finalState.cropCorners.first())
-            assertEquals("The preview must remain bounded by the configured side limit",
-                true,
+            assertTrue("The preview must remain bounded by the configured side limit",
                 maxOf(finalState.cropPreview!!.width, finalState.cropPreview!!.height) <= Processor.PREVIEW_MAX_SIDE)
             assertTrue("The crop source must remain valid while editing", !sourceBitmap.isRecycled)
         } finally {
