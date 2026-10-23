@@ -1145,19 +1145,25 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             previous.selectionThumbnails.map { it.bitmap }
         )
 
+        val filesToDelete = previous.processedImages.map { it.file }
+        if (filesToDelete.isNotEmpty()) {
+            try {
+                // Queue deletion behind any active or pending export so clearing
+                // the screen cannot remove files while the exporter is reading them.
+                exportExecutor.execute {
+                    filesToDelete.forEach { file -> runCatching { file.delete() } }
+                }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+                // Prefer a harmless leftover temp file over deleting a file that
+                // an export task might still be using.
+            }
+        }
+
         executor.shutdown()
         exportExecutor.shutdown()
         previewExecutor.shutdown()
         thumbnailExecutor.shutdown()
         imagePreviewExecutor.shutdown()
-        val filesToDelete = previous.processedImages.map { it.file }
-        try {
-            exportExecutor.execute {
-                filesToDelete.forEach { file -> runCatching { file.delete() } }
-            }
-        } catch (_: java.util.concurrent.RejectedExecutionException) {
-            filesToDelete.forEach { file -> runCatching { file.delete() } }
-        }
         super.onCleared()
     }
     private fun createCropPreviewSource(source: Bitmap): Bitmap {
