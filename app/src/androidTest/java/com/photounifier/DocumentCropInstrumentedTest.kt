@@ -932,4 +932,80 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun rapidBrightnessAndContrastChangesRenderLatestPreviewWithoutBacklog() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "coalesced-adjustment-preview-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(320, 240, Bitmap.Config.ARGB_8888)
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for coalesced preview state: $description")
+        }
+
+        try {
+            val pixels = IntArray(source.width * source.height) { Color.WHITE }
+            for (y in 12 until source.height - 12) {
+                for (x in 12 until source.width - 12) {
+                    pixels[y * source.width + x] =
+                        if ((x / 10 + y / 10) % 2 == 0) Color.BLACK else Color.GRAY
+                }
+            }
+            source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            viewModel.selectImages(listOf(Uri.fromFile(sourceFile)))
+            val initial = awaitState("initial enhanced and adjusted preview") {
+                it.sourcePreview != null && it.enhancedPreview != null && it.resultPreview != null
+            }
+            val supersededResult = initial.resultPreview
+                ?: throw AssertionError("Initial adjusted preview must exist")
+
+            // Emulate a fast Compose slider drag: dozens of updates arrive before
+            // the image-processing worker would normally finish a single render.
+            repeat(60) { index ->
+                viewModel.setBrightness((index % 90) - 45)
+                viewModel.setContrast(70 + (index % 130))
+            }
+            val targetBrightness = 37
+            val targetContrast = 173
+            viewModel.setBrightness(targetBrightness)
+            viewModel.setContrast(targetContrast)
+
+            val finalState = awaitState("latest values are rendered and old result released", 45_000) {
+                it.brightness == targetBrightness &&
+                    it.contrastPercent == targetContrast &&
+                    it.enhancedPreview != null &&
+                    it.resultPreview != null &&
+                    it.resultPreview !== supersededResult &&
+                    supersededResult.isRecycled
+            }
+            assertEquals("The latest brightness value must remain selected", targetBrightness, finalState.brightness)
+            assertEquals("The latest contrast value must remain selected", targetContrast, finalState.contrastPercent)
+            assertEquals("The output preview must preserve its enhanced base width", finalState.enhancedPreview!!.width, finalState.resultPreview!!.width)
+            assertEquals("The output preview must preserve its enhanced base height", finalState.enhancedPreview!!.height, finalState.resultPreview!!.height)
+        } finally {
+            viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
