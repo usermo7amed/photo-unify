@@ -166,6 +166,37 @@ class ExportRepository {
 }
 
 /**
+ * A4 pages are rendered at 595 x 842 points. Keeping embedded image data near
+ * 300 DPI (3508 pixels on the long edge) preserves print quality without
+ * retaining unnecessarily large camera images in memory. BitmapFactory uses
+ * power-of-two sampling; the decoded long edge may therefore be up to 2x this
+ * target to avoid discarding useful resolution from images just above the limit.
+ */
+internal const val PDF_EXPORT_MAX_BITMAP_SIDE = 3508
+
+internal fun pdfExportSampleSize(width: Int, height: Int, maxSide: Int = PDF_EXPORT_MAX_BITMAP_SIDE): Int {
+    require(width > 0 && height > 0 && maxSide > 0)
+    val longestSide = maxOf(width, height)
+    var sampleSize = 1
+    while (longestSide / (sampleSize * 2) >= maxSide) {
+        sampleSize *= 2
+    }
+    return sampleSize
+}
+
+internal fun decodePdfExportBitmap(file: File): android.graphics.Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    file.inputStream().use { input -> BitmapFactory.decodeStream(input, null, bounds) }
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = pdfExportSampleSize(bounds.outWidth, bounds.outHeight)
+        inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+    }
+    return file.inputStream().use { input -> BitmapFactory.decodeStream(input, null, options) }
+}
+
+/**
  * Closes the destination even when opening the temporary source fails.
  * The destination is a MediaStore stream and must not be left open if a
  * processing file is missing or cannot be read.
