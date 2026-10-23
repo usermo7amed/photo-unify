@@ -1111,4 +1111,85 @@ class DocumentCropInstrumentedTest {
             sourceFile.delete()
         }
     }
+
+
+    @Test
+    fun rapidCropCornerChangesRenderLatestPreviewWithoutBacklog() {
+        assertTrue("OpenCV native library must load for coalesced crop preview tests", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "coalesced-crop-preview-" + System.nanoTime() + ".png")
+        val source = Bitmap.createBitmap(220, 170, Bitmap.Config.ARGB_8888)
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for coalesced crop preview state: " + description)
+        }
+
+        try {
+            source.eraseColor(Color.rgb(232, 232, 226))
+            Canvas(source).apply {
+                val paint = Paint().apply {
+                    color = Color.DKGRAY
+                    strokeWidth = 3f
+                    style = Paint.Style.STROKE
+                }
+                drawRect(4f, 4f, source.width - 5f, source.height - 5f, paint)
+                drawLine(12f, 12f, source.width - 12f, source.height - 12f, paint)
+            }
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            viewModel.selectImages(listOf(Uri.fromFile(sourceFile)))
+            viewModel.openCropEditor(openCvReady = true)
+            val initial = awaitState("initial crop preview") {
+                it.cropOpen && !it.cropApplying && it.cropSource != null &&
+                    it.cropCorners.size == 4 && it.cropPreview != null
+            }
+            val sourceBitmap = initial.cropSource!!
+            val firstCorner = initial.cropCorners.first()
+            val initialPreview = initial.cropPreview
+                ?: throw AssertionError("Initial crop preview must be available")
+
+            // Emulate a fast pointer gesture with many intermediate positions.
+            repeat(60) { index ->
+                val offset = (index % 12 + 1).toFloat()
+                viewModel.moveCropCorner(0, firstCorner.x + offset, firstCorner.y + offset)
+            }
+            val targetCorner = CropPoint(firstCorner.x + 7f, firstCorner.y + 7f)
+            viewModel.moveCropCorner(0, targetCorner.x, targetCorner.y)
+
+            val finalState = awaitState("latest corner position is previewed and replaced bitmap released", 45_000) {
+                it.cropOpen && !it.cropApplying &&
+                    it.cropCorners.firstOrNull() == targetCorner &&
+                    it.cropPreview != null && it.cropPreview !== initialPreview &&
+                    initialPreview.isRecycled
+            }
+            assertEquals("The latest crop corner must be retained", targetCorner, finalState.cropCorners.first())
+            assertEquals("The preview must remain bounded by the configured side limit",
+                true,
+                maxOf(finalState.cropPreview!!.width, finalState.cropPreview!!.height) <= Processor.PREVIEW_MAX_SIDE)
+            assertTrue("The crop source must remain valid while editing", !sourceBitmap.isRecycled)
+        } finally {
+            viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
 }
