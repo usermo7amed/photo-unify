@@ -727,7 +727,7 @@ class DocumentCropInstrumentedTest {
             val exportExecutor = executorField.get(viewModel) as java.util.concurrent.ExecutorService
             exportExecutor.execute {
                 exportTaskStarted.countDown()
-                releaseExportQueue.await(15, java.util.concurrent.TimeUnit.SECONDS)
+                releaseExportQueue.await()
                 fileExistedBeforeQueueDrained.set(outputFile.exists())
             }
             assertTrue(
