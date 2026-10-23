@@ -51,14 +51,12 @@ internal object PendingMediaStoreExportCleanup {
                         MediaStore.MediaColumns.RELATIVE_PATH,
                         MediaStore.MediaColumns.IS_PENDING
                     ),
-                    "${MediaStore.MediaColumns.IS_PENDING} = ? AND " +
-                        "(${MediaStore.MediaColumns.RELATIVE_PATH} = ? OR " +
-                        "${MediaStore.MediaColumns.RELATIVE_PATH} = ?)",
-                    arrayOf(
-                        "1",
-                        target.relativePath,
-                        "${target.relativePath}/"
-                    ),
+                    // Filter pending rows in the provider, then compare normalized
+                    // path/name values in Kotlin. MediaStore may normalize RELATIVE_PATH
+                    // with a trailing slash and provider-side path selection is not
+                    // consistent across image and generic-file collections.
+                    "${MediaStore.MediaColumns.IS_PENDING} = ?",
+                    arrayOf("1"),
                     null
                 )
             } catch (_: Exception) {
