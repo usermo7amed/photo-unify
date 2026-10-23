@@ -792,15 +792,13 @@ class DocumentCropInstrumentedTest {
             throw AssertionError("Timed out waiting for lifecycle guard state: $description")
         }
 
-        try {
-            val pixels = IntArray(source.width * source.height) { Color.RED }
-            for (y in 10 until source.height - 10) {
-                for (x in 10 until source.width - 10) {
-                    pixels[y * source.width + x] = Color.GREEN
-                }
+        val pixels = IntArray(source.width * source.height) { Color.RED }
+        for (y in 10 until source.height - 10) {
+            for (x in 10 until source.width - 10) {
+                pixels[y * source.width + x] = Color.GREEN
             }
-            source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
         }
+        source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
 
         try {
             FileOutputStream(sourceFile).use { output ->
