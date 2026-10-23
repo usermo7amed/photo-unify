@@ -199,7 +199,19 @@ class PhotoRepository {
                         "image=${index + 1}/${uris.size} failed after ${String.format(Locale.US, "%.1f", elapsedMs(imageStarted))}ms: ${lastError}; ${memorySnapshot()}",
                         error
                     )
-                    observer.onError(index + 1, uris.size, uri, lastError ?: context.getString(R.string.error_unknown))
+                    safelyNotifyProcessingObserver(
+                        callback = {
+                            observer.onError(
+                                index + 1,
+                                uris.size,
+                                uri,
+                                lastError ?: context.getString(R.string.error_unknown)
+                            )
+                        },
+                        onFailure = { callbackError ->
+                            Log.w(PERF_TAG, "Processing observer callback onError failed", callbackError)
+                        }
+                    )
                 } finally {
                     source?.let { if (!it.isRecycled) it.recycle() }
                     enhanced?.let { if (!it.isRecycled) it.recycle() }
@@ -208,12 +220,21 @@ class PhotoRepository {
                 }
             }
         } finally {
-            classifier?.close()
+            try {
+                classifier?.close()
+            } catch (error: Exception) {
+                Log.w(PERF_TAG, "Failed to close scene classifier", error)
+            }
             Log.i(
                 PERF_TAG,
                 "batch count=${uris.size} success=$success failed=$failed total=${String.format(Locale.US, "%.1f", elapsedMs(batchStarted))}ms ${memorySnapshot()}"
             )
-            observer.onFinished(success, failed, lastError)
+            safelyNotifyProcessingObserver(
+                callback = { observer.onFinished(success, failed, lastError) },
+                onFailure = { callbackError ->
+                    Log.w(PERF_TAG, "Processing observer callback onFinished failed", callbackError)
+                }
+            )
         }
     }
 
@@ -229,5 +250,20 @@ class PhotoRepository {
 
     private companion object {
         const val PERF_TAG = "PhotoUnifierPerf"
+    }
+}
+
+
+/**
+ * UI callbacks must not abort the remaining batch or hide its completion result.
+ */
+internal fun safelyNotifyProcessingObserver(
+    callback: () -> Unit,
+    onFailure: (Exception) -> Unit
+) {
+    try {
+        callback()
+    } catch (error: Exception) {
+        onFailure(error)
     }
 }

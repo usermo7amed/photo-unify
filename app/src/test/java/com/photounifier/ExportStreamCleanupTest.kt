@@ -75,6 +75,36 @@ class ExportStreamCleanupTest {
         assertFalse("Successful observer callbacks should not report errors", reported)
     }
 
+    @Test
+    fun processingObserverFailureIsReportedWithoutEscapingIntoBatch() {
+        val expected = IllegalStateException("UI observer failed")
+        var reported: Exception? = null
+        var nextImageProcessed = false
+
+        safelyNotifyProcessingObserver(
+            callback = { throw expected },
+            onFailure = { reported = it }
+        )
+        nextImageProcessed = true
+
+        assertTrue("The batch should continue after an observer failure", nextImageProcessed)
+        assertTrue("The original observer exception should be reported", reported === expected)
+    }
+
+    @Test
+    fun successfulProcessingObserverDoesNotReportFailure() {
+        var reported = false
+        var invoked = false
+
+        safelyNotifyProcessingObserver(
+            callback = { invoked = true },
+            onFailure = { reported = true }
+        )
+
+        assertTrue("Observer callback should run", invoked)
+        assertFalse("Successful observer callbacks should not report errors", reported)
+    }
+
     private class TrackingOutputStream : ByteArrayOutputStream() {
         var wasClosed = false
             private set
