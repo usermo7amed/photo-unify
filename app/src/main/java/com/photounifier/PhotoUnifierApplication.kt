@@ -24,8 +24,14 @@ internal object PendingExportCleanup {
      * Removes regular files directly inside the app-owned pending-export directory.
      * Does not recurse into directories or touch MediaStore/public user files.
      */
-    fun removeOrphanedFiles(context: Context): Int {
-        val directory = File(context.filesDir, DIRECTORY_NAME)
+    fun removeOrphanedFiles(context: Context): Int =
+        removeOrphanedFiles(File(context.filesDir, DIRECTORY_NAME))
+
+    /**
+     * File-based overload keeps the deletion boundary independently testable.
+     * Only direct regular-file children are eligible for removal.
+     */
+    internal fun removeOrphanedFiles(directory: File): Int {
         val files = try {
             directory.listFiles()
         } catch (_: SecurityException) {
