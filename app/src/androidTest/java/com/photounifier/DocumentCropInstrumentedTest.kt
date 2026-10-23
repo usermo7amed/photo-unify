@@ -866,4 +866,70 @@ class DocumentCropInstrumentedTest {
     }
 
 
+    @Test
+    fun repeatedAdjustmentsRecycleSupersededResultPreviews() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+        val sourceFile = File(app.cacheDir, "adjusted-preview-lifecycle-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(280, 220, Bitmap.Config.ARGB_8888)
+
+        fun awaitState(
+            description: String,
+            timeoutMillis: Long = 30_000,
+            predicate: (PhotoUiState) -> Boolean
+        ): PhotoUiState {
+            val deadline = SystemClock.uptimeMillis() + timeoutMillis
+            while (SystemClock.uptimeMillis() < deadline) {
+                val state = viewModel.state.value
+                if (state != null && predicate(state)) return state
+                SystemClock.sleep(50)
+            }
+            throw AssertionError("Timed out waiting for adjusted preview state: $description")
+        }
+
+        try {
+            val pixels = IntArray(source.width * source.height) { Color.WHITE }
+            for (y in 12 until source.height - 12) {
+                for (x in 12 until source.width - 12) {
+                    pixels[y * source.width + x] = if ((x / 12 + y / 12) % 2 == 0) Color.BLACK else Color.GRAY
+                }
+            }
+            source.setPixels(pixels, 0, source.width, 0, 0, source.width, source.height)
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue(source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            viewModel.selectImages(listOf(Uri.fromFile(sourceFile)))
+            var state = awaitState("source, enhanced, and adjusted preview") {
+                it.sourcePreview != null && it.enhancedPreview != null && it.resultPreview != null
+            }
+
+            val adjustmentValues = listOf(8, 16, 24)
+            for (brightness in adjustmentValues) {
+                val previousResult = state.resultPreview
+                    ?: throw AssertionError("An adjusted result preview must exist before changing brightness")
+                viewModel.setBrightness(brightness)
+                state = awaitState("replacement adjusted preview at brightness $brightness") {
+                    it.brightness == brightness &&
+                        it.resultPreview != null &&
+                        it.resultPreview !== previousResult &&
+                        previousResult.isRecycled
+                }
+                assertTrue(
+                    "Superseded result preview must be recycled after brightness $brightness",
+                    previousResult.isRecycled
+                )
+            }
+        } finally {
+            viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+
 }
