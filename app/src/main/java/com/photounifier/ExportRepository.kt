@@ -11,6 +11,8 @@ import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import java.io.File
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,9 +52,7 @@ class ExportRepository {
                     ?: throw IllegalStateException(context.getString(R.string.error_create_image_file))
                 val output = resolver.openOutputStream(destination, "w")
                     ?: throw IllegalStateException(context.getString(R.string.error_open_image_export))
-                item.file.inputStream().use { input ->
-                    output.use { input.copyTo(it) }
-                }
+                copyTemporaryImageToOutput(item.file, output)
                 val published = ContentValues().apply {
                     put(MediaStore.Images.Media.IS_PENDING, 0)
                 }
@@ -166,6 +166,18 @@ class ExportRepository {
     }
 }
 
+/**
+ * Closes the destination even when opening the temporary source fails.
+ * The destination is a MediaStore stream and must not be left open if a
+ * processing file is missing or cannot be read.
+ */
+internal fun copyTemporaryImageToOutput(file: File, output: OutputStream) {
+    output.use { destination ->
+        file.inputStream().use { source ->
+            source.copyTo(destination)
+        }
+    }
+}
 
 /**
  * Keeps failed inputs selected so retrying an export does not repeat successful items.
