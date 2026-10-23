@@ -16,9 +16,9 @@ class PendingExportCleanupTest {
         val nestedFile = File(nestedDirectory, "keep.tmp")
 
         try {
-            assertTrue(pendingImage.writeText("image").isEmpty())
-            assertTrue(partialExport.writeText("partial").isEmpty())
-            assertTrue(nestedFile.writeText("keep").isEmpty())
+            pendingImage.writeText("image")
+            partialExport.writeText("partial")
+            nestedFile.writeText("keep")
 
             assertEquals(2, PendingExportCleanup.removeOrphanedFiles(root))
 
