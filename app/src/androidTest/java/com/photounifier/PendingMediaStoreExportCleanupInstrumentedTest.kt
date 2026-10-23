@@ -1,8 +1,11 @@
 package com.photounifier
 
+import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -114,13 +117,18 @@ class PendingMediaStoreExportCleanupInstrumentedTest {
 
     private fun rowExists(context: Context, uri: Uri): Boolean {
         return try {
-            context.contentResolver.query(
-                uri,
-                arrayOf(MediaStore.MediaColumns._ID),
-                null,
-                null,
-                null
-            )?.use { it.moveToFirst() } ?: false
+            val resolver = context.contentResolver
+            val cursor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val queryArgs = Bundle().apply {
+                    putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE)
+                }
+                resolver.query(uri, arrayOf(MediaStore.MediaColumns._ID), queryArgs, null)
+            } else {
+                @Suppress("DEPRECATION")
+                val includePendingUri = MediaStore.setIncludePending(uri)
+                resolver.query(includePendingUri, arrayOf(MediaStore.MediaColumns._ID), null, null, null)
+            }
+            cursor?.use { it.moveToFirst() } ?: false
         } catch (_: Exception) {
             false
         }
