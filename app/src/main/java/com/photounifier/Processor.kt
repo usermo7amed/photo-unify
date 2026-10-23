@@ -177,16 +177,22 @@ object Processor {
                 }
                 output.flush()
             }
-            if (target.exists() && !target.delete()) {
-                throw IllegalStateException(context.getString(R.string.error_replace_temp_export))
-            }
-            if (!temporary.renameTo(target)) {
-                throw IllegalStateException(context.getString(R.string.error_finish_export_preparation))
+            // Both paths are in the same private directory. POSIX rename atomically
+            // replaces an existing target, so a failed write/rename never destroys
+            // the previously valid output.
+            try {
+                android.system.Os.rename(temporary.absolutePath, target.absolutePath)
+            } catch (error: android.system.ErrnoException) {
+                throw IllegalStateException(
+                    context.getString(R.string.error_finish_export_preparation),
+                    error
+                )
             }
             return target
         } catch (error: Exception) {
+            // Remove only the incomplete .part file. The target may still be a
+            // previously completed export if writing the replacement failed.
             temporary.delete()
-            target.delete()
             if (error is IllegalStateException && error.message == context.getString(R.string.error_prepare_image_export)) {
                 throw error
             }
