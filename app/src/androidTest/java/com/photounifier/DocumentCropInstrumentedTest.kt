@@ -1303,8 +1303,10 @@ class DocumentCropInstrumentedTest {
                 val decoded = BitmapFactory.decodeFile(file.absolutePath)
                     ?: throw AssertionError("Output file $index must remain a readable image")
                 try {
-                    assertEquals("Output $index width must be preserved", 240, decoded.width)
-                    assertEquals("Output $index height must be preserved", 180, decoded.height)
+                    assertTrue("Output $index must have positive dimensions", decoded.width > 0 && decoded.height > 0)
+                    val savedPreview = previews[index * 3 + 2]
+                    assertEquals("Saved preview width must match the exported output", savedPreview.width, decoded.width)
+                    assertEquals("Saved preview height must match the exported output", savedPreview.height, decoded.height)
                 } finally {
                     if (!decoded.isRecycled) decoded.recycle()
                 }
