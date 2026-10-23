@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.io.File
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -97,6 +98,69 @@ class PendingMediaStoreExportCleanupInstrumentedTest {
         }
     }
 
+
+    @Test
+    fun imageExportDeletesPendingRowWhenSourceCannotBeOpenedAfterValidation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val suffix = System.nanoTime().toString()
+        val backingFile = File(context.cacheDir, "PU_failure-$suffix.jpg")
+        assertFalse("Failure-injection source must not exist", backingFile.exists())
+        // Model a file that passes the preflight check but disappears before it can be read.
+        val disappearingFile = object : File(backingFile.path) {
+            override fun isFile(): Boolean = true
+        }
+        val folder = "${Environment.DIRECTORY_PICTURES}/PhotoUnifier"
+        val observer = RecordingExportObserver()
+        val repository = ExportRepository()
+
+        repository.exportAsImages(
+            context,
+            listOf(ExportImage("failure-$suffix", Uri.EMPTY, disappearingFile, disappearingFile.name)),
+            observer
+        )
+
+        assertEquals("No image should be reported as exported", 0, observer.successCount)
+        assertEquals("The unreadable image should be reported as failed", 1, observer.failedCount)
+        assertEquals("The failed item should not be marked successful", false, observer.itemSucceeded)
+        val prefix = "${disappearingFile.nameWithoutExtension}_"
+        val pendingAfter = pendingRows(context, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, folder)
+        assertTrue(
+            "A failed image export must delete its pending MediaStore row",
+            pendingAfter.none { it.substringAfter('|').startsWith(prefix) }
+        )
+    }
+
+    @Test
+    fun pdfExportDeletesPendingRowWhenSourceCannotBeOpenedAfterValidation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val suffix = System.nanoTime().toString()
+        val backingFile = File(context.cacheDir, "PU_pdf-failure-$suffix.jpg")
+        assertFalse("Failure-injection source must not exist", backingFile.exists())
+        // PDF export validates isFile before decoding, so this injects a read failure
+        // only after the pending PDF destination has been inserted.
+        val unreadableFile = object : File(backingFile.path) {
+            override fun isFile(): Boolean = true
+        }
+        val folder = "${Environment.DIRECTORY_DOCUMENTS}/PhotoUnifier"
+        val collection = MediaStore.Files.getContentUri("external")
+        val pendingBefore = pendingRows(context, collection, folder)
+        val observer = RecordingExportObserver()
+
+        ExportRepository().exportAsPdf(
+            context,
+            listOf(ExportImage("pdf-failure-$suffix", Uri.EMPTY, unreadableFile, unreadableFile.name)),
+            observer
+        )
+
+        assertEquals("Failed PDF export must not report success", 0, observer.successCount)
+        assertEquals("The PDF export should be reported as failed", 1, observer.failedCount)
+        val pendingAfter = pendingRows(context, collection, folder)
+        assertTrue(
+            "A failed PDF export must not leave a new pending MediaStore row",
+            (pendingAfter - pendingBefore).isEmpty()
+        )
+    }
+
     private fun insertRow(
         context: Context,
         collection: Uri,
@@ -113,6 +177,56 @@ class PendingMediaStoreExportCleanupInstrumentedTest {
         }
         return context.contentResolver.insert(collection, values)
             ?: throw AssertionError("Could not create MediaStore test row: $displayName")
+    }
+
+
+    private fun pendingRows(context: Context, collection: Uri, relativePath: String): Set<String> {
+        val resolver = context.contentResolver
+        val projection = arrayOf(
+            MediaStore.MediaColumns._ID,
+            MediaStore.MediaColumns.DISPLAY_NAME
+        )
+        val selection = "${MediaStore.MediaColumns.IS_PENDING} = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} = ?"
+        val selectionArgs = arrayOf("1", relativePath)
+        val cursor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val queryArgs = Bundle().apply {
+                putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE)
+                putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection)
+                putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs)
+            }
+            resolver.query(collection, projection, queryArgs, null)
+        } else {
+            @Suppress("DEPRECATION")
+            val includePendingUri = MediaStore.setIncludePending(collection)
+            resolver.query(includePendingUri, projection, selection, selectionArgs, null)
+        } ?: throw AssertionError("Could not query pending rows in $relativePath")
+
+        return cursor.use { rows ->
+            buildSet {
+                while (rows.moveToNext()) {
+                    add("${rows.getLong(0)}|${rows.getString(1)}")
+                }
+            }
+        }
+    }
+
+    private class RecordingExportObserver : ExportRepository.Observer {
+        var successCount: Int = -1
+        var failedCount: Int = -1
+        var itemSucceeded: Boolean? = null
+
+        override fun onProgress(completed: Int, total: Int, message: String) = Unit
+
+        override fun onError(message: String) = Unit
+
+        override fun onFinished(success: Int, failed: Int, error: String?) {
+            successCount = success
+            failedCount = failed
+        }
+
+        override fun onItemFinished(itemId: String, success: Boolean) {
+            itemSucceeded = success
+        }
     }
 
     private fun rowExists(context: Context, uri: Uri): Boolean {
