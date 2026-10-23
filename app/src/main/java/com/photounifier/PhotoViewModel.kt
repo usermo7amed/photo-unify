@@ -73,11 +73,16 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val previewGeneration = AtomicInteger(0)
     private val imagePreviewGeneration = AtomicInteger(0)
     private val cropGeneration = AtomicInteger(0)
+    private val cropPreviewGeneration = AtomicInteger(0)
     private val selectionGeneration = AtomicInteger(0)
     private val thumbnailRequests = mutableSetOf<Uri>()
     // Guarded by this ViewModel's monitor; only one queued/running adjustment
     // refresh is allowed at a time, regardless of how often the sliders change.
     private var previewRefreshScheduled = false
+    // Guarded by this ViewModel's monitor; rapid corner moves share one worker.
+    private var cropPreviewRefreshScheduled = false
+    private var cropPreviewRefreshOperationGeneration: Int? = null
+    private var cropPreviewRefreshRequested = false
     private val initialUiState = PhotoUiState(
         status = appContext.getString(R.string.status_ready_select),
         exportStatus = appContext.getString(R.string.status_ready_export)
@@ -644,37 +649,146 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         if (cleared) return
         val snapshot = currentState
         val source = snapshot.cropSource ?: return
-        if (!snapshot.cropOpen || index !in 0..3 || snapshot.cropCorners.size != 4) return
+        if (!snapshot.cropOpen || snapshot.cropApplying || snapshot.busy ||
+            index !in 0..3 || snapshot.cropCorners.size != 4 || source.isRecycled
+        ) return
         val candidate = snapshot.cropCorners.toMutableList()
-        candidate[index] = CropPoint(x.coerceIn(0f, (source.width - 1).toFloat()), y.coerceIn(0f, (source.height - 1).toFloat()))
+        candidate[index] = CropPoint(
+            x.coerceIn(0f, (source.width - 1).toFloat()),
+            y.coerceIn(0f, (source.height - 1).toFloat())
+        )
         if (!DocumentCrop.isValid(candidate, source.width, source.height)) return
-        val generation = cropGeneration.incrementAndGet()
-        update { it.copy(cropCorners = candidate, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners), cropDirty = true) }
-        executor.execute {
-            if (generation != cropGeneration.get() || source.isRecycled) return@execute
-            val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
-            val preview = try { DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, candidate), Processor.PREVIEW_MAX_SIDE, context = appContext) } catch (_: Exception) { return@execute }
-            if (generation != cropGeneration.get()) {
-                releaseBitmaps(listOf(preview))
-                return@execute
-            }
-            var installed = false
-            var replacedPreview: Bitmap? = null
-            update { old ->
-                if (generation != cropGeneration.get() || !old.cropOpen ||
-                    old.cropSource !== source || old.cropCorners != candidate
-                ) {
-                    old
-                } else {
-                    installed = true
-                    replacedPreview = old.cropPreview
-                    old.copy(cropPreview = preview)
-                }
-            }
-            if (installed) {
-                releaseBitmaps(listOf(replacedPreview), setOf(preview))
+
+        update { old ->
+            if (!old.cropOpen || old.cropApplying || old.busy ||
+                old.cropSource !== source || old.cropCorners != snapshot.cropCorners
+            ) {
+                old
             } else {
-                releaseBitmaps(listOf(preview))
+                old.copy(
+                    cropCorners = candidate,
+                    cropUndoStack = old.cropUndoStack + listOf(old.cropCorners),
+                    cropDirty = true
+                )
+            }
+        }
+        cropPreviewGeneration.incrementAndGet()
+        scheduleCropPreviewRefreshLocked()
+    }
+
+    /** Must be called while holding this ViewModel's monitor. */
+    private fun scheduleCropPreviewRefreshLocked() {
+        val snapshot = currentState
+        if (cleared || !snapshot.cropOpen || snapshot.cropApplying || snapshot.busy ||
+            snapshot.cropSource == null || snapshot.cropSource.isRecycled ||
+            snapshot.cropCorners.size != 4
+        ) return
+
+        val operationGeneration = cropGeneration.get()
+        if (cropPreviewRefreshScheduled) {
+            // A non-drag crop operation invalidated the active worker. Remember
+            // a newer drag request so it can be scheduled when that worker exits.
+            if (cropPreviewRefreshOperationGeneration != operationGeneration) {
+                cropPreviewRefreshRequested = true
+            }
+            return
+        }
+
+        cropPreviewRefreshScheduled = true
+        cropPreviewRefreshOperationGeneration = operationGeneration
+        cropPreviewRefreshRequested = false
+        try {
+            executor.execute { refreshLatestCropPreview(operationGeneration) }
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            cropPreviewRefreshScheduled = false
+            cropPreviewRefreshOperationGeneration = null
+            cropPreviewRefreshRequested = false
+        }
+    }
+
+    /**
+     * Coalesces pointer-move previews. If another corner position arrives during
+     * a warp, discard that bitmap and render the newest points on this same worker.
+     */
+    private fun refreshLatestCropPreview(operationGeneration: Int) {
+        var lastProcessedPreviewGeneration = cropPreviewGeneration.get()
+        try {
+            while (!cleared) {
+                val snapshot = synchronized(this) {
+                    if (cleared || cropGeneration.get() != operationGeneration) {
+                        null
+                    } else {
+                        lastProcessedPreviewGeneration = cropPreviewGeneration.get()
+                        currentState
+                    }
+                } ?: return
+
+                val source = snapshot.cropSource ?: return
+                val uri = snapshot.cropPageUri ?: return
+                val corners = snapshot.cropCorners
+                if (!snapshot.cropOpen || snapshot.cropApplying || snapshot.busy ||
+                    corners.size != 4 || source.isRecycled
+                ) return
+                val previewSource = snapshot.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
+                val preview = try {
+                    DocumentCrop.warp(
+                        previewSource,
+                        mapCropPoints(source, previewSource, corners),
+                        Processor.PREVIEW_MAX_SIDE,
+                        context = appContext
+                    )
+                } catch (_: Exception) {
+                    return
+                }
+
+                if (operationGeneration != cropGeneration.get() ||
+                    lastProcessedPreviewGeneration != cropPreviewGeneration.get() ||
+                    source.isRecycled
+                ) {
+                    releaseBitmaps(listOf(preview))
+                    if (operationGeneration != cropGeneration.get()) return
+                    continue
+                }
+
+                var installed = false
+                var replacedPreview: Bitmap? = null
+                update { old ->
+                    if (operationGeneration != cropGeneration.get() ||
+                        lastProcessedPreviewGeneration != cropPreviewGeneration.get() ||
+                        !old.cropOpen || old.cropPageUri != uri ||
+                        old.cropSource !== source || old.cropCorners != corners ||
+                        source.isRecycled
+                    ) {
+                        old
+                    } else {
+                        installed = true
+                        replacedPreview = old.cropPreview
+                        old.copy(cropPreview = preview)
+                    }
+                }
+                if (installed) {
+                    releaseBitmaps(listOf(replacedPreview), setOf(preview))
+                } else {
+                    releaseBitmaps(listOf(preview))
+                }
+
+                if (operationGeneration != cropGeneration.get()) return
+                if (lastProcessedPreviewGeneration == cropPreviewGeneration.get()) return
+            }
+        } finally {
+            synchronized(this) {
+                val shouldReschedule = cropPreviewRefreshRequested ||
+                    (!cleared && operationGeneration == cropGeneration.get() &&
+                        currentState.cropOpen && !currentState.cropApplying && !currentState.busy &&
+                        currentState.cropSource?.isRecycled == false &&
+                        currentState.cropCorners.size == 4 &&
+                        cropPreviewGeneration.get() != lastProcessedPreviewGeneration)
+                cropPreviewRefreshScheduled = false
+                cropPreviewRefreshOperationGeneration = null
+                cropPreviewRefreshRequested = false
+                if (!cleared && shouldReschedule) {
+                    scheduleCropPreviewRefreshLocked()
+                }
             }
         }
     }
