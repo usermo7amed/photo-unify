@@ -200,7 +200,9 @@ object Processor {
                 context.getString(R.string.error_replace_temp_export),
                 context.getString(R.string.error_finish_export_preparation)
             )
-            if (error is IllegalStateException && error.message in localizedErrorMessages) {
+            if (error is IllegalStateException &&
+                error.message?.let { it in localizedErrorMessages } == true
+            ) {
                 throw error
             }
             throw IllegalStateException(context.getString(R.string.error_prepare_image_export), error)
