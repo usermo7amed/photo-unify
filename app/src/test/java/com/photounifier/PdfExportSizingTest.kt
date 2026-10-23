@@ -19,7 +19,7 @@ class PdfExportSizingTest {
 
     @Test
     fun usesLongestEdgeAndSupportsCustomTarget() {
-        assertEquals(2, pdfExportSampleSize(2000, 8000, maxSide = 2000))
+        assertEquals(4, pdfExportSampleSize(2000, 8000, maxSide = 2000))
         assertEquals(1, pdfExportSampleSize(1000, 1000, maxSide = 2000))
     }
 
