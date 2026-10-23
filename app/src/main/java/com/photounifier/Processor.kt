@@ -183,17 +183,24 @@ object Processor {
             try {
                 android.system.Os.rename(temporary.absolutePath, target.absolutePath)
             } catch (error: android.system.ErrnoException) {
-                throw IllegalStateException(
-                    context.getString(R.string.error_finish_export_preparation),
-                    error
-                )
+                val message = if (target.exists()) {
+                    context.getString(R.string.error_replace_temp_export)
+                } else {
+                    context.getString(R.string.error_finish_export_preparation)
+                }
+                throw IllegalStateException(message, error)
             }
             return target
         } catch (error: Exception) {
             // Remove only the incomplete .part file. The target may still be a
             // previously completed export if writing the replacement failed.
             temporary.delete()
-            if (error is IllegalStateException && error.message == context.getString(R.string.error_prepare_image_export)) {
+            val localizedErrorMessages = setOf(
+                context.getString(R.string.error_prepare_image_export),
+                context.getString(R.string.error_replace_temp_export),
+                context.getString(R.string.error_finish_export_preparation)
+            )
+            if (error is IllegalStateException && error.message in localizedErrorMessages) {
                 throw error
             }
             throw IllegalStateException(context.getString(R.string.error_prepare_image_export), error)
