@@ -36,20 +36,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -63,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -197,8 +191,7 @@ fun AdjustPreviewScreen(
             modifier = Modifier.fillMaxWidth().weight(1f),
             shape = RoundedCornerShape(PhotoUnifierRadius.xl),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
         ) {
             Column(
                 modifier = Modifier
@@ -458,7 +451,6 @@ private fun FilterPresetCard(
             color = if (isSelected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         ),
-        shadowElevation = if (isSelected) PhotoUnifierElevation.mid else PhotoUnifierElevation.low
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             // شارة AI في الركن العلوي إذا كان الفلتر ذكيًا
@@ -558,8 +550,7 @@ private fun FineTuneSlidersCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier

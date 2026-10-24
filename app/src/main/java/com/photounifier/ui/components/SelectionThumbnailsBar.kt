@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,7 +51,6 @@ import androidx.compose.ui.unit.sp
 import com.photounifier.SelectionThumbnail
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.foundation.background
-import androidx.compose.ui.draw.blur
 import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.PhotoUnifierElevation
@@ -311,20 +309,13 @@ fun PreviewNavigationControls(
                 .weight(0.85f)
                 .height(PhotoUnifierHeight.buttonTertiary),
             shape = MaterialTheme.shapes.medium,
-            color = Color.Transparent,
+            color = MaterialTheme.colorScheme.primaryContainer,
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
                 MaterialTheme.colorScheme.primary.copy(alpha = PhotoUnifierGlass.borderAlpha)
             ),
-            shadowElevation = PhotoUnifierElevation.none
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(PhotoUnifierGlass.blurRadius)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha))
-                )
                 Text(
                     text = "${selectedIndex + 1} / $totalCount",
                     textAlign = TextAlign.Center,

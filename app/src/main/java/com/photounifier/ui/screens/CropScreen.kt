@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.components.PhotoUnifierButton
-import com.photounifier.ui.components.PhotoUnifierOutlinedButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -39,14 +37,11 @@ import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,7 +65,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.photounifier.CropCornerEditor
 import com.photounifier.PhotoUiState
-import com.photounifier.ui.PhotoUnifierDuration
 import com.photounifier.ui.PhotoUnifierElevation
 import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.PhotoUnifierIconSize
@@ -93,8 +87,7 @@ fun CropReviewCard(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(PhotoUnifierSpacing.md),
@@ -302,8 +295,7 @@ fun CropWorkspaceView(
                         .weight(1f)
                         .heightIn(min = if (compactLayout) 110.dp else 170.dp),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                    shadowElevation = PhotoUnifierElevation.low
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
                     CropCornerEditor(
                         bitmap = state.cropSource,
@@ -551,8 +543,7 @@ fun CropWorkspaceBottomBar(
             .padding(horizontal = 8.dp, vertical = 3.dp),
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        shadowElevation = PhotoUnifierElevation.mid
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
