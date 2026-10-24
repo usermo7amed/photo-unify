@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.photounifier.ui.components.PhotoUnifierButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -235,7 +237,8 @@ fun CropWorkspaceView(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val compactLayout = maxHeight < 620.dp
+        val availableHeight = maxHeight
+        val compactLayout = availableHeight < 620.dp
         var showCropResultPreview by remember { mutableStateOf(false) }
 
         Column(
@@ -293,7 +296,7 @@ fun CropWorkspaceView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .heightIn(min = if (compactLayout) 110.dp else 170.dp),
+                        .heightIn(min = if (compactLayout) 96.dp else 170.dp),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
@@ -309,7 +312,7 @@ fun CropWorkspaceView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .heightIn(min = if (compactLayout) 110.dp else 170.dp),
+                        .heightIn(min = if (compactLayout) 96.dp else 170.dp),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
@@ -339,13 +342,22 @@ fun CropWorkspaceView(
         if (showCropResultPreview) {
             Dialog(onDismissRequest = { showCropResultPreview = false }) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(
+                            max = if (compactLayout) {
+                                (availableHeight * 0.84f).coerceAtLeast(240.dp)
+                            } else {
+                                680.dp
+                            }
+                        ),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                     color = MaterialTheme.colorScheme.surface
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                             .padding(PhotoUnifierSpacing.md),
                         verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
                     ) {
@@ -374,7 +386,13 @@ fun CropWorkspaceView(
                                 contentDescription = stringResource(R.string.crop_preview_title),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 560.dp),
+                                    .heightIn(
+                                        max = if (compactLayout) {
+                                            (availableHeight * 0.45f).coerceAtLeast(140.dp)
+                                        } else {
+                                            560.dp
+                                        }
+                                    ),
                                 contentScale = ContentScale.Fit,
                                 filterQuality = FilterQuality.Medium
                             )
@@ -410,8 +428,8 @@ private fun DocumentPageThumbnailStrip(
     enabled: Boolean,
     compact: Boolean
 ) {
-    val thumbnailWidth = if (compact) 60.dp else 74.dp
-    val thumbnailHeight = if (compact) 66.dp else 84.dp
+    val thumbnailWidth = if (compact) 54.dp else 74.dp
+    val thumbnailHeight = if (compact) 58.dp else 84.dp
 
     Column(
         modifier = Modifier.fillMaxWidth(),
