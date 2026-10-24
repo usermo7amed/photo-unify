@@ -36,6 +36,7 @@ class ExportRepository {
 
         items.forEachIndexed { index, item ->
             var destination: Uri? = null
+            var destinationPublished = false
             var itemSucceeded = false
             try {
                 check(item.file.isFile) { context.getString(R.string.export_temp_image_missing) }
@@ -60,14 +61,19 @@ class ExportRepository {
                 if (resolver.update(destination, published, null, null) <= 0) {
                     throw IllegalStateException(context.getString(R.string.error_image_unavailable_after_export))
                 }
+                // Publication commits the output. Cleanup must not remove it if a
+                // later bookkeeping operation fails unexpectedly.
+                destinationPublished = true
                 success++
                 itemSucceeded = true
             } catch (error: Exception) {
                 failed++
                 lastError = error.message ?: error.javaClass.simpleName
-                destination?.let { runCatching { resolver.delete(it, null, null) } }
                 notifyObserver("onError") { observer.onError("${item.displayName}: ${lastError}") }
             } finally {
+                if (!destinationPublished) {
+                    destination?.let { runCatching { resolver.delete(it, null, null) } }
+                }
                 notifyObserver("onItemFinished") { observer.onItemFinished(item.id, itemSucceeded) }
                 notifyObserver("onProgress") {
                     observer.onProgress(index + 1, items.size, context.getString(R.string.export_image_progress, index + 1, items.size))
@@ -92,6 +98,7 @@ class ExportRepository {
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         var destination: Uri? = null
+        var destinationPublished = false
         var document: PdfDocument? = null
         var completed = 0
         var failed = items.size
@@ -152,19 +159,22 @@ class ExportRepository {
             if (resolver.update(destination, published, null, null) <= 0) {
                 throw IllegalStateException(context.getString(R.string.error_pdf_unavailable_after_save))
             }
-            // Publication is the commit point. Observer callbacks happen only after
-            // this point and must never turn a completed export into a failed one.
+            // Publication is the commit point. Mark it before any further work so
+            // fatal errors cannot cause cleanup to delete a completed PDF.
+            destinationPublished = true
             completed = 1
             failed = 0
         } catch (error: Exception) {
             val message = error.message ?: error.javaClass.simpleName
             resultError = message
-            destination?.let { runCatching { resolver.delete(it, null, null) } }
             notifyObserver("onError") {
                 observer.onError(context.getString(R.string.error_pdf_export_item, message))
             }
         } finally {
             runCatching { document?.close() }
+            if (!destinationPublished) {
+                destination?.let { runCatching { resolver.delete(it, null, null) } }
+            }
         }
         notifyObserver("onFinished") { observer.onFinished(completed, failed, resultError) }
     }
