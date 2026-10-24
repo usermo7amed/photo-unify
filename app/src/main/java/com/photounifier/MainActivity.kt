@@ -475,7 +475,6 @@ private fun PhotoUnifierScreen(
                             onClearSelection = onClearSelection,
                             onRemoveImage = onRemoveImage,
                             onPreviewSelect = onPreviewSelect,
-                            onStartReview = { currentStep = 1 },
                             enabled = !state.busy
                         )
                     }
