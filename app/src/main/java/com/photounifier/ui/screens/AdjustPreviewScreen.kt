@@ -451,7 +451,6 @@ private fun FilterPresetCard(
             color = if (isSelected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         ),
-        shadowElevation = PhotoUnifierElevation.none
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             // شارة AI في الركن العلوي إذا كان الفلتر ذكيًا
