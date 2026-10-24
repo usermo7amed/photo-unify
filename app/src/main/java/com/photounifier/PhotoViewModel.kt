@@ -193,8 +193,15 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 if (!retained) thumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
-            } catch (_: Exception) {
-                thumbnails.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
+            } catch (error: Throwable) {
+                // A fatal decode/allocation error must not strand thumbnails already
+                // loaded by this worker. Cleanup failures must not mask the root cause.
+                thumbnails.forEach { thumbnail ->
+                    runCatching {
+                        if (!thumbnail.bitmap.isRecycled) thumbnail.bitmap.recycle()
+                    }
+                }
+                if (error !is Exception) throw error
             }
         }
     }
