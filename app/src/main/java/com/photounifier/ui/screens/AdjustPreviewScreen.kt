@@ -15,6 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.components.PhotoUnifierButton
 import com.photounifier.ui.components.PhotoUnifierOutlinedButton
@@ -37,6 +40,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
@@ -44,6 +48,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -66,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.photounifier.BeforeAfterPreview
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.components.PreviewNavigationControls
@@ -168,10 +174,15 @@ fun AdjustPreviewScreen(
     }
     val isCustomAdjusted = activePreset == null && (state.brightness != 0 || state.contrastPercent != 100)
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compactHeight = maxHeight < 680.dp
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactHeight) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+            )
+        ) {
         // شريط رأس الشاشة والتنقل بين الصفحات
         AdjustHeader(
             selectedCount = state.selected.size,
@@ -212,7 +223,7 @@ fun AdjustPreviewScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .heightIn(min = 120.dp)
+                            .heightIn(min = if (compactHeight) 90.dp else 120.dp)
                             .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                         contentAlignment = Alignment.Center
@@ -293,7 +304,7 @@ fun AdjustPreviewScreen(
 
         // لوحة الضبط اليدوي الدقيق (تظهر وتختفي بسلاسة كلوحة منبثقة)
         AnimatedVisibility(
-            visible = showFineTuneSliders,
+            visible = showFineTuneSliders && !compactHeight,
             enter = expandVertically(animationSpec = tween(PhotoUnifierDuration.normal)) + fadeIn(animationSpec = tween(PhotoUnifierDuration.normal)),
             exit = shrinkVertically(animationSpec = tween(PhotoUnifierDuration.normal)) + fadeOut(animationSpec = tween(PhotoUnifierDuration.fast))
         ) {
@@ -311,7 +322,11 @@ fun AdjustPreviewScreen(
             onClick = onProcess,
             enabled = !state.busy && openCvReady && state.selected.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
-            height = PhotoUnifierHeight.buttonPrimary,
+            height = if (compactHeight) {
+                PhotoUnifierHeight.buttonSecondary
+            } else {
+                PhotoUnifierHeight.buttonPrimary
+            },
             shape = RoundedCornerShape(PhotoUnifierRadius.md)
         ) {
             if (state.busy) {
@@ -341,6 +356,53 @@ fun AdjustPreviewScreen(
             }
         }
 
+        // Compact screens keep the image visible and move manual controls into a scrollable dialog.
+        if (compactHeight && showFineTuneSliders) {
+            Dialog(onDismissRequest = { showFineTuneSliders = false }) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(PhotoUnifierRadius.lg),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(PhotoUnifierSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = stringResource(R.string.action_adjust),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(onClick = { showFineTuneSliders = false }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.action_close_preview)
+                                )
+                            }
+                        }
+
+                        FineTuneSlidersContent(
+                            brightness = state.brightness,
+                            contrastPercent = state.contrastPercent,
+                            onBrightnessChange = onBrightnessChange,
+                            onContrastChange = onContrastChange,
+                            enabled = !state.busy && state.sourcePreview != null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = maxHeight * 0.68f)
+                                .verticalScroll(rememberScrollState())
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -552,12 +614,32 @@ private fun FineTuneSlidersCard(
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
-        Column(
+        FineTuneSlidersContent(
+            brightness = brightness,
+            contrastPercent = contrastPercent,
+            onBrightnessChange = onBrightnessChange,
+            onContrastChange = onContrastChange,
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PhotoUnifierSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
-        ) {
+                .padding(PhotoUnifierSpacing.md)
+        )
+    }
+}
+
+@Composable
+private fun FineTuneSlidersContent(
+    brightness: Int,
+    contrastPercent: Int,
+    onBrightnessChange: (Int) -> Unit,
+    onContrastChange: (Int) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+    ) {
             // شريط ضبط السطوع
             Column(verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)) {
                 Row(
