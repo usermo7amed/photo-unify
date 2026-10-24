@@ -1423,15 +1423,19 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         observer
                     )
                 }
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 val message = error.message ?: error.javaClass.simpleName
-                update { old ->
-                    old.copy(
-                        exportBusy = false,
-                        exportStatus = appContext.getString(R.string.status_export_failed, message),
-                        exportErrors = old.exportErrors + message
-                    )
+                runCatching {
+                    update { old ->
+                        old.copy(
+                            exportBusy = false,
+                            exportStatus = appContext.getString(R.string.status_export_failed, message),
+                            exportErrors = old.exportErrors + message
+                        )
+                    }
                 }
+                // Keep the UI recoverable, but never swallow fatal VM/runtime errors.
+                if (error !is Exception) throw error
             }
         }
     }
