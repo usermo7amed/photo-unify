@@ -500,7 +500,7 @@ fun PhotoUnifierOutlinedButton(
         modifier = modifier.height(height),
         enabled = enabled,
         shape = shape,
-        colors = ButtonDefaults.outlinedButtonColors(
+        colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
