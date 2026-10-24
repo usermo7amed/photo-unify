@@ -396,7 +396,7 @@ fun AdjustPreviewScreen(
                             enabled = !state.busy && state.sourcePreview != null,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = maxHeight * 0.68f)
+                                .heightIn(max = maxHeight * 0.62f)
                                 .verticalScroll(rememberScrollState())
                         )
                     }
@@ -808,5 +808,4 @@ private fun FineTuneSlidersContent(
                 }
             }
         }
-    }
 }
