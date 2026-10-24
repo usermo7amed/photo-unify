@@ -497,18 +497,23 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             var source: Bitmap? = null
             var previewSource: Bitmap? = null
             var preview: Bitmap? = null
+            var unownedThumbnail: Bitmap? = null
             try {
                 val context = getApplication<Application>().applicationContext
                 val decoded = Processor.load(context, uri)
+                // Track the decoded allocation before rotation: creating the rotated
+                // bitmap may throw an Error under memory pressure.
+                source = decoded
                 val rotated = rotatePageBitmap(decoded, savedEdit?.rotationDegrees ?: 0)
-                if (rotated !== decoded && !decoded.isRecycled) decoded.recycle()
                 source = rotated
+                if (rotated !== decoded && !decoded.isRecycled) decoded.recycle()
 
                 if (snapshot.selectionThumbnails.none { it.uri == uri }) {
                     val scale = minOf(1.0, 112.0 / maxOf(rotated.width, rotated.height).toDouble())
                     val width = (rotated.width * scale).roundToInt().coerceAtLeast(1)
                     val height = (rotated.height * scale).roundToInt().coerceAtLeast(1)
                     val pageThumbnail = Bitmap.createScaledBitmap(rotated, width, height, true)
+                    unownedThumbnail = pageThumbnail
                     var accepted = false
                     var evicted = emptyList<SelectionThumbnail>()
                     update { old ->
@@ -528,9 +533,13 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                     if (accepted) {
+                        // Ownership is now in PhotoUiState; don't recycle this bitmap
+                        // if later crop preparation fails.
+                        unownedThumbnail = null
                         releaseBitmaps(evicted.map { it.bitmap }, setOf(pageThumbnail))
-                    } else if (!pageThumbnail.isRecycled) {
-                        pageThumbnail.recycle()
+                    } else {
+                        if (!pageThumbnail.isRecycled) pageThumbnail.recycle()
+                        unownedThumbnail = null
                     }
                 }
 
@@ -598,8 +607,19 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     releaseBitmaps(listOf(source, previewSource, preview))
                 }
-            } catch (error: Exception) {
-                releaseBitmaps(listOf(source, previewSource, preview))
+            } catch (error: Throwable) {
+                releaseBitmaps(listOf(source, previewSource, preview, unownedThumbnail))
+                if (error !is Exception) {
+                    // Clear the busy state if possible, then preserve fatal errors such
+                    // as OutOfMemoryError after releasing all bitmaps still owned here.
+                    runCatching {
+                        update { old ->
+                            if (generation != cropGeneration.get() || old.selected.getOrNull(index) != uri) old
+                            else old.copy(cropApplying = false)
+                        }
+                    }
+                    throw error
+                }
                 update { old ->
                     if (generation != cropGeneration.get() || old.selected.getOrNull(index) != uri) old
                     else old.copy(
@@ -672,8 +692,17 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     releaseBitmaps(listOf(rotated, previewSource, preview), setOf(source))
                 }
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 releaseBitmaps(listOf(rotated, previewSource, preview), setOf(source))
+                if (error !is Exception) {
+                    runCatching {
+                        update { old ->
+                            if (generation != cropGeneration.get()) old
+                            else old.copy(cropApplying = false)
+                        }
+                    }
+                    throw error
+                }
                 update { old ->
                     if (generation != cropGeneration.get()) old
                     else old.copy(
