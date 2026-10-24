@@ -14,6 +14,24 @@ import kotlin.math.roundToInt
 
 data class SelectionThumbnail(val uri: Uri, val bitmap: Bitmap)
 
+/**
+ * Transfers a newly created resource to its owner only when registration succeeds.
+ * If constructing/registering the owner fails, release the resource and preserve
+ * the original failure so allocation errors cannot leak an untracked bitmap.
+ */
+internal fun <T> retainResourceOrCleanup(
+    resource: T,
+    cleanup: (T) -> Unit,
+    retain: (T) -> Unit
+) {
+    try {
+        retain(resource)
+    } catch (error: Throwable) {
+        runCatching { cleanup(resource) }
+        throw error
+    }
+}
+
 data class ExportImage(
     val id: String,
     val sourceUri: Uri,
@@ -1502,24 +1520,6 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         val scaleX = (target.width - 1).toFloat() / (source.width - 1).coerceAtLeast(1)
         val scaleY = (target.height - 1).toFloat() / (source.height - 1).coerceAtLeast(1)
         return points.map { CropPoint(it.x * scaleX, it.y * scaleY) }
-    }
-
-    /**
-     * Transfers a newly created resource to its owner only when registration succeeds.
-     * If constructing/registering the owner fails, release the resource and preserve
-     * the original failure so allocation errors cannot leak an untracked bitmap.
-     */
-    internal fun <T> retainResourceOrCleanup(
-        resource: T,
-        cleanup: (T) -> Unit,
-        retain: (T) -> Unit
-    ) {
-        try {
-            retain(resource)
-        } catch (error: Throwable) {
-            runCatching { cleanup(resource) }
-            throw error
-        }
     }
 
     private fun releaseBitmapsAfterQueuedWork(
