@@ -920,7 +920,8 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     @Synchronized
     fun resetCrop() {
         if (cleared) return
-        val source = currentState.cropSource ?: return
+        val snapshot = currentState
+        val source = snapshot.cropSource ?: return
         val corners = DocumentCrop.fullFrame(source.width, source.height)
         val generation = cropGeneration.incrementAndGet()
         update { it.copy(cropCorners = corners, cropUndoStack = it.cropUndoStack + listOf(it.cropCorners), cropDirty = true) }
