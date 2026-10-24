@@ -281,7 +281,7 @@ fun PreviewNavigationControls(
         horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        GlassmorphicOutlinedButton(
+        PhotoUnifierOutlinedButton(
             onClick = { onIndexChange(selectedIndex - 1) },
             enabled = enabled && selectedIndex > 0,
             modifier = Modifier
@@ -335,7 +335,7 @@ fun PreviewNavigationControls(
             }
         }
 
-        GlassmorphicOutlinedButton(
+        PhotoUnifierOutlinedButton(
             onClick = { onIndexChange(selectedIndex + 1) },
             enabled = enabled && selectedIndex < totalCount - 1,
             modifier = Modifier
