@@ -876,7 +876,22 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             val preview = try {
                 val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
                 DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, previous), Processor.PREVIEW_MAX_SIDE, context = appContext)
-            } catch (_: Exception) { return@execute }
+            } catch (error: Throwable) {
+                update { old ->
+                    if (generation != cropGeneration.get() || old.cropSource !== source) old
+                    else old.copy(
+                        cropCorners = snapshot.cropCorners,
+                        cropUndoStack = snapshot.cropUndoStack,
+                        cropDirty = snapshot.cropDirty,
+                        status = appContext.getString(
+                            R.string.status_crop_preview_failed,
+                            error.message ?: error.javaClass.simpleName
+                        )
+                    )
+                }
+                if (error !is Exception) throw error
+                return@execute
+            }
             if (generation != cropGeneration.get()) {
                 releaseBitmaps(listOf(preview))
                 return@execute
@@ -914,7 +929,22 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             val preview = try {
                 val previewSource = currentState.cropPreviewSource?.takeIf { !it.isRecycled } ?: source
                 DocumentCrop.warp(previewSource, mapCropPoints(source, previewSource, corners), Processor.PREVIEW_MAX_SIDE, context = appContext)
-            } catch (_: Exception) { return@execute }
+            } catch (error: Throwable) {
+                update { old ->
+                    if (generation != cropGeneration.get() || old.cropSource !== source) old
+                    else old.copy(
+                        cropCorners = snapshot.cropCorners,
+                        cropUndoStack = snapshot.cropUndoStack,
+                        cropDirty = snapshot.cropDirty,
+                        status = appContext.getString(
+                            R.string.status_crop_preview_failed,
+                            error.message ?: error.javaClass.simpleName
+                        )
+                    )
+                }
+                if (error !is Exception) throw error
+                return@execute
+            }
             if (generation != cropGeneration.get()) {
                 releaseBitmaps(listOf(preview))
                 return@execute
@@ -998,14 +1028,18 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             if (generation != cropGeneration.get() || source.isRecycled) return@execute
             val preview = try {
                 DocumentCrop.warp(previewSource, previewCorners, Processor.PREVIEW_MAX_SIDE, context = appContext)
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 update { old ->
                     if (generation != cropGeneration.get()) old
                     else old.copy(
                         cropApplying = false,
-                        status = appContext.getString(R.string.status_crop_preview_failed, error.message ?: error.javaClass.simpleName)
+                        status = appContext.getString(
+                            R.string.status_crop_preview_failed,
+                            error.message ?: error.javaClass.simpleName
+                        )
                     )
                 }
+                if (error !is Exception) throw error
                 return@execute
             }
             if (generation != cropGeneration.get()) {
