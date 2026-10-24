@@ -13,14 +13,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +30,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.PhotoUnifierElevation
-import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierSpacing
 import com.photounifier.ui.components.SelectionThumbnailsBar
 
@@ -60,11 +54,7 @@ fun HomeScreen(
     ) {
         if (state.selected.isEmpty()) {
             // حالة الخلو - شاشة نظيفة وسريعة للمسح أو الاستيراد بلمسة واحدة
-            EmptyScanDashboard(
-                onCaptureDocument = onCaptureDocument,
-                onPickImages = { onPickImages(false) },
-                enabled = enabled
-            )
+            EmptyScanDashboard()
         } else {
             // نمط دفعة المستندات - مستندات محددة جاهزة للمراجعة والقص
             ActiveBatchDashboard(
@@ -80,65 +70,32 @@ fun HomeScreen(
 }
 
 /**
- * واجهة البدء السريع عند عدم وجود مستندات مختارة
+ * Minimal empty state. Capture and gallery actions already live in the bottom bar,
+ * so keep this area focused on the next step instead of duplicating controls.
  */
 @Composable
-private fun EmptyScanDashboard(
-    onCaptureDocument: () -> Unit,
-    onPickImages: () -> Unit,
-    enabled: Boolean
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.low)
+private fun EmptyScanDashboard() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = PhotoUnifierSpacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(PhotoUnifierSpacing.xl),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
-        ) {
-            Surface(
-                modifier = Modifier.size(PhotoUnifierIconSize.hero),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Description,
-                        contentDescription = null,
-                        modifier = Modifier.size(30.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-            ) {
-                Text(
-                    text = stringResource(R.string.home_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(R.string.home_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-        }
+        Text(
+            text = stringResource(R.string.home_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = stringResource(R.string.home_subtitle),
+            modifier = Modifier.padding(top = PhotoUnifierSpacing.xxs),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
