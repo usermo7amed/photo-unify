@@ -1255,7 +1255,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         submitOrRecoverRejectedTask(
-            submit = { task -> executor.execute(task) },
+            submit = { task -> executor.execute { task() } },
             task = {
                 try {
                     repository.process(
