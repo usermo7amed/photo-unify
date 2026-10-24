@@ -93,8 +93,7 @@ fun CropReviewCard(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(PhotoUnifierSpacing.md),
@@ -302,8 +301,7 @@ fun CropWorkspaceView(
                         .weight(1f)
                         .heightIn(min = if (compactLayout) 110.dp else 170.dp),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                    shadowElevation = PhotoUnifierElevation.low
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
                     CropCornerEditor(
                         bitmap = state.cropSource,
@@ -551,8 +549,7 @@ fun CropWorkspaceBottomBar(
             .padding(horizontal = 8.dp, vertical = 3.dp),
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        shadowElevation = PhotoUnifierElevation.mid
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
