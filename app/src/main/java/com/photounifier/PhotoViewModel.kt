@@ -78,6 +78,16 @@ data class PhotoUiState(
     val cropDirty: Boolean = false
 )
 
+internal fun recoverProcessingFailure(
+    state: PhotoUiState,
+    message: String,
+    failureStatus: String
+): PhotoUiState = state.copy(
+    busy = false,
+    status = failureStatus,
+    errors = state.errors + message
+)
+
 /** Owns screen state and coordinates background work; the Activity only renders state. */
 class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val appContext = application.applicationContext
@@ -1263,9 +1273,10 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         executor.execute {
-            repository.process(
-                getApplication<Application>().applicationContext, uris, brightness, contrast,
-                object : PhotoRepository.Observer {
+            try {
+                repository.process(
+                    getApplication<Application>().applicationContext, uris, brightness, contrast,
+                    object : PhotoRepository.Observer {
                     override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
                         var replaced: List<Bitmap?> = emptyList()
                         val retained = update { old ->
@@ -1340,8 +1351,28 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 },
-                pageEdits = snapshot.cropEdits
-            )
+                    pageEdits = snapshot.cropEdits
+                )
+            } catch (error: Throwable) {
+                val message = error.message ?: error.javaClass.simpleName
+                // A failure before the repository's completion callback must not
+                // leave the processing controls permanently disabled. Preserve any
+                // successful images already transferred into the UI state.
+                runCatching {
+                    update { old ->
+                        recoverProcessingFailure(
+                            state = old,
+                            message = message,
+                            failureStatus = appContext.getString(
+                                R.string.status_processing_aborted,
+                                message
+                            )
+                        )
+                    }
+                }
+                // Recover the UI, but keep fatal VM/runtime errors visible to the process.
+                if (error !is Exception) throw error
+            }
         }
     }
 
