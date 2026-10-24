@@ -183,177 +183,179 @@ fun AdjustPreviewScreen(
                 if (compactHeight) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
             )
         ) {
-        // شريط رأس الشاشة والتنقل بين الصفحات
-        AdjustHeader(
-            selectedCount = state.selected.size,
-            currentIndex = state.previewIndex,
-            onIndexChange = onPreviewSelect,
-            activePresetTitle = activePreset?.let { stringResource(it.titleRes) },
-            isCustomAdjusted = isCustomAdjusted || (activePreset != null && activePreset.id != "original"),
-            onResetAdjustments = {
-                onBrightnessChange(0)
-                onContrastChange(100)
-            },
-            enabled = !state.busy && !state.cropApplying
-        )
+            // شريط رأس الشاشة والتنقل بين الصفحات
+            AdjustHeader(
+                selectedCount = state.selected.size,
+                currentIndex = state.previewIndex,
+                onIndexChange = onPreviewSelect,
+                activePresetTitle = activePreset?.let { stringResource(it.titleRes) },
+                isCustomAdjusted = isCustomAdjusted || (activePreset != null && activePreset.id != "original"),
+                onResetAdjustments = {
+                    onBrightnessChange(0)
+                    onContrastChange(100)
+                },
+                enabled = !state.busy && !state.cropApplying
+            )
 
-        // بطاقة المعاينة المركزية التفاعلية
-        Card(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            shape = RoundedCornerShape(PhotoUnifierRadius.xl),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(PhotoUnifierSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+            // بطاقة المعاينة المركزية التفاعلية
+            Card(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                shape = RoundedCornerShape(PhotoUnifierRadius.xl),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
             ) {
-                // معاينة الأصل والنتيجة بدون تعليمات مكررة
-                // محرك المقارنة التفاعلي
-                if (state.sourcePreview != null && !state.sourcePreview.isRecycled) {
-                    BeforeAfterPreview(
-                        source = state.sourcePreview,
-                        enhanced = state.resultPreview ?: state.enhancedPreview,
-                        modifier = Modifier.weight(1f).fillMaxWidth()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .heightIn(min = if (compactHeight) 90.dp else 120.dp)
-                            .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(PhotoUnifierSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                ) {
+                    // معاينة الأصل والنتيجة بدون تعليمات مكررة
+                    // محرك المقارنة التفاعلي
+                    if (state.sourcePreview != null && !state.sourcePreview.isRecycled) {
+                        BeforeAfterPreview(
+                            source = state.sourcePreview,
+                            enhanced = state.resultPreview ?: state.enhancedPreview,
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .heightIn(min = if (compactHeight) 90.dp else 120.dp)
+                                .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(36.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 3.dp
-                            )
-                            Text(
-                                text = stringResource(R.string.adjust_preview_loading),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(36.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 3.dp
+                                )
+                                Text(
+                                    text = stringResource(R.string.adjust_preview_loading),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // أدوات الفلاتر: تحكم مختصر بدل عنوان ووصف مكررين.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PhotoUnifierButton(
-                onClick = { showFineTuneSliders = !showFineTuneSliders },
-                enabled = !state.busy && state.sourcePreview != null,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                height = PhotoUnifierHeight.buttonTertiary,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = PhotoUnifierSpacing.xs,
-                    vertical = PhotoUnifierSpacing.xxs
-                )
+            // أدوات الفلاتر: تحكم مختصر بدل عنوان ووصف مكررين.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = if (showFineTuneSliders) stringResource(R.string.action_hide_manual_adjustment) else stringResource(R.string.action_show_manual_adjustment),
-                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = if (showFineTuneSliders) stringResource(R.string.action_hide_manual_adjustment) else stringResource(R.string.action_adjust),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                PhotoUnifierButton(
+                    onClick = { showFineTuneSliders = !showFineTuneSliders },
+                    enabled = !state.busy && state.sourcePreview != null,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                    height = PhotoUnifierHeight.buttonTertiary,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = PhotoUnifierSpacing.xs,
+                        vertical = PhotoUnifierSpacing.xxs
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = if (showFineTuneSliders) stringResource(R.string.action_hide_manual_adjustment) else stringResource(R.string.action_show_manual_adjustment),
+                        modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (showFineTuneSliders) stringResource(R.string.action_hide_manual_adjustment) else stringResource(R.string.action_adjust),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-        }
 
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items(ScannerFilterPresets, key = { it.id }) { preset ->
-                val isSelected = state.brightness == preset.brightness &&
-                        state.contrastPercent == preset.contrast
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(ScannerFilterPresets, key = { it.id }) { preset ->
+                    val isSelected = state.brightness == preset.brightness &&
+                            state.contrastPercent == preset.contrast
 
-                FilterPresetCard(
-                    preset = preset,
-                    isSelected = isSelected,
-                    onClick = {
-                        onBrightnessChange(preset.brightness)
-                        onContrastChange(preset.contrast)
-                    },
+                    FilterPresetCard(
+                        preset = preset,
+                        isSelected = isSelected,
+                        onClick = {
+                            onBrightnessChange(preset.brightness)
+                            onContrastChange(preset.contrast)
+                        },
+                        enabled = !state.busy && state.sourcePreview != null
+                    )
+                }
+            }
+
+            // لوحة الضبط اليدوي الدقيق (تظهر وتختفي بسلاسة كلوحة منبثقة)
+            AnimatedVisibility(
+                visible = showFineTuneSliders && !compactHeight,
+                enter = expandVertically(animationSpec = tween(PhotoUnifierDuration.normal)) + fadeIn(animationSpec = tween(PhotoUnifierDuration.normal)),
+                exit = shrinkVertically(animationSpec = tween(PhotoUnifierDuration.normal)) + fadeOut(animationSpec = tween(PhotoUnifierDuration.fast))
+            ) {
+                FineTuneSlidersCard(
+                    brightness = state.brightness,
+                    contrastPercent = state.contrastPercent,
+                    onBrightnessChange = onBrightnessChange,
+                    onContrastChange = onContrastChange,
                     enabled = !state.busy && state.sourcePreview != null
                 )
             }
-        }
 
-        // لوحة الضبط اليدوي الدقيق (تظهر وتختفي بسلاسة كلوحة منبثقة)
-        AnimatedVisibility(
-            visible = showFineTuneSliders && !compactHeight,
-            enter = expandVertically(animationSpec = tween(PhotoUnifierDuration.normal)) + fadeIn(animationSpec = tween(PhotoUnifierDuration.normal)),
-            exit = shrinkVertically(animationSpec = tween(PhotoUnifierDuration.normal)) + fadeOut(animationSpec = tween(PhotoUnifierDuration.fast))
-        ) {
-            FineTuneSlidersCard(
-                brightness = state.brightness,
-                contrastPercent = state.contrastPercent,
-                onBrightnessChange = onBrightnessChange,
-                onContrastChange = onContrastChange,
-                enabled = !state.busy && state.sourcePreview != null
-            )
-        }
-
-        // زر الحفظ والمعالجة النهائي البارز
-        PhotoUnifierButton(
-            onClick = onProcess,
-            enabled = !state.busy && openCvReady && state.selected.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth(),
-            height = if (compactHeight) {
-                PhotoUnifierHeight.buttonSecondary
-            } else {
-                PhotoUnifierHeight.buttonPrimary
-            },
-            shape = RoundedCornerShape(PhotoUnifierRadius.md)
-        ) {
-            if (state.busy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                Text(
-                    text = stringResource(R.string.adjust_processing_saving),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Save,
-                    contentDescription = null,
-                    modifier = Modifier.size(PhotoUnifierIconSize.sm)
-                )
-                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                Text(
-                    text = stringResource(R.string.save_export_documents, state.selected.size),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+            // زر الحفظ والمعالجة النهائي البارز
+            PhotoUnifierButton(
+                onClick = onProcess,
+                enabled = !state.busy && openCvReady && state.selected.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth(),
+                height = if (compactHeight) {
+                    PhotoUnifierHeight.buttonSecondary
+                } else {
+                    PhotoUnifierHeight.buttonPrimary
+                },
+                shape = RoundedCornerShape(PhotoUnifierRadius.md)
+            ) {
+                if (state.busy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                    Text(
+                        text = stringResource(R.string.adjust_processing_saving),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = null,
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                    )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                    Text(
+                        text = stringResource(R.string.save_export_documents, state.selected.size),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+
         }
 
         // Compact screens keep the image visible and move manual controls into a scrollable dialog.
