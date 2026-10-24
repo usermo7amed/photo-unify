@@ -111,23 +111,35 @@ internal object FairScanDocumentSegmenter : Closeable {
     }
 
     private fun bestQuadrilateral(probability: Mat, sourceWidth: Int, sourceHeight: Int): List<CropPoint>? {
-        val smooth = Mat()
-        Imgproc.GaussianBlur(probability, smooth, Size(3.0, 3.0), 0.0)
-        var best: List<CropPoint>? = null
-        var bestScore = 0.0
+        // Register each native Mat immediately after allocation. The list is created
+        // before any native resource, and the guarded scope begins before Mat().
+        val allocatedMats = ArrayList<Mat>(1)
         try {
+            val smooth = Mat().also { allocatedMats.add(it) }
+            Imgproc.GaussianBlur(probability, smooth, Size(3.0, 3.0), 0.0)
+
+            var best: List<CropPoint>? = null
+            var bestScore = 0.0
             // The higher thresholds avoid expanding the page into shadows/background.
             for (threshold in doubleArrayOf(0.50, 0.65, 0.75, 0.85, 0.90)) {
-                val binary = Mat()
-                val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, Size(5.0, 5.0))
-                val hierarchy = Mat()
+                // Allocate bookkeeping before native Mats so failures cannot strand
+                // a native object before its cleanup scope is established.
+                val iterationMats = ArrayList<Mat>(3)
                 val contours = ArrayList<MatOfPoint>()
                 try {
+                    val binary = Mat().also { iterationMats.add(it) }
+                    val kernel = Imgproc.getStructuringElement(
+                        Imgproc.MORPH_ELLIPSE, Size(5.0, 5.0)
+                    ).also { iterationMats.add(it) }
+                    val hierarchy = Mat().also { iterationMats.add(it) }
+
                     Imgproc.threshold(smooth, binary, threshold, 1.0, Imgproc.THRESH_BINARY)
                     // Convert to an 8-bit mask before morphology/contour extraction.
                     binary.convertTo(binary, CvType.CV_8UC1, 255.0)
                     Imgproc.morphologyEx(binary, binary, Imgproc.MORPH_CLOSE, kernel)
-                    Imgproc.findContours(binary, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE)
+                    Imgproc.findContours(
+                        binary, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE
+                    )
                     val imageArea = binary.cols().toDouble() * binary.rows()
                     for (contour in contours.sortedByDescending { abs(Imgproc.contourArea(it)) }.take(8)) {
                         val contourArea = abs(Imgproc.contourArea(contour))
@@ -186,17 +198,18 @@ internal object FairScanDocumentSegmenter : Closeable {
                         }
                     }
                 } finally {
-                    contours.forEach { it.release() }
-                    binary.release()
-                    kernel.release()
-                    hierarchy.release()
+                    try {
+                        contours.forEach { it.release() }
+                    } finally {
+                        iterationMats.forEach { it.release() }
+                    }
                 }
             }
             return best?.takeIf { bestScore >= 0.045 }?.takeIf {
                 DocumentCrop.isPlausibleDetection(it, sourceWidth, sourceHeight)
             }
         } finally {
-            smooth.release()
+            allocatedMats.forEach { it.release() }
         }
     }
 
