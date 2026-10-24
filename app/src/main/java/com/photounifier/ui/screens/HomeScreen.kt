@@ -8,6 +8,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,23 +49,28 @@ fun HomeScreen(
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
-    ) {
-        if (state.selected.isEmpty()) {
-            // حالة الخلو - شاشة نظيفة وسريعة للمسح أو الاستيراد بلمسة واحدة
-            EmptyScanDashboard()
-        } else {
-            // نمط دفعة المستندات - مستندات محددة جاهزة للمراجعة والقص
-            ActiveBatchDashboard(
-                state = state,
-                onPickImages = onPickImages,
-                onClearSelection = onClearSelection,
-                onRemoveImage = onRemoveImage,
-                onPreviewSelect = onPreviewSelect,
-                enabled = enabled
-            )
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compactLayout = maxHeight < 620.dp
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+        ) {
+            if (state.selected.isEmpty()) {
+                // حالة خلو مختصرة تترك الإجراءات للشريط السفلي.
+                EmptyScanDashboard()
+            } else {
+                // نمط دفعة المستندات - مستندات محددة جاهزة للمراجعة والقص
+                ActiveBatchDashboard(
+                    state = state,
+                    onPickImages = onPickImages,
+                    onClearSelection = onClearSelection,
+                    onRemoveImage = onRemoveImage,
+                    onPreviewSelect = onPreviewSelect,
+                    enabled = enabled,
+                    compact = compactLayout
+                )
+            }
         }
     }
 }
@@ -106,7 +112,8 @@ private fun ActiveBatchDashboard(
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    compact: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -185,7 +192,8 @@ private fun ActiveBatchDashboard(
                     onSelectIndex = onPreviewSelect,
                     onRemoveUri = onRemoveImage,
                     onAddMore = { onPickImages(true) },
-                    enabled = enabled
+                    enabled = enabled,
+                    compact = compact
                 )
             }
         }
