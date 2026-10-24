@@ -430,10 +430,6 @@ fun CropResultPreview(
 }
 
 /**
- * زر أساسي بروح Material 3 Expressive: لون واضح، مساحة لمس مريحة
- * واستجابة نابضية خفيفة بدل طبقات الـ blur التي تقلل وضوح النص.
- */
-/**
  * Primary shared Material 3 button. Keep size, shape and color decisions here so
  * workflow screens do not each implement their own interactive surface.
  */
