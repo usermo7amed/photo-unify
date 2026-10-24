@@ -314,7 +314,6 @@ fun PreviewNavigationControls(
                 1.dp,
                 MaterialTheme.colorScheme.primary.copy(alpha = PhotoUnifierGlass.borderAlpha)
             ),
-            shadowElevation = PhotoUnifierElevation.none
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
