@@ -189,42 +189,43 @@ object Processor {
 
         val target = File(directory, displayName)
         val temporary = File(directory, "$displayName.part")
-        try {
-            temporary.outputStream().use { output ->
-                if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
-                    throw IllegalStateException(context.getString(R.string.error_prepare_image_export))
-                }
-                output.flush()
-            }
-            // Both paths are in the same private directory. POSIX rename atomically
-            // replaces an existing target, so a failed write/rename never destroys
-            // the previously valid output.
+        return withCleanupOnFailure(cleanup = { temporary.delete() }) {
             try {
-                android.system.Os.rename(temporary.absolutePath, target.absolutePath)
-            } catch (error: android.system.ErrnoException) {
-                val message = if (target.exists()) {
-                    context.getString(R.string.error_replace_temp_export)
-                } else {
-                    context.getString(R.string.error_finish_export_preparation)
+                temporary.outputStream().use { output ->
+                    if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+                        throw IllegalStateException(context.getString(R.string.error_prepare_image_export))
+                    }
+                    output.flush()
                 }
-                throw IllegalStateException(message, error)
+                // Both paths are in the same private directory. POSIX rename atomically
+                // replaces an existing target, so a failed write/rename never destroys
+                // the previously valid output.
+                try {
+                    android.system.Os.rename(temporary.absolutePath, target.absolutePath)
+                } catch (error: android.system.ErrnoException) {
+                    val message = if (target.exists()) {
+                        context.getString(R.string.error_replace_temp_export)
+                    } else {
+                        context.getString(R.string.error_finish_export_preparation)
+                    }
+                    throw IllegalStateException(message, error)
+                }
+                target
+            } catch (error: Exception) {
+                // Preserve completed output and the existing user-facing error contract.
+                // The outer cleanup guard also handles Errors such as OutOfMemoryError.
+                val localizedErrorMessages = setOf(
+                    context.getString(R.string.error_prepare_image_export),
+                    context.getString(R.string.error_replace_temp_export),
+                    context.getString(R.string.error_finish_export_preparation)
+                )
+                if (error is IllegalStateException &&
+                    error.message?.let { it in localizedErrorMessages } == true
+                ) {
+                    throw error
+                }
+                throw IllegalStateException(context.getString(R.string.error_prepare_image_export), error)
             }
-            return target
-        } catch (error: Exception) {
-            // Remove only the incomplete .part file. The target may still be a
-            // previously completed export if writing the replacement failed.
-            temporary.delete()
-            val localizedErrorMessages = setOf(
-                context.getString(R.string.error_prepare_image_export),
-                context.getString(R.string.error_replace_temp_export),
-                context.getString(R.string.error_finish_export_preparation)
-            )
-            if (error is IllegalStateException &&
-                error.message?.let { it in localizedErrorMessages } == true
-            ) {
-                throw error
-            }
-            throw IllegalStateException(context.getString(R.string.error_prepare_image_export), error)
         }
     }
 
@@ -238,31 +239,49 @@ object Processor {
         }
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
             ?: throw IllegalStateException(context.getString(R.string.error_create_image_file))
-        try {
-            val written = resolver.openOutputStream(uri)?.use {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)
-            } ?: false
-            if (!written) {
-                throw IllegalStateException(context.getString(R.string.error_bitmap_save_failed))
-            }
+        return withCleanupOnFailure(
+            cleanup = { resolver.delete(uri, null, null) }
+        ) {
+            try {
+                val written = resolver.openOutputStream(uri)?.use {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)
+                } ?: false
+                if (!written) {
+                    throw IllegalStateException(context.getString(R.string.error_bitmap_save_failed))
+                }
 
-            val publishValues = ContentValues().apply {
-                put(MediaStore.Images.Media.IS_PENDING, 0)
+                val publishValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.IS_PENDING, 0)
+                }
+                if (resolver.update(uri, publishValues, null, null) <= 0) {
+                    throw IllegalStateException(context.getString(R.string.error_publish_saved_image))
+                }
+            } catch (error: Exception) {
+                if (error is IllegalStateException &&
+                    (error.message == context.getString(R.string.error_bitmap_save_failed) ||
+                        error.message == context.getString(R.string.error_publish_saved_image))
+                ) {
+                    throw error
+                }
+                throw IllegalStateException(context.getString(R.string.error_bitmap_save_failed), error)
             }
-            if (resolver.update(uri, publishValues, null, null) <= 0) {
-                throw IllegalStateException(context.getString(R.string.error_publish_saved_image))
-            }
-            return uri
-        } catch (error: Exception) {
-            // A failed publish/update must not leave an invisible IS_PENDING item behind.
-            runCatching { resolver.delete(uri, null, null) }
-            if (error is IllegalStateException &&
-                (error.message == context.getString(R.string.error_bitmap_save_failed) ||
-                    error.message == context.getString(R.string.error_publish_saved_image))
-            ) {
-                throw error
-            }
-            throw IllegalStateException(context.getString(R.string.error_bitmap_save_failed), error)
+            uri
+        }
+    }
+
+    /**
+     * Runs a resource-producing operation and cleans up its uncommitted destination
+     * for every failure category, including Errors, without replacing the original.
+     */
+    internal fun <T> withCleanupOnFailure(
+        cleanup: () -> Unit,
+        action: () -> T
+    ): T {
+        try {
+            return action()
+        } catch (error: Throwable) {
+            runCatching(cleanup)
+            throw error
         }
     }
 
