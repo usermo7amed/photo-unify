@@ -70,6 +70,10 @@ internal fun recoverProcessingFailure(
     errors = state.errors + message
 )
 
+/** Undo/reset must not invalidate an in-flight crop operation. */
+internal fun canEditCropHistory(state: PhotoUiState): Boolean =
+    state.cropOpen && !state.cropApplying && !state.busy
+
 /** Owns screen state and coordinates background work; the Activity only renders state. */
 class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     private val appContext = application.applicationContext
@@ -906,6 +910,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     fun undoCrop() {
         if (cleared) return
         val snapshot = currentState
+        if (!canEditCropHistory(snapshot)) return
         val previous = snapshot.cropUndoStack.lastOrNull() ?: return
         val source = snapshot.cropSource ?: return
         val generation = cropGeneration.incrementAndGet()
@@ -960,6 +965,7 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
     fun resetCrop() {
         if (cleared) return
         val snapshot = currentState
+        if (!canEditCropHistory(snapshot)) return
         val source = snapshot.cropSource ?: return
         val corners = DocumentCrop.fullFrame(source.width, source.height)
         val generation = cropGeneration.incrementAndGet()
