@@ -160,8 +160,7 @@ private fun ProcessingStateCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
     ) {
         Column(
             modifier = Modifier
