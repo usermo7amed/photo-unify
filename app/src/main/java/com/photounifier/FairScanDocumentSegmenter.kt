@@ -57,14 +57,21 @@ internal object FairScanDocumentSegmenter : Closeable {
         } catch (_: Exception) {
             return null
         }
-        val inputBuffer = ByteBuffer.allocateDirect(
-            1 * INPUT_SIZE * INPUT_SIZE * 3 * 4
-        ).order(ByteOrder.nativeOrder())
-        val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
-        val output = Array(1) {
-            Array(INPUT_SIZE) { Array(INPUT_SIZE) { FloatArray(1) } }
-        }
+        var output: Array<Array<Array<FloatArray>>>? = null
         try {
+            // Allocate all buffers inside the guarded scope. In particular,
+            // allocateDirect() or the output tensors can throw OutOfMemoryError;
+            // if that happened before entering the try/finally, the scaled native
+            // bitmap would escape cleanup.
+            val inputBuffer = ByteBuffer.allocateDirect(
+                1 * INPUT_SIZE * INPUT_SIZE * 3 * 4
+            ).order(ByteOrder.nativeOrder())
+            val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
+            val outputTensor = Array(1) {
+                Array(INPUT_SIZE) { Array(INPUT_SIZE) { FloatArray(1) } }
+            }
+            output = outputTensor
+
             scaled.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
             for (pixel in pixels) {
                 val red = ((pixel shr 16) and 0xff) / 255f
@@ -76,19 +83,20 @@ internal object FairScanDocumentSegmenter : Closeable {
                 inputBuffer.putFloat((blue - 0.406f) / 0.225f)
             }
             inputBuffer.rewind()
-            model.run(inputBuffer, output)
+            model.run(inputBuffer, outputTensor)
         } catch (_: Exception) {
             return null
         } finally {
             if (scaled !== bitmap && !scaled.isRecycled) scaled.recycle()
         }
 
+        val completedOutput = output ?: return null
         val probability = Mat(INPUT_SIZE, INPUT_SIZE, CvType.CV_32FC1)
         try {
             val probabilityValues = FloatArray(INPUT_SIZE * INPUT_SIZE)
             for (y in 0 until INPUT_SIZE) {
                 for (x in 0 until INPUT_SIZE) {
-                    val logit = output[0][y][x][0]
+                    val logit = completedOutput[0][y][x][0]
                     // The exported network emits logits; sigmoid makes a probability map.
                     probabilityValues[y * INPUT_SIZE + x] =
                         (1.0 / (1.0 + kotlin.math.exp(-logit.toDouble()))).toFloat()
