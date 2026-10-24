@@ -131,11 +131,12 @@ fun Modifier.shimmerLoading(
  */
 @Composable
 fun ShimmerThumbnailPlaceholder(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    size: Dp = 76.dp
 ) {
     Box(
         modifier = modifier
-            .size(76.dp)
+            .size(size)
             .shimmerLoading(isLoading = true, shape = RoundedCornerShape(PhotoUnifierRadius.md))
     )
 }
