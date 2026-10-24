@@ -10,28 +10,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import com.photounifier.ui.components.GlassmorphicButton
-import com.photounifier.ui.components.GlassmorphicOutlinedButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,7 +35,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.photounifier.PhotoUiState
 import com.photounifier.ui.PhotoUnifierElevation
-import com.photounifier.ui.PhotoUnifierHeight
 import com.photounifier.ui.PhotoUnifierIconSize
 import com.photounifier.ui.PhotoUnifierSpacing
 import com.photounifier.ui.components.SelectionThumbnailsBar
@@ -64,7 +51,6 @@ fun HomeScreen(
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
-    onStartReview: () -> Unit,
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -83,12 +69,10 @@ fun HomeScreen(
             // نمط دفعة المستندات - مستندات محددة جاهزة للمراجعة والقص
             ActiveBatchDashboard(
                 state = state,
-                onCaptureDocument = onCaptureDocument,
                 onPickImages = onPickImages,
                 onClearSelection = onClearSelection,
                 onRemoveImage = onRemoveImage,
                 onPreviewSelect = onPreviewSelect,
-                onStartReview = onStartReview,
                 enabled = enabled
             )
         }
@@ -161,12 +145,10 @@ private fun EmptyScanDashboard(
 @Composable
 private fun ActiveBatchDashboard(
     state: PhotoUiState,
-    onCaptureDocument: () -> Unit,
     onPickImages: (Boolean) -> Unit,
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
-    onStartReview: () -> Unit,
     enabled: Boolean
 ) {
     Column(
