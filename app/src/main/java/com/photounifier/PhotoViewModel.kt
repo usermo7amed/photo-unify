@@ -1480,10 +1480,12 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                 val message = error.message ?: error.javaClass.simpleName
                 runCatching {
                     update { old ->
-                        old.copy(
-                            exportBusy = false,
-                            exportStatus = appContext.getString(R.string.status_export_failed, message),
-                            exportErrors = old.exportErrors + message
+                        recoverExportFailure(
+                            state = old,
+                            format = format,
+                            successfulImageIds = successfulImageIds,
+                            message = message,
+                            failureStatus = appContext.getString(R.string.status_export_failed, message)
                         )
                     }
                 }
