@@ -197,8 +197,7 @@ fun AdjustPreviewScreen(
             modifier = Modifier.fillMaxWidth().weight(1f),
             shape = RoundedCornerShape(PhotoUnifierRadius.xl),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
         ) {
             Column(
                 modifier = Modifier
@@ -458,7 +457,7 @@ private fun FilterPresetCard(
             color = if (isSelected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         ),
-        shadowElevation = if (isSelected) PhotoUnifierElevation.mid else PhotoUnifierElevation.low
+        shadowElevation = PhotoUnifierElevation.none
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             // شارة AI في الركن العلوي إذا كان الفلتر ذكيًا
@@ -558,8 +557,7 @@ private fun FineTuneSlidersCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PhotoUnifierRadius.lg),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
