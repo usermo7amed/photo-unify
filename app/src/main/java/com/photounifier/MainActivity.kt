@@ -25,12 +25,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,6 +52,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.photounifier.ui.PhotoUnifierTheme
 import com.photounifier.ui.PhotoUnifierHeight
+import com.photounifier.ui.components.PhotoUnifierButton
+import com.photounifier.ui.components.PhotoUnifierOutlinedButton
 import com.photounifier.ui.screens.AdjustPreviewScreen
 import com.photounifier.ui.screens.CropReviewCard
 import com.photounifier.ui.screens.CropWorkspaceBottomBar
@@ -311,36 +310,32 @@ private fun PhotoUnifierScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 3.dp
+                    shadowElevation = 2.dp
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
+                        PhotoUnifierOutlinedButton(
                             onClick = { currentStep = 0 },
                             enabled = !state.busy && !state.cropApplying,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(PhotoUnifierHeight.buttonSecondary),
-                            shape = MaterialTheme.shapes.extraLarge
+                            modifier = Modifier.weight(1f),
+                            height = PhotoUnifierHeight.buttonTertiary
                         ) {
                             Text(stringResource(R.string.action_previous))
                         }
 
-                        Button(
+                        PhotoUnifierButton(
                             onClick = { currentStep = 2 },
                             enabled = !state.busy && !state.cropApplying,
-                            modifier = Modifier
-                                .weight(1.3f)
-                                .height(PhotoUnifierHeight.buttonPrimary),
-                            shape = MaterialTheme.shapes.extraLarge
+                            modifier = Modifier.weight(1.3f),
+                            height = PhotoUnifierHeight.buttonTertiary
                         ) {
                             Text(stringResource(R.string.action_next_adjustment), fontWeight = FontWeight.Bold)
                         }
@@ -355,44 +350,44 @@ private fun PhotoUnifierScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            OutlinedButton(
+                            PhotoUnifierOutlinedButton(
                                 onClick = onCaptureDocument,
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.extraLarge
+                                height = PhotoUnifierHeight.buttonTertiary
                             ) { Text(stringResource(R.string.action_camera)) }
-                            OutlinedButton(
+                            PhotoUnifierOutlinedButton(
                                 onClick = { onPickImages(true) },
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.extraLarge
+                                height = PhotoUnifierHeight.buttonTertiary
                             ) { Text(stringResource(R.string.action_gallery)) }
-                            Button(
+                            PhotoUnifierButton(
                                 onClick = { currentStep = 1 },
                                 enabled = state.selected.isNotEmpty() && !state.busy,
                                 modifier = Modifier.weight(1.2f),
-                                shape = MaterialTheme.shapes.extraLarge
+                                height = PhotoUnifierHeight.buttonTertiary
                             ) { Text(stringResource(R.string.action_review_images), fontWeight = FontWeight.Bold) }
                         }
                     } else {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            OutlinedButton(
+                            PhotoUnifierOutlinedButton(
                                 onClick = { currentStep = 0 },
                                 enabled = currentStep != 0 && !state.busy && !state.exportBusy,
                                 modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.extraLarge
+                                height = PhotoUnifierHeight.buttonTertiary
                             ) { Text(stringResource(R.string.action_documents)) }
-                            Button(
+                            PhotoUnifierButton(
                                 onClick = {
                                     currentStep = when (currentStep) {
                                         1 -> 2
@@ -405,7 +400,7 @@ private fun PhotoUnifierScreen(
                                      (state.resultPreview != null || state.enhancedPreview != null) ||
                                      currentStep == 3),
                                 modifier = Modifier.weight(1.4f),
-                                shape = MaterialTheme.shapes.extraLarge
+                                height = PhotoUnifierHeight.buttonTertiary
                             ) {
                                 Text(
                                     when (currentStep) {
