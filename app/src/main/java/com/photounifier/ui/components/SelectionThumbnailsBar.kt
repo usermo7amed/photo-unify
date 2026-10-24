@@ -66,13 +66,20 @@ fun SelectionThumbnailsBar(
     onRemoveUri: ((Uri) -> Unit)? = null,
     onAddMore: (() -> Unit)? = null,
     enabled: Boolean = true,
+    compact: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (selectedUris.isEmpty()) return
 
+    val thumbnailSize = if (compact) 56.dp else 76.dp
+    val rowPadding = if (compact) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+    val thumbnailSpacing = if (compact) PhotoUnifierSpacing.xs else PhotoUnifierSpacing.sm
+
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+        verticalArrangement = Arrangement.spacedBy(
+            if (compact) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+        )
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -92,12 +99,12 @@ fun SelectionThumbnailsBar(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.extraLarge)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
-                    .padding(PhotoUnifierSpacing.xs),
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
+                    .padding(rowPadding),
+                horizontalArrangement = Arrangement.spacedBy(thumbnailSpacing),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(selectedUris.size.coerceAtMost(6)) {
-                    ShimmerThumbnailPlaceholder()
+                    ShimmerThumbnailPlaceholder(size = thumbnailSize)
                 }
             }
         } else {
@@ -105,8 +112,8 @@ fun SelectionThumbnailsBar(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.extraLarge)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f))
-                    .padding(PhotoUnifierSpacing.xs),
-                horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
+                    .padding(rowPadding),
+                horizontalArrangement = Arrangement.spacedBy(thumbnailSpacing),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 itemsIndexed(
@@ -127,7 +134,7 @@ fun SelectionThumbnailsBar(
 
                 Box(
                     modifier = Modifier
-                        .size(76.dp)
+                        .size(thumbnailSize)
                         .graphicsLayer {
                             scaleX = scale
                             scaleY = scale
@@ -206,7 +213,7 @@ fun SelectionThumbnailsBar(
                     val remaining = selectedUris.size - thumbnails.size
                     Surface(
                         modifier = Modifier
-                            .size(76.dp)
+                            .size(thumbnailSize)
                             .clip(MaterialTheme.shapes.medium),
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant
@@ -228,7 +235,7 @@ fun SelectionThumbnailsBar(
                 item {
                     Surface(
                         modifier = Modifier
-                            .size(76.dp)
+                            .size(thumbnailSize)
                             .clip(MaterialTheme.shapes.medium)
                             .border(
                                 1.dp,
