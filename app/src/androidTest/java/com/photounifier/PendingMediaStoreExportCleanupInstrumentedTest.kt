@@ -161,6 +161,40 @@ class PendingMediaStoreExportCleanupInstrumentedTest {
         )
     }
 
+    @Test
+    fun pdfExportRemovesPendingRowWhenAnUnexpectedErrorEscapes() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val suffix = System.nanoTime().toString()
+        val backingFile = File(context.cacheDir, "PU_pdf-fatal-$suffix.jpg")
+        assertFalse("Failure-injection source must not exist", backingFile.exists())
+        // AssertionError is deliberately not an Exception: it verifies finally-based
+        // cleanup rather than relying on the normal exception handler.
+        val failingFile = object : File(backingFile.path) {
+            override fun isFile(): Boolean = throw AssertionError("synthetic validation failure")
+        }
+        val collection = MediaStore.Files.getContentUri("external")
+        val folder = "${Environment.DIRECTORY_DOCUMENTS}/PhotoUnifier"
+        val pendingBefore = pendingRows(context, collection, folder)
+
+        var thrown: AssertionError? = null
+        try {
+            ExportRepository().exportAsPdf(
+                context,
+                listOf(ExportImage("pdf-fatal-$suffix", Uri.EMPTY, failingFile, failingFile.name)),
+                RecordingExportObserver()
+            )
+        } catch (error: AssertionError) {
+            thrown = error
+        }
+
+        assertEquals("The unexpected error should be rethrown unchanged", "synthetic validation failure", thrown?.message)
+        val pendingAfter = pendingRows(context, collection, folder)
+        assertTrue(
+            "An unexpected error must not leave a pending PDF row",
+            (pendingAfter - pendingBefore).isEmpty()
+        )
+    }
+
     private fun insertRow(
         context: Context,
         collection: Uri,
