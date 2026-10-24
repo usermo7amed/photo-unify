@@ -71,6 +71,7 @@
     <string name="status_crop_saved">تم حفظ تعديل الصفحة %1$d من %2$d. اختر صفحة أخرى أو أنهِ المراجعة.</string>
     <string name="status_image_processing_unavailable">مكتبة معالجة الصور غير جاهزة</string>
     <string name="status_processing_started">بدء معالجة الصور…</string>
+    <string name="status_processing_aborted">توقفت المعالجة بسبب خطأ غير متوقع: %1$s</string>
     <string name="status_analyzing_image">تحليل الصورة %1$d من %2$d</string>
     <string name="status_processing_image">معالجة الصورة %1$d من %2$d — %3$s</string>
     <string name="status_image_ready_export">تم تجهيز الصورة %1$d من %2$d للتصدير</string>
