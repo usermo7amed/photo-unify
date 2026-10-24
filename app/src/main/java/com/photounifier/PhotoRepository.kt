@@ -87,7 +87,13 @@ class PhotoRepository {
                     val sourcePreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.source")
                     try {
-                        observer.onSource(index + 1, uris.size, Processor.createPreview(loadedSource, context = context))
+                        val sourcePreview = Processor.createPreview(loadedSource, context = context)
+                        retainResourceOrCleanup(
+                            resource = sourcePreview,
+                            cleanup = { if (!it.isRecycled) it.recycle() }
+                        ) { ownedPreview ->
+                            observer.onSource(index + 1, uris.size, ownedPreview)
+                        }
                     } finally {
                         Trace.endSection()
                         sourcePreviewMs = elapsedMs(sourcePreviewStarted)
@@ -128,7 +134,13 @@ class PhotoRepository {
                     val enhancedPreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.enhanced")
                     try {
-                        observer.onEnhanced(Processor.createPreview(finalEnhanced, context = context))
+                        val enhancedPreview = Processor.createPreview(finalEnhanced, context = context)
+                        retainResourceOrCleanup(
+                            resource = enhancedPreview,
+                            cleanup = { if (!it.isRecycled) it.recycle() }
+                        ) { ownedPreview ->
+                            observer.onEnhanced(ownedPreview)
+                        }
                     } finally {
                         Trace.endSection()
                         enhancedPreviewMs = elapsedMs(enhancedPreviewStarted)
@@ -165,12 +177,22 @@ class PhotoRepository {
                     val savedPreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.saved")
                     try {
-                        observer.onSaved(
-                            index + 1,
-                            Processor.createPreview(output
-                                ?: throw IllegalStateException(context.getString(R.string.error_saved_preview)), context = context),
-                            temporaryFile ?: throw IllegalStateException(context.getString(R.string.error_temp_image_unavailable))
+                        val savedPreview = Processor.createPreview(
+                            output ?: throw IllegalStateException(context.getString(R.string.error_saved_preview)),
+                            context = context
                         )
+                        retainResourceOrCleanup(
+                            resource = savedPreview,
+                            cleanup = { if (!it.isRecycled) it.recycle() }
+                        ) { ownedPreview ->
+                            observer.onSaved(
+                                index + 1,
+                                ownedPreview,
+                                temporaryFile ?: throw IllegalStateException(
+                                    context.getString(R.string.error_temp_image_unavailable)
+                                )
+                            )
+                        }
                         temporaryFile = null
                     } finally {
                         Trace.endSection()
