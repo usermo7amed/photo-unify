@@ -57,14 +57,19 @@ internal object FairScanDocumentSegmenter : Closeable {
         } catch (_: Exception) {
             return null
         }
-        val inputBuffer = ByteBuffer.allocateDirect(
-            1 * INPUT_SIZE * INPUT_SIZE * 3 * 4
-        ).order(ByteOrder.nativeOrder())
-        val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
-        val output = Array(1) {
-            Array(INPUT_SIZE) { Array(INPUT_SIZE) { FloatArray(1) } }
-        }
         try {
+            // Allocate all buffers inside the guarded scope. In particular,
+            // allocateDirect() or the output tensors can throw OutOfMemoryError;
+            // if that happened before entering the try/finally, the scaled native
+            // bitmap would escape cleanup.
+            val inputBuffer = ByteBuffer.allocateDirect(
+                1 * INPUT_SIZE * INPUT_SIZE * 3 * 4
+            ).order(ByteOrder.nativeOrder())
+            val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
+            val output = Array(1) {
+                Array(INPUT_SIZE) { Array(INPUT_SIZE) { FloatArray(1) } }
+            }
+
             scaled.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
             for (pixel in pixels) {
                 val red = ((pixel shr 16) and 0xff) / 255f
