@@ -14,6 +14,24 @@ import kotlin.math.roundToInt
 
 data class SelectionThumbnail(val uri: Uri, val bitmap: Bitmap)
 
+/**
+ * Transfers a newly created resource to its owner only when registration succeeds.
+ * If constructing/registering the owner fails, release the resource and preserve
+ * the original failure so allocation errors cannot leak an untracked bitmap.
+ */
+internal fun <T> retainResourceOrCleanup(
+    resource: T,
+    cleanup: (T) -> Unit,
+    retain: (T) -> Unit
+) {
+    try {
+        retain(resource)
+    } catch (error: Throwable) {
+        runCatching { cleanup(resource) }
+        throw error
+    }
+}
+
 data class ExportImage(
     val id: String,
     val sourceUri: Uri,
@@ -172,10 +190,13 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         return@execute
                     }
                     try {
-                        thumbnails += SelectionThumbnail(
-                            uri,
-                            Processor.loadPreview(context, uri, SELECTION_THUMBNAIL_SIDE)
-                        )
+                        val bitmap = Processor.loadPreview(context, uri, SELECTION_THUMBNAIL_SIDE)
+                        retainResourceOrCleanup(
+                            resource = bitmap,
+                            cleanup = { if (!it.isRecycled) it.recycle() }
+                        ) { ownedBitmap ->
+                            thumbnails += SelectionThumbnail(uri, ownedBitmap)
+                        }
                     } catch (_: Exception) {
                         // A single corrupt or unavailable URI should not hide other thumbnails.
                     }
