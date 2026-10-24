@@ -1254,10 +1254,12 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        executor.execute {
-            try {
-                repository.process(
-                    getApplication<Application>().applicationContext, uris, brightness, contrast,
+        submitOrRecoverRejectedTask(
+            submit = { task -> executor.execute { task() } },
+            task = {
+                try {
+                    repository.process(
+                        getApplication<Application>().applicationContext, uris, brightness, contrast,
                     object : PhotoRepository.Observer {
                     override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
                         var replaced: List<Bitmap?> = emptyList()
@@ -1353,9 +1355,23 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 // Recover the UI, but keep fatal VM/runtime errors visible to the process.
-                if (error !is Exception) throw error
+                    if (error !is Exception) throw error
+                }
+            },
+            onRejected = { error ->
+                val message = error.message ?: error.javaClass.simpleName
+                update { old ->
+                    recoverProcessingFailure(
+                        state = old,
+                        message = message,
+                        failureStatus = appContext.getString(
+                            R.string.status_processing_aborted,
+                            message
+                        )
+                    )
+                }
             }
-        }
+        )
     }
 
     @Synchronized
