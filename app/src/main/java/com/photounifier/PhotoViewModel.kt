@@ -271,21 +271,40 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                     getApplication<Application>().applicationContext,
                     uri
                 ).also { previewInFlight = it }
+
+                // A new selection or a cleared ViewModel invalidates this decode.
+                // Stop before spending more time/memory on edits for an obsolete preview.
+                if (generation != imagePreviewGeneration.get()) {
+                    releaseBitmaps(listOf(preview))
+                    previewInFlight = null
+                    return@execute
+                }
+
                 val savedEdit = snapshot.cropEdits[uri]
                 if (savedEdit != null) {
                     val rotated = rotatePageBitmap(preview, savedEdit.rotationDegrees)
                     if (rotated !== preview) {
-                        preview.recycle()
+                        releaseBitmaps(listOf(preview))
                         preview = rotated
                         previewInFlight = rotated
                     }
-                    savedEdit.normalizedCorners?.let { normalized ->
+
+                    // Rotation can be expensive too. Avoid a perspective warp when
+                    // this preview became stale while rotation was running.
+                    if (generation != imagePreviewGeneration.get()) {
+                        releaseBitmaps(listOf(preview))
+                        previewInFlight = null
+                        return@execute
+                    }
+
+                    val normalized = savedEdit.normalizedCorners
+                    if (normalized != null) {
                         val cropped = DocumentCrop.warp(
                             preview,
                             mapNormalizedCropPoints(normalized, preview.width, preview.height),
                             Processor.PREVIEW_MAX_SIDE, context = appContext
                         )
-                        if (cropped !== preview) preview.recycle()
+                        if (cropped !== preview) releaseBitmaps(listOf(preview))
                         preview = cropped
                         previewInFlight = cropped
                     }
