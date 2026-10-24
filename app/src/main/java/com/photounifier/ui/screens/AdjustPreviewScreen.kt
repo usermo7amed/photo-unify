@@ -26,8 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import com.photounifier.ui.PhotoUnifierGlass
-import com.photounifier.ui.components.GlassmorphicButton
-import com.photounifier.ui.components.GlassmorphicOutlinedButton
+import com.photounifier.ui.components.PhotoUnifierButton
+import com.photounifier.ui.components.PhotoUnifierOutlinedButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -251,7 +251,7 @@ fun AdjustPreviewScreen(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassmorphicButton(
+            PhotoUnifierButton(
                 onClick = { showFineTuneSliders = !showFineTuneSliders },
                 enabled = !state.busy && state.sourcePreview != null,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = PhotoUnifierGlass.secondaryAlpha),
@@ -314,7 +314,7 @@ fun AdjustPreviewScreen(
         }
 
         // زر الحفظ والمعالجة النهائي البارز
-        GlassmorphicButton(
+        PhotoUnifierButton(
             onClick = onProcess,
             enabled = !state.busy && openCvReady && state.selected.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
@@ -399,7 +399,7 @@ private fun AdjustHeader(
                 )
             }
             if (isCustomAdjusted) {
-                GlassmorphicOutlinedButton(
+                PhotoUnifierOutlinedButton(
                     onClick = onResetAdjustments,
                     enabled = enabled,
                     height = PhotoUnifierHeight.buttonSmall,

@@ -23,8 +23,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,12 +37,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,7 +51,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -74,7 +72,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.PhotoUnifierRadius
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -433,11 +430,11 @@ fun CropResultPreview(
 }
 
 /**
- * زر أساسي بروح Material 3 Expressive: لون واضح، مساحة لمس مريحة
- * واستجابة نابضية خفيفة بدل طبقات الـ blur التي تقلل وضوح النص.
+ * Primary shared Material 3 button. Keep size, shape and color decisions here so
+ * workflow screens do not each implement their own interactive surface.
  */
 @Composable
-fun GlassmorphicButton(
+fun PhotoUnifierButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -446,98 +443,74 @@ fun GlassmorphicButton(
     borderColor: Color = Color.Transparent,
     shape: Shape = MaterialTheme.shapes.extraLarge,
     height: Dp = PhotoUnifierHeight.buttonPrimary,
-    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.lg, vertical = PhotoUnifierSpacing.xs),
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = PhotoUnifierSpacing.lg,
+        vertical = PhotoUnifierSpacing.xs
+    ),
     content: @Composable RowScope.() -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) 0.975f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "expressiveButtonScale"
-    )
-    val resolvedContainer by animateColorAsState(
-        targetValue = when {
-            !enabled -> MaterialTheme.colorScheme.surfaceVariant
-            pressed -> containerColor.copy(alpha = 0.90f)
-            else -> containerColor
-        },
-        animationSpec = tween(PhotoUnifierDuration.fast),
-        label = "expressiveButtonContainer"
-    )
-    val resolvedContent = if (enabled) {
-        contentColor
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    val border = borderColor.takeUnless { it == Color.Transparent }?.let {
+        BorderStroke(1.dp, it)
     }
-
-    Surface(
+    Button(
         onClick = onClick,
+        modifier = modifier.height(height),
         enabled = enabled,
-        interactionSource = interactionSource,
-        modifier = modifier
-            .height(height)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
         shape = shape,
-        color = resolvedContainer,
-        contentColor = resolvedContent,
-        border = BorderStroke(
-            1.dp,
-            when {
-                !enabled -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
-                borderColor == Color.Transparent -> Color.Transparent
-                else -> borderColor
-            }
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         ),
-        shadowElevation = if (enabled && !pressed) PhotoUnifierElevation.low else PhotoUnifierElevation.none
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(contentPadding),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CompositionLocalProvider(LocalContentColor provides resolvedContent) {
-                content()
-            }
-        }
-    }
-}
-
-/**
- * زر ثانوي محدد بسطح هادئ وحد واضح وتطابق كامل مع ارتفاعات اللمس.
- */
-@Composable
-fun GlassmorphicOutlinedButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.78f),
-    shape: Shape = MaterialTheme.shapes.extraLarge,
-    height: Dp = PhotoUnifierHeight.buttonSecondary,
-    contentPadding: PaddingValues = PaddingValues(horizontal = PhotoUnifierSpacing.md, vertical = PhotoUnifierSpacing.xs),
-    content: @Composable RowScope.() -> Unit
-) {
-    GlassmorphicButton(
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        containerColor = containerColor,
-        contentColor = contentColor,
-        borderColor = borderColor,
-        shape = shape,
-        height = height,
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = PhotoUnifierElevation.low,
+            pressedElevation = PhotoUnifierElevation.none,
+            focusedElevation = PhotoUnifierElevation.low,
+            hoveredElevation = PhotoUnifierElevation.low,
+            disabledElevation = PhotoUnifierElevation.none
+        ),
+        border = border,
         contentPadding = contentPadding,
         content = content
     )
 }
 
+/**
+ * Secondary shared Material 3 outlined button with a quiet, transparent surface.
+ */
+@Composable
+fun PhotoUnifierOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    containerColor: Color = Color.Transparent,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
+    shape: Shape = MaterialTheme.shapes.extraLarge,
+    height: Dp = PhotoUnifierHeight.buttonSecondary,
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = PhotoUnifierSpacing.md,
+        vertical = PhotoUnifierSpacing.xs
+    ),
+    content: @Composable RowScope.() -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(height),
+        enabled = enabled,
+        shape = shape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f),
+            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) borderColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
+        ),
+        contentPadding = contentPadding,
+        content = content
+    )
+}
