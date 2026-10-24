@@ -77,20 +77,29 @@ object DocumentCrop {
                 isPlausibleDetection(learnedDetection, bitmap.width, bitmap.height)
             ) return learnedDetection
         }
-        val rgba = Mat()
-        val analysis = Mat()
-        val gray = Mat()
-        val blurred = Mat()
-        val hierarchy = Mat()
+        // Register each native allocation as soon as it succeeds, while the
+        // cleanup scope is already active. A later Mat/CLAHE allocation can fail
+        // under memory pressure, so allocating these before try/finally risks
+        // leaking everything that was created earlier in this sequence.
+        val allocatedMats = ArrayList<Mat>(12)
+        val allocatedClahe = ArrayList<org.opencv.imgproc.CLAHE>(1)
         val contours = ArrayList<MatOfPoint>()
-        val work = Mat()
-        val supportEdges = Mat()
-        val contrastEnhanced = Mat()
-        val contrastEdges = Mat()
-        val clahe = Imgproc.createCLAHE(2.0, Size(8.0, 8.0))
-        val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(5.0, 5.0))
-        val supportKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(3.0, 3.0))
         try {
+            val rgba = Mat().also { allocatedMats.add(it) }
+            val analysis = Mat().also { allocatedMats.add(it) }
+            val gray = Mat().also { allocatedMats.add(it) }
+            val blurred = Mat().also { allocatedMats.add(it) }
+            val hierarchy = Mat().also { allocatedMats.add(it) }
+            val work = Mat().also { allocatedMats.add(it) }
+            val supportEdges = Mat().also { allocatedMats.add(it) }
+            val contrastEnhanced = Mat().also { allocatedMats.add(it) }
+            val contrastEdges = Mat().also { allocatedMats.add(it) }
+            val clahe = Imgproc.createCLAHE(2.0, Size(8.0, 8.0)).also { allocatedClahe.add(it) }
+            val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(5.0, 5.0))
+                .also { allocatedMats.add(it) }
+            val supportKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(3.0, 3.0))
+                .also { allocatedMats.add(it) }
+
             Utils.bitmapToMat(bitmap, rgba)
             // Find page geometry on a bounded-size copy, then map its corners back to
             // the original bitmap. Cropping still uses the original source resolution.
@@ -247,12 +256,8 @@ object DocumentCrop {
             )
         } finally {
             contours.forEach { it.release() }
-            if (!rgba.empty()) rgba.release()
-            analysis.release()
-            gray.release(); blurred.release(); hierarchy.release()
-            supportEdges.release(); contrastEnhanced.release(); contrastEdges.release()
-            clahe.clear()
-            supportKernel.release(); kernel.release(); work.release()
+            allocatedMats.forEach { it.release() }
+            allocatedClahe.forEach { it.clear() }
         }
     }
 
