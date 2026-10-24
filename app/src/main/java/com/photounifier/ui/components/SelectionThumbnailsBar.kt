@@ -182,8 +182,8 @@ fun SelectionThumbnailsBar(
                         }
                     }
 
-                    // Remove badge button
-                    if (onRemoveUri != null && enabled) {
+                    // Keep the close affordance on the active thumbnail only to avoid covering every page.
+                    if (onRemoveUri != null && enabled && isCurrent && selectedIndex >= 0) {
                         Surface(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -254,7 +254,7 @@ fun SelectionThumbnailsBar(
                             Icon(
                                 imageVector = Icons.Filled.AddPhotoAlternate,
                                 contentDescription = stringResource(R.string.add_image_new),
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(if (compact) 20.dp else 24.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
