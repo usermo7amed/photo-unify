@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -113,30 +114,38 @@ fun ResultScreen(
         label = "exportProgress"
     )
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
-    ) {
-        if (state.busy) {
-            // واجهة المعالجة الحية أثناء التحسين
-            ProcessingStateCard(
-                progress = animatedProgress,
-                current = state.progress,
-                total = progressMax,
-                status = state.status
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compactHeight = maxHeight < 680.dp
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactHeight) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.sm
             )
-        } else {
-            // واجهة النجاح والتصدير بنمط CamScanner
-            SuccessExportCard(
-                state = state,
-                animatedExportProgress = animatedExportProgress,
-                onExportPdf = onExportPdf,
-                onExportImages = onExportImages,
-                onToggleExportImage = onToggleExportImage,
-                onSelectAllExportImages = onSelectAllExportImages,
-                onBackToAdjust = onBackToAdjust,
-                onPickNewBatch = onPickNewBatch
-            )
+        ) {
+            if (state.busy) {
+                // واجهة المعالجة الحية أثناء التحسين
+                ProcessingStateCard(
+                    progress = animatedProgress,
+                    current = state.progress,
+                    total = progressMax,
+                    status = state.status,
+                    compactHeight = compactHeight
+                )
+            } else {
+                // واجهة النجاح والتصدير بنمط متجاوب مع ارتفاع الشاشة
+                SuccessExportCard(
+                    state = state,
+                    animatedExportProgress = animatedExportProgress,
+                    onExportPdf = onExportPdf,
+                    onExportImages = onExportImages,
+                    onToggleExportImage = onToggleExportImage,
+                    onSelectAllExportImages = onSelectAllExportImages,
+                    onBackToAdjust = onBackToAdjust,
+                    onPickNewBatch = onPickNewBatch,
+                    compactHeight = compactHeight
+                )
+            }
         }
     }
 }
@@ -149,7 +158,8 @@ private fun ProcessingStateCard(
     progress: Float,
     current: Int,
     total: Int,
-    status: String
+    status: String,
+    compactHeight: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -160,19 +170,21 @@ private fun ProcessingStateCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PhotoUnifierSpacing.xl),
+                .padding(if (compactHeight) PhotoUnifierSpacing.md else PhotoUnifierSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.lg)
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactHeight) PhotoUnifierSpacing.sm else PhotoUnifierSpacing.lg
+            )
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(if (compactHeight) 48.dp else 64.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(42.dp),
+                    modifier = Modifier.size(if (compactHeight) 32.dp else 42.dp),
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 3.5.dp
                 )
@@ -242,7 +254,8 @@ private fun SuccessExportCard(
     onToggleExportImage: (String, Boolean) -> Unit,
     onSelectAllExportImages: (Boolean) -> Unit,
     onBackToAdjust: () -> Unit,
-    onPickNewBatch: () -> Unit
+    onPickNewBatch: () -> Unit,
+    compactHeight: Boolean
 ) {
     val isSuccess = state.savedCount > 0
     val finalPreview = state.resultPreview ?: state.enhancedPreview ?: state.sourcePreview
@@ -269,14 +282,16 @@ private fun SuccessExportCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(PhotoUnifierSpacing.md),
+                .padding(if (compactHeight) PhotoUnifierSpacing.sm else PhotoUnifierSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactHeight) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+            )
         ) {
-            // شارة النجاح الاحتفالية
+            // شارة النجاح المختصرة على الشاشات القصيرة
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(if (compactHeight) 48.dp else 72.dp)
                     .scale(scaleAnim)
                     .clip(CircleShape)
                     .background(
@@ -289,14 +304,14 @@ private fun SuccessExportCard(
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
                         contentDescription = null,
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier.size(if (compactHeight) 30.dp else 44.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Filled.Warning,
                         contentDescription = null,
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(if (compactHeight) 28.dp else 40.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -312,7 +327,7 @@ private fun SuccessExportCard(
                 ) {
                     Text(
                         text = if (isSuccess) stringResource(R.string.result_success_title) else stringResource(R.string.result_failure_title),
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = if (compactHeight) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
@@ -340,9 +355,21 @@ private fun SuccessExportCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatSummaryChip(label = stringResource(R.string.result_pages), value = stringResource(R.string.selected_count, state.savedCount))
-                    StatSummaryChip(label = stringResource(R.string.result_quality), value = stringResource(R.string.result_quality_original))
-                    StatSummaryChip(label = stringResource(R.string.result_processing), value = stringResource(R.string.result_processing_local))
+                    StatSummaryChip(
+                        label = stringResource(R.string.result_pages),
+                        value = stringResource(R.string.selected_count, state.savedCount),
+                        compactHeight = compactHeight
+                    )
+                    StatSummaryChip(
+                        label = stringResource(R.string.result_quality),
+                        value = stringResource(R.string.result_quality_original),
+                        compactHeight = compactHeight
+                    )
+                    StatSummaryChip(
+                        label = stringResource(R.string.result_processing),
+                        value = stringResource(R.string.result_processing_local),
+                        compactHeight = compactHeight
+                    )
                 }
             }
 
@@ -351,8 +378,8 @@ private fun SuccessExportCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .weight(1.15f)
-                        .heightIn(min = 100.dp)
+                        .weight(if (compactHeight) 0.85f else 1.15f)
+                        .heightIn(min = if (compactHeight) 76.dp else 100.dp)
                         .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                         .background(Color(0xFF14171C))
                         .border(
@@ -392,8 +419,10 @@ private fun SuccessExportCard(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.9f),
-                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.md)
+                    .weight(if (compactHeight) 1.15f else 0.9f),
+                verticalArrangement = Arrangement.spacedBy(
+                    if (compactHeight) PhotoUnifierSpacing.xs else PhotoUnifierSpacing.md
+                )
             ) {
                 if (state.processedImages.isNotEmpty()) {
                     val allExportImagesSelected = state.processedImages.all {
@@ -751,7 +780,8 @@ private fun SuccessExportCard(
 @Composable
 private fun StatSummaryChip(
     label: String,
-    value: String
+    value: String,
+    compactHeight: Boolean
 ) {
     Surface(
         shape = RoundedCornerShape(PhotoUnifierRadius.sm),
@@ -759,7 +789,10 @@ private fun StatSummaryChip(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xs),
+            modifier = Modifier.padding(
+                horizontal = if (compactHeight) PhotoUnifierSpacing.xs else PhotoUnifierSpacing.sm,
+                vertical = if (compactHeight) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+            ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
