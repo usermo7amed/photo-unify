@@ -274,16 +274,15 @@ private fun PhotoUnifierScreen(
                 PhotoUnifierSnackbar(snackbarData)
             }
         },
+        // Crop review and editor already render their own headings; avoid stacking a second app bar.
         topBar = {
-            if (currentStep != 0) TopAppBar(
+            if (currentStep == 2 || currentStep == 3) TopAppBar(
                 title = {
                     Text(
-                        text = when (currentStep) {
-                            0 -> stringResource(R.string.app_name)
-                            1 -> stringResource(R.string.crop_title)
-                            2 -> stringResource(R.string.screen_title_adjust)
-                            3 -> stringResource(R.string.screen_title_result)
-                            else -> stringResource(R.string.app_name)
+                        text = if (currentStep == 2) {
+                            stringResource(R.string.screen_title_adjust)
+                        } else {
+                            stringResource(R.string.screen_title_result)
                         },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
