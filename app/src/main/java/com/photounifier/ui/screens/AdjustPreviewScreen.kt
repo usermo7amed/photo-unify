@@ -175,7 +175,8 @@ fun AdjustPreviewScreen(
     val isCustomAdjusted = activePreset == null && (state.brightness != 0 || state.contrastPercent != 100)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val compactHeight = maxHeight < 680.dp
+        val availableHeight = maxHeight
+        val compactHeight = availableHeight < 680.dp
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -398,7 +399,7 @@ fun AdjustPreviewScreen(
                             enabled = !state.busy && state.sourcePreview != null,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = maxHeight * 0.62f)
+                                .heightIn(max = availableHeight * 0.62f)
                                 .verticalScroll(rememberScrollState())
                         )
                     }
