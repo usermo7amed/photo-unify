@@ -27,8 +27,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.photounifier.ui.PhotoUnifierGlass
-import com.photounifier.ui.components.GlassmorphicButton
-import com.photounifier.ui.components.GlassmorphicOutlinedButton
+import com.photounifier.ui.components.PhotoUnifierButton
+import com.photounifier.ui.components.PhotoUnifierOutlinedButton
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -540,7 +540,7 @@ private fun SuccessExportCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
                         ) {
-                            GlassmorphicButton(
+                            PhotoUnifierButton(
                                 onClick = onExportPdf,
                                 enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                                 modifier = Modifier.weight(1f),
@@ -560,7 +560,7 @@ private fun SuccessExportCard(
                                 )
                             }
 
-                            GlassmorphicButton(
+                            PhotoUnifierButton(
                                 onClick = onExportImages,
                                 enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
                                 modifier = Modifier.weight(1f),
@@ -701,7 +701,7 @@ private fun SuccessExportCard(
                             .padding(bottom = PhotoUnifierSpacing.sm),
                         verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                     ) {
-                        GlassmorphicButton(
+                        PhotoUnifierButton(
                             onClick = onPickNewBatch,
                             enabled = !state.exportBusy,
                             modifier = Modifier.fillMaxWidth(),
@@ -725,7 +725,7 @@ private fun SuccessExportCard(
                             )
                         }
 
-                        GlassmorphicOutlinedButton(
+                        PhotoUnifierOutlinedButton(
                             onClick = onBackToAdjust,
                             enabled = !state.exportBusy,
                             modifier = Modifier.fillMaxWidth(),
