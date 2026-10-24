@@ -23,8 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import com.photounifier.ui.PhotoUnifierGlass
-import com.photounifier.ui.components.GlassmorphicButton
-import com.photounifier.ui.components.GlassmorphicOutlinedButton
+import com.photounifier.ui.components.PhotoUnifierButton
+import com.photounifier.ui.components.PhotoUnifierOutlinedButton
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -174,7 +174,7 @@ fun CropReviewCard(
                 CropResultPreview(state.cropPreview)
             }
 
-            GlassmorphicButton(
+            PhotoUnifierButton(
                 onClick = onOpenCrop,
                 enabled = !state.busy && !state.cropApplying && state.selected.isNotEmpty() && openCvReady,
                 modifier = Modifier.fillMaxWidth(),
@@ -586,7 +586,7 @@ fun CropWorkspaceBottomBar(
                 onClick = onCancelCrop
             )
 
-            GlassmorphicButton(
+            PhotoUnifierButton(
                 onClick = if (state.cropDirty) onApplyCrop else onFinishCrop,
                 enabled = !state.cropApplying && !state.busy &&
                     (!state.cropDirty || state.cropPreview != null),
