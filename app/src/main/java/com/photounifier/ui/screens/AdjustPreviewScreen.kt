@@ -807,5 +807,5 @@ private fun FineTuneSlidersContent(
                     }
                 }
             }
-        }
+    }
 }
