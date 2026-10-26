@@ -393,7 +393,7 @@ private fun PhotoUnifierScreen(
                                 height = PhotoUnifierHeight.buttonTertiary,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                     horizontal = if (compactBottomBar) 3.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
-                                    vertical = 0.dp
+                                    vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
                                 )
                             ) {
                                 Text(
@@ -411,7 +411,7 @@ private fun PhotoUnifierScreen(
                                 height = PhotoUnifierHeight.buttonTertiary,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                     horizontal = if (compactBottomBar) 3.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
-                                    vertical = 0.dp
+                                    vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
                                 )
                             ) {
                                 Text(
@@ -429,7 +429,7 @@ private fun PhotoUnifierScreen(
                                 height = PhotoUnifierHeight.buttonTertiary,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                     horizontal = if (compactBottomBar) 3.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
-                                    vertical = 0.dp
+                                    vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
                                 )
                             ) {
                                 Text(
@@ -460,7 +460,7 @@ private fun PhotoUnifierScreen(
                                 height = PhotoUnifierHeight.buttonTertiary,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                     horizontal = if (compactBottomBar) 4.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
-                                    vertical = 0.dp
+                                    vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
                                 )
                             ) {
                                 Text(
@@ -487,7 +487,7 @@ private fun PhotoUnifierScreen(
                                 height = PhotoUnifierHeight.buttonTertiary,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                                     horizontal = if (compactBottomBar) 4.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
-                                    vertical = 0.dp
+                                    vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
                                 )
                             ) {
                                 Text(
