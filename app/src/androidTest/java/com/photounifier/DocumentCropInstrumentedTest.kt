@@ -98,6 +98,113 @@ class DocumentCropInstrumentedTest {
     }
 
     @Test
+    fun cropEditorAutoDetectsDocumentAndApplyCropPersistsDetectedCorners() {
+        assertTrue("OpenCV native library must load for automatic crop editor flow", OpenCVLoader.initLocal())
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as android.app.Application
+        val context = app.applicationContext
+        val sourceFile = File(context.cacheDir, "crop-auto-editor-${System.nanoTime()}.png")
+        val source = Bitmap.createBitmap(320, 260, Bitmap.Config.ARGB_8888)
+        val viewModelStore = ViewModelStore()
+        val viewModel = ViewModelProvider(
+            viewModelStore,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        )[PhotoViewModel::class.java]
+
+        try {
+            val paperColor = Color.rgb(245, 245, 235)
+            Canvas(source).apply {
+                drawColor(Color.rgb(48, 50, 54))
+                val paper = Path().apply {
+                    moveTo(55f, 30f)
+                    lineTo(270f, 45f)
+                    lineTo(250f, 225f)
+                    lineTo(35f, 210f)
+                    close()
+                }
+                drawPath(paper, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = paperColor
+                    style = Paint.Style.FILL
+                })
+            }
+            FileOutputStream(sourceFile).use { output ->
+                assertTrue("Synthetic document source must be written", source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+
+            fun awaitState(description: String, predicate: (PhotoUiState) -> Boolean): PhotoUiState {
+                val deadline = SystemClock.uptimeMillis() + 30_000
+                while (SystemClock.uptimeMillis() < deadline) {
+                    val state = viewModel.state.value
+                    if (state != null && predicate(state)) return state
+                    SystemClock.sleep(50)
+                }
+                throw AssertionError("Timed out waiting for crop editor state: $description")
+            }
+
+            val uri = Uri.fromFile(sourceFile)
+            viewModel.selectImages(listOf(uri))
+            viewModel.openCropEditor(openCvReady = true)
+
+            val detectedState = awaitState("automatically detected document corners") {
+                it.cropOpen && !it.cropApplying && it.cropPageUri == uri &&
+                    it.cropSource != null && it.cropPreview != null && it.cropCorners.size == 4
+            }
+            val detectedCorners = detectedState.cropCorners
+            val expectedCorners = listOf(
+                CropPoint(55f, 30f),
+                CropPoint(270f, 45f),
+                CropPoint(250f, 225f),
+                CropPoint(35f, 210f)
+            )
+            assertTrue(
+                "Automatic detection must return a valid quadrilateral",
+                DocumentCrop.isValid(detectedCorners, source.width, source.height)
+            )
+            detectedCorners.forEachIndexed { index, point ->
+                val expected = expectedCorners[index]
+                val dx = point.x - expected.x
+                val dy = point.y - expected.y
+                assertTrue(
+                    "Crop editor corner $index is too far from the document edge: $point",
+                    dx * dx + dy * dy <= 18f * 18f
+                )
+            }
+
+            viewModel.applyCrop()
+            val savedState = awaitState("applied crop edit persisted in UI state") {
+                it.cropOpen && !it.cropApplying && it.cropApplied &&
+                    it.cropEdits[uri]?.normalizedCorners != null &&
+                    it.cropPreview != null && it.cropPreview !== detectedState.cropPreview
+            }
+            val savedPreview = savedState.cropPreview
+                ?: throw AssertionError("Applying detected corners must produce a crop preview")
+            assertTrue("Applied preview width must be smaller than the source", savedPreview.width < source.width)
+            assertTrue("Applied preview height must be smaller than the source", savedPreview.height < source.height)
+            assertEquals(
+                "Applied preview center must contain document pixels",
+                paperColor,
+                savedPreview.getPixel(savedPreview.width / 2, savedPreview.height / 2)
+            )
+            assertTrue(
+                "Persisted normalized crop corners must map back to a valid source quadrilateral",
+                DocumentCrop.isValid(
+                    mapNormalizedCropPoints(
+                        savedState.cropEdits.getValue(uri).normalizedCorners!!,
+                        source.width,
+                        source.height
+                    ),
+                    source.width,
+                    source.height
+                )
+            )
+        } finally {
+            viewModelStore.clear()
+            if (!source.isRecycled) source.recycle()
+            sourceFile.delete()
+        }
+    }
+
+    @Test
     fun detectReturnsNullForFeaturelessImageInsteadOfInventingCropCorners() {
         assertTrue("OpenCV native library must load for automatic detection", OpenCVLoader.initLocal())
 
