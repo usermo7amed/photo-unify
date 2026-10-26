@@ -85,15 +85,21 @@ fun CropReviewCard(
     onOpenCrop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxSize(),
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compactLayout = maxHeight < 620.dp || maxWidth < 360.dp
+        Card(
+            modifier = Modifier.fillMaxSize(),
         shape = RoundedCornerShape(PhotoUnifierRadius.xl),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(PhotoUnifierSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
+            modifier = Modifier.fillMaxSize().padding(
+                if (compactLayout) PhotoUnifierSpacing.sm else PhotoUnifierSpacing.md
+            ),
+            verticalArrangement = Arrangement.spacedBy(
+                if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.sm
+            )
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -101,35 +107,45 @@ fun CropReviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                 ) {
                     Surface(
                         shape = RoundedCornerShape(PhotoUnifierRadius.md),
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(if (compactLayout) 28.dp else 40.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Filled.Crop,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(PhotoUnifierIconSize.md)
+                                modifier = Modifier.size(
+                                    if (compactLayout) PhotoUnifierIconSize.sm else PhotoUnifierIconSize.md
+                                )
                             )
                         }
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         Text(
                             text = stringResource(R.string.crop_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            style = if (compactLayout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = stringResource(R.string.crop_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (!compactLayout) {
+                            Text(
+                                text = stringResource(R.string.crop_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -166,14 +182,14 @@ fun CropReviewCard(
             }
 
             if (state.cropApplied && state.cropPreview != null) {
-                CropResultPreview(state.cropPreview)
+                CropResultPreview(state.cropPreview, compact = compactLayout)
             }
 
             PhotoUnifierButton(
                 onClick = onOpenCrop,
                 enabled = !state.busy && !state.cropApplying && state.selected.isNotEmpty() && openCvReady,
                 modifier = Modifier.fillMaxWidth(),
-                height = PhotoUnifierHeight.buttonPrimary,
+                height = if (compactLayout) PhotoUnifierHeight.buttonSecondary else PhotoUnifierHeight.buttonPrimary,
                 shape = RoundedCornerShape(PhotoUnifierRadius.md)
             ) {
                 Icon(
@@ -204,7 +220,10 @@ fun CropReviewCard(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.sm, vertical = PhotoUnifierSpacing.xs),
+                    modifier = Modifier.padding(
+                        horizontal = if (compactLayout) PhotoUnifierSpacing.xs else PhotoUnifierSpacing.sm,
+                        vertical = if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
                 ) {
@@ -221,6 +240,8 @@ fun CropReviewCard(
                     )
                 }
             }
+        }
+    }
         }
     }
 }
