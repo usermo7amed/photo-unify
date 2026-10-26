@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.photounifier.ui.PhotoUnifierGlass
@@ -177,6 +178,7 @@ fun AdjustPreviewScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val availableHeight = maxHeight
         val compactHeight = availableHeight < 680.dp
+        val compactHeader = compactHeight || maxWidth < 440.dp
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -195,7 +197,8 @@ fun AdjustPreviewScreen(
                     onBrightnessChange(0)
                     onContrastChange(100)
                 },
-                enabled = !state.busy && !state.cropApplying
+                enabled = !state.busy && !state.cropApplying,
+                compactLayout = compactHeader
             )
 
             // بطاقة المعاينة المركزية التفاعلية
@@ -420,14 +423,15 @@ private fun AdjustHeader(
     activePresetTitle: String?,
     isCustomAdjusted: Boolean,
     onResetAdjustments: () -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    compactLayout: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        if (activePresetTitle != null) {
+        if (activePresetTitle != null && !compactLayout) {
             Surface(
                 shape = RoundedCornerShape(PhotoUnifierRadius.xs),
                 color = MaterialTheme.colorScheme.secondaryContainer
@@ -444,32 +448,37 @@ private fun AdjustHeader(
             Spacer(modifier = Modifier.width(1.dp))
         }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (selectedCount > 1) {
-                PreviewNavigationControls(
-                    selectedIndex = currentIndex,
-                    totalCount = selectedCount,
-                    onIndexChange = onIndexChange,
-                    enabled = enabled
+        if (selectedCount > 1) {
+            PreviewNavigationControls(
+                selectedIndex = currentIndex,
+                totalCount = selectedCount,
+                onIndexChange = onIndexChange,
+                enabled = enabled,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .widthIn(max = if (compactLayout) 260.dp else 320.dp),
+                compact = compactLayout
+            )
+        }
+
+        if (isCustomAdjusted) {
+            PhotoUnifierOutlinedButton(
+                onClick = onResetAdjustments,
+                enabled = enabled,
+                modifier = if (compactLayout) Modifier.width(40.dp) else Modifier,
+                height = PhotoUnifierHeight.buttonSmall,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = if (compactLayout) 0.dp else PhotoUnifierSpacing.xs
+                ),
+                shape = RoundedCornerShape(PhotoUnifierRadius.sm)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.RestartAlt,
+                    contentDescription = if (compactLayout) stringResource(R.string.action_reset) else null,
+                    modifier = Modifier.size(PhotoUnifierIconSize.xs),
+                    tint = MaterialTheme.colorScheme.primary
                 )
-            }
-            if (isCustomAdjusted) {
-                PhotoUnifierOutlinedButton(
-                    onClick = onResetAdjustments,
-                    enabled = enabled,
-                    height = PhotoUnifierHeight.buttonSmall,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = PhotoUnifierSpacing.xs),
-                    shape = RoundedCornerShape(PhotoUnifierRadius.sm)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.RestartAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                if (!compactLayout) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.action_reset),
