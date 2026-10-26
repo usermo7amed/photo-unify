@@ -277,7 +277,8 @@ fun PreviewNavigationControls(
     totalCount: Int,
     onIndexChange: (Int) -> Unit,
     enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
     if (totalCount <= 1) return
 
@@ -292,7 +293,11 @@ fun PreviewNavigationControls(
             modifier = Modifier
                 .weight(1f)
                 .height(PhotoUnifierHeight.buttonTertiary),
-            shape = MaterialTheme.shapes.medium
+            shape = MaterialTheme.shapes.medium,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = if (compact) 0.dp else PhotoUnifierSpacing.md,
+                vertical = PhotoUnifierSpacing.xs
+            )
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -300,20 +305,22 @@ fun PreviewNavigationControls(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.NavigateBefore,
-                    contentDescription = null,
+                    contentDescription = if (compact) stringResource(R.string.action_previous_page) else null,
                     modifier = Modifier.size(PhotoUnifierIconSize.xs)
                 )
-                Text(
-                    text = stringResource(R.string.action_previous_page),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                if (!compact) {
+                    Text(
+                        text = stringResource(R.string.action_previous_page),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
         Surface(
             modifier = Modifier
-                .weight(0.85f)
+                .weight(if (compact) 0.7f else 0.85f)
                 .height(PhotoUnifierHeight.buttonTertiary),
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.primaryContainer,
@@ -339,20 +346,26 @@ fun PreviewNavigationControls(
             modifier = Modifier
                 .weight(1f)
                 .height(PhotoUnifierHeight.buttonTertiary),
-            shape = MaterialTheme.shapes.medium
+            shape = MaterialTheme.shapes.medium,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = if (compact) 0.dp else PhotoUnifierSpacing.md,
+                vertical = PhotoUnifierSpacing.xs
+            )
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.action_next_page),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                if (!compact) {
+                    Text(
+                        text = stringResource(R.string.action_next_page),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.NavigateNext,
-                    contentDescription = null,
+                    contentDescription = if (compact) stringResource(R.string.action_next_page) else null,
                     modifier = Modifier.size(PhotoUnifierIconSize.xs)
                 )
             }
