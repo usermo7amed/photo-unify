@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.components.PhotoUnifierButton
 import com.photounifier.ui.components.PhotoUnifierOutlinedButton
@@ -548,31 +549,38 @@ private fun SuccessExportCard(
                 }
 
                 if (state.exportErrors.isNotEmpty()) {
-                    item(key = "export-errors") {
+                    item(key = "export-errors-header") {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(PhotoUnifierRadius.md),
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                         ) {
-                            Column(
+                            Text(
+                                text = stringResource(R.string.export_some_failed),
                                 modifier = Modifier.padding(PhotoUnifierSpacing.sm),
-                                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.export_some_failed),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                state.exportErrors.forEachIndexed { index, message ->
-                                    Text(
-                                        text = "${index + 1}. $message",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
-                            }
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    itemsIndexed(
+                        items = state.exportErrors,
+                        key = { index, _ -> "export-error-$index" }
+                    ) { index, message ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.28f)
+                        ) {
+                            Text(
+                                text = "${index + 1}. $message",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(PhotoUnifierSpacing.sm),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
                         }
                     }
                 }
