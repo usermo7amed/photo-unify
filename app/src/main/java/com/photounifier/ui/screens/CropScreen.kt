@@ -665,7 +665,7 @@ private fun CropToolIconButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(40.dp)
+        modifier = Modifier.size(48.dp)
     ) {
         Icon(
             imageVector = icon,
