@@ -378,7 +378,7 @@ private fun SuccessExportCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .weight(if (compactHeight) 1.15f else 1.15f)
+                        .weight(if (compactHeight) 1.2f else 1.15f)
                         .heightIn(min = if (compactHeight) 76.dp else 100.dp)
                         .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                         .background(Color(0xFF14171C))
