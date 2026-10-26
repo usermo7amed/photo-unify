@@ -18,7 +18,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.weight
 import com.photounifier.ui.PhotoUnifierTheme
 import com.photounifier.ui.screens.AdjustPreviewScreen
 import com.photounifier.ui.screens.CropWorkspaceBottomBar
