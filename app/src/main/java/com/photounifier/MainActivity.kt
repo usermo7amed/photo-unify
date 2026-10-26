@@ -22,6 +22,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -295,7 +296,9 @@ private fun PhotoUnifierScreen(
             )
         },
         bottomBar = {
-            if (isCropWorkspace) {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val compactBottomBar = maxWidth < 380.dp
+                if (isCropWorkspace) {
                 CropWorkspaceBottomBar(
                     state = state,
                     onRotatePage = onRotateCropPage,
@@ -309,7 +312,10 @@ private fun PhotoUnifierScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(
+                            horizontal = if (compactBottomBar) 6.dp else 12.dp,
+                            vertical = if (compactBottomBar) 3.dp else 6.dp
+                        ),
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 2.dp
@@ -317,26 +323,50 @@ private fun PhotoUnifierScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .padding(
+                                horizontal = if (compactBottomBar) 4.dp else 12.dp,
+                                vertical = if (compactBottomBar) 3.dp else 6.dp
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(if (compactBottomBar) 4.dp else 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         PhotoUnifierOutlinedButton(
                             onClick = { currentStep = 0 },
                             enabled = !state.busy && !state.cropApplying,
                             modifier = Modifier.weight(1f),
-                            height = PhotoUnifierHeight.buttonTertiary
+                            height = PhotoUnifierHeight.buttonTertiary,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = if (compactBottomBar) 4.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
+                            )
                         ) {
-                            Text(stringResource(R.string.action_previous))
+                            Text(
+                                text = stringResource(R.string.action_previous),
+                                style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
                         }
 
                         PhotoUnifierButton(
                             onClick = { currentStep = 2 },
                             enabled = !state.busy && !state.cropApplying,
-                            modifier = Modifier.weight(1.3f),
-                            height = PhotoUnifierHeight.buttonTertiary
+                            modifier = Modifier.weight(if (compactBottomBar) 1.45f else 1.3f),
+                            height = PhotoUnifierHeight.buttonTertiary,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = if (compactBottomBar) 4.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                vertical = if (compactBottomBar) 0.dp else com.photounifier.ui.PhotoUnifierSpacing.xs
+                            )
                         ) {
-                            Text(stringResource(R.string.action_next_adjustment), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = stringResource(R.string.action_next_adjustment),
+                                fontWeight = FontWeight.Bold,
+                                style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -349,43 +379,98 @@ private fun PhotoUnifierScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                .padding(
+                                horizontal = if (compactBottomBar) 4.dp else 8.dp,
+                                vertical = 4.dp
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(if (compactBottomBar) 3.dp else 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             PhotoUnifierOutlinedButton(
                                 onClick = onCaptureDocument,
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
-                                height = PhotoUnifierHeight.buttonTertiary
-                            ) { Text(stringResource(R.string.action_camera)) }
+                                height = PhotoUnifierHeight.buttonTertiary,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    horizontal = if (compactBottomBar) 3.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                    vertical = 0.dp
+                                )
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_camera),
+                                    style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
                             PhotoUnifierOutlinedButton(
                                 onClick = { onPickImages(true) },
                                 enabled = !state.busy,
                                 modifier = Modifier.weight(1f),
-                                height = PhotoUnifierHeight.buttonTertiary
-                            ) { Text(stringResource(R.string.action_gallery)) }
+                                height = PhotoUnifierHeight.buttonTertiary,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    horizontal = if (compactBottomBar) 3.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                    vertical = 0.dp
+                                )
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_gallery),
+                                    style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
                             PhotoUnifierButton(
                                 onClick = { currentStep = 1 },
                                 enabled = state.selected.isNotEmpty() && !state.busy,
-                                modifier = Modifier.weight(1.2f),
-                                height = PhotoUnifierHeight.buttonTertiary
-                            ) { Text(stringResource(R.string.action_review_images), fontWeight = FontWeight.Bold) }
+                                modifier = Modifier.weight(if (compactBottomBar) 1.25f else 1.2f),
+                                height = PhotoUnifierHeight.buttonTertiary,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    horizontal = if (compactBottomBar) 3.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                    vertical = 0.dp
+                                )
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_review_images),
+                                    fontWeight = FontWeight.Bold,
+                                    style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     } else {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                .padding(
+                                horizontal = if (compactBottomBar) 6.dp else 12.dp,
+                                vertical = 4.dp
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(if (compactBottomBar) 4.dp else 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             PhotoUnifierOutlinedButton(
                                 onClick = { currentStep = 0 },
                                 enabled = currentStep != 0 && !state.busy && !state.exportBusy,
                                 modifier = Modifier.weight(1f),
-                                height = PhotoUnifierHeight.buttonTertiary
-                            ) { Text(stringResource(R.string.action_documents)) }
+                                height = PhotoUnifierHeight.buttonTertiary,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    horizontal = if (compactBottomBar) 4.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                    vertical = 0.dp
+                                )
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_documents),
+                                    style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
                             PhotoUnifierButton(
                                 onClick = {
                                     currentStep = when (currentStep) {
@@ -398,8 +483,12 @@ private fun PhotoUnifierScreen(
                                     (currentStep == 1 || currentStep == 2 &&
                                      (state.resultPreview != null || state.enhancedPreview != null) ||
                                      currentStep == 3),
-                                modifier = Modifier.weight(1.4f),
-                                height = PhotoUnifierHeight.buttonTertiary
+                                modifier = Modifier.weight(if (compactBottomBar) 1.5f else 1.4f),
+                                height = PhotoUnifierHeight.buttonTertiary,
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    horizontal = if (compactBottomBar) 4.dp else com.photounifier.ui.PhotoUnifierSpacing.md,
+                                    vertical = 0.dp
+                                )
                             ) {
                                 Text(
                                     when (currentStep) {
@@ -407,12 +496,17 @@ private fun PhotoUnifierScreen(
                                         2 -> stringResource(R.string.action_view_export)
                                         else -> stringResource(R.string.action_back_enhance)
                                     },
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    style = if (compactBottomBar) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                         }
                     }
                 }
+            }
             }
         }
     ) { padding ->
