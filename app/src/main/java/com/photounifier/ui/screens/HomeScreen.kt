@@ -41,7 +41,6 @@ import com.photounifier.ui.components.SelectionThumbnailsBar
 @Composable
 fun HomeScreen(
     state: PhotoUiState,
-    onPickImages: (Boolean) -> Unit,
     onCaptureDocument: () -> Unit,
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
@@ -63,7 +62,6 @@ fun HomeScreen(
                 // نمط دفعة المستندات - مستندات محددة جاهزة للمراجعة والقص
                 ActiveBatchDashboard(
                     state = state,
-                    onPickImages = onPickImages,
                     onClearSelection = onClearSelection,
                     onRemoveImage = onRemoveImage,
                     onPreviewSelect = onPreviewSelect,
@@ -108,7 +106,6 @@ private fun EmptyScanDashboard() {
 @Composable
 private fun ActiveBatchDashboard(
     state: PhotoUiState,
-    onPickImages: (Boolean) -> Unit,
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
@@ -191,7 +188,6 @@ private fun ActiveBatchDashboard(
                     currentIndex = state.previewIndex,
                     onSelectIndex = onPreviewSelect,
                     onRemoveUri = onRemoveImage,
-                    onAddMore = { onPickImages(true) },
                     enabled = enabled,
                     compact = compact
                 )

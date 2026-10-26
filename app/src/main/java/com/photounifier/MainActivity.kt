@@ -550,7 +550,6 @@ private fun PhotoUnifierScreen(
                     0 -> {
                         HomeScreen(
                             state = state,
-                            onPickImages = onPickImages,
                             onCaptureDocument = onCaptureDocument,
                             onClearSelection = onClearSelection,
                             onRemoveImage = onRemoveImage,
