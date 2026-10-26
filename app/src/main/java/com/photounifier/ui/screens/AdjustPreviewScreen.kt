@@ -301,7 +301,8 @@ fun AdjustPreviewScreen(
                             onBrightnessChange(preset.brightness)
                             onContrastChange(preset.contrast)
                         },
-                        enabled = !state.busy && state.sourcePreview != null
+                        enabled = !state.busy && state.sourcePreview != null,
+                        compactLayout = compactHeight
                     )
                 }
             }
@@ -500,14 +501,15 @@ private fun FilterPresetCard(
     preset: FilterPreset,
     isSelected: Boolean,
     onClick: () -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    compactLayout: Boolean
 ) {
     val presetTitle = stringResource(preset.titleRes)
     val presetSubtitle = stringResource(preset.subtitleRes)
     val presetDescription = "$presetTitle. $presetSubtitle"
     Surface(
         modifier = Modifier
-            .width(112.dp)
+            .width(if (compactLayout) 100.dp else 112.dp)
             .clickable(
                 enabled = enabled,
                 role = Role.RadioButton,
@@ -556,13 +558,16 @@ private fun FilterPresetCard(
             }
 
             Column(
-                modifier = Modifier.padding(horizontal = PhotoUnifierSpacing.xs, vertical = PhotoUnifierSpacing.xs),
+                modifier = Modifier.padding(
+                    horizontal = PhotoUnifierSpacing.xs,
+                    vertical = if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
+                ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(if (compactLayout) 30.dp else 38.dp)
                         .clip(CircleShape)
                         .background(
                             if (isSelected) MaterialTheme.colorScheme.primary
