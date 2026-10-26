@@ -106,7 +106,6 @@ private fun EmptyScanDashboard() {
 @Composable
 private fun ActiveBatchDashboard(
     state: PhotoUiState,
-    onPickImages: (Boolean) -> Unit,
     onClearSelection: () -> Unit,
     onRemoveImage: (Uri) -> Unit,
     onPreviewSelect: (Int) -> Unit,
