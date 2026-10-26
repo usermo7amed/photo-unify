@@ -262,12 +262,8 @@ fun CropWorkspaceView(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val availableHeight = maxHeight
         val compactLayout = availableHeight < 620.dp
-        // Keep a useful minimum editor area without forcing overflow on very short screens.
-        val cropPreviewMinHeight = if (compactLayout) {
-            (availableHeight * 0.18f).coerceIn(48.dp, 96.dp)
-        } else {
-            170.dp
-        }
+        // Let the editor use only the remaining weighted height. A forced minimum
+        // can exceed the space left by the header and page strip on short screens.
         var showCropResultPreview by remember { mutableStateOf(false) }
 
         Column(
@@ -324,8 +320,7 @@ fun CropWorkspaceView(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .heightIn(min = cropPreviewMinHeight),
+                        .weight(1f),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 ) {
@@ -340,8 +335,7 @@ fun CropWorkspaceView(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .heightIn(min = cropPreviewMinHeight),
+                        .weight(1f),
                     shape = RoundedCornerShape(PhotoUnifierRadius.lg),
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
