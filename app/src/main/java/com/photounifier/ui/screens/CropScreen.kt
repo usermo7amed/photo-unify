@@ -87,161 +87,201 @@ fun CropReviewCard(
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val compactLayout = maxHeight < 620.dp || maxWidth < 360.dp
+
         Card(
             modifier = Modifier.fillMaxSize(),
-        shape = RoundedCornerShape(PhotoUnifierRadius.xl),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(
-                if (compactLayout) PhotoUnifierSpacing.sm else PhotoUnifierSpacing.md
-            ),
-            verticalArrangement = Arrangement.spacedBy(
-                if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.sm
-            )
+            shape = RoundedCornerShape(PhotoUnifierRadius.xl),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = PhotoUnifierElevation.mid)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(PhotoUnifierRadius.md),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(if (compactLayout) 28.dp else 40.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.Crop,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(
-                                    if (compactLayout) PhotoUnifierIconSize.sm else PhotoUnifierIconSize.md
-                                )
-                            )
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.crop_title),
-                            style = if (compactLayout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                        if (!compactLayout) {
-                            Text(
-                                text = stringResource(R.string.crop_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                ValuePill(
-                    if (state.cropEdits.isNotEmpty()) stringResource(R.string.crop_page_modified_count, state.cropEdits.size)
-                    else stringResource(R.string.crop_ready_review)
-                )
-            }
-
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                val preview = state.sourcePreview
-                if (preview != null && !preview.isRecycled) {
-                    Image(
-                        bitmap = preview.asImageBitmap(),
-                        contentDescription = stringResource(R.string.crop_page_preview_description, state.previewIndex + 1),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        filterQuality = FilterQuality.Medium
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.crop_preview_placeholder),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            if (state.cropApplied && state.cropPreview != null) {
-                CropResultPreview(state.cropPreview, compact = compactLayout)
-            }
-
-            PhotoUnifierButton(
-                onClick = onOpenCrop,
-                enabled = !state.busy && !state.cropApplying && state.selected.isNotEmpty() && openCvReady,
-                modifier = Modifier.fillMaxWidth(),
-                height = if (compactLayout) PhotoUnifierHeight.buttonSecondary else PhotoUnifierHeight.buttonPrimary,
-                shape = RoundedCornerShape(PhotoUnifierRadius.md)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Crop,
-                    contentDescription = null,
-                    modifier = Modifier.size(PhotoUnifierIconSize.sm)
+                    .fillMaxSize()
+                    .padding(
+                        if (compactLayout) PhotoUnifierSpacing.sm else PhotoUnifierSpacing.md
+                    ),
+                verticalArrangement = Arrangement.spacedBy(
+                    if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.sm
                 )
-                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                Text(
-                    text = if (state.cropEdits.isNotEmpty()) stringResource(R.string.crop_continue_review, state.cropEdits.size, state.selected.size)
-                    else stringResource(R.string.action_open_crop_editor),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            val hintText = when {
-                state.cropApplying -> stringResource(R.string.crop_processing)
-                state.selected.isEmpty() -> stringResource(R.string.crop_select_first)
-                !openCvReady -> stringResource(R.string.crop_opencv_unavailable)
-                state.cropEdits.isNotEmpty() -> stringResource(R.string.crop_edits_saved_summary, state.cropEdits.size, state.selected.size)
-                else -> stringResource(R.string.crop_optional_hint)
-            }
-
-            Surface(
-                shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             ) {
                 Row(
-                    modifier = Modifier.padding(
-                        horizontal = if (compactLayout) PhotoUnifierSpacing.xs else PhotoUnifierSpacing.sm,
-                        vertical = if (compactLayout) PhotoUnifierSpacing.xxs else PhotoUnifierSpacing.xs
-                    ),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(PhotoUnifierRadius.md),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(if (compactLayout) 28.dp else 40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Filled.Crop,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(
+                                        if (compactLayout) PhotoUnifierIconSize.sm else PhotoUnifierIconSize.md
+                                    )
+                                )
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.crop_title),
+                                style = if (compactLayout) {
+                                    MaterialTheme.typography.titleSmall
+                                } else {
+                                    MaterialTheme.typography.titleMedium
+                                },
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            if (!compactLayout) {
+                                Text(
+                                    text = stringResource(R.string.crop_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    ValuePill(
+                        if (state.cropEdits.isNotEmpty()) {
+                            stringResource(R.string.crop_page_modified_count, state.cropEdits.size)
+                        } else {
+                            stringResource(R.string.crop_ready_review)
+                        }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val preview = state.sourcePreview
+                    if (preview != null && !preview.isRecycled) {
+                        Image(
+                            bitmap = preview.asImageBitmap(),
+                            contentDescription = stringResource(
+                                R.string.crop_page_preview_description,
+                                state.previewIndex + 1
+                            ),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            filterQuality = FilterQuality.Medium
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.crop_preview_placeholder),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (state.cropApplied && state.cropPreview != null) {
+                    CropResultPreview(state.cropPreview, compact = compactLayout)
+                }
+
+                PhotoUnifierButton(
+                    onClick = onOpenCrop,
+                    enabled = !state.busy && !state.cropApplying &&
+                        state.selected.isNotEmpty() && openCvReady,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = if (compactLayout) {
+                        PhotoUnifierHeight.buttonSecondary
+                    } else {
+                        PhotoUnifierHeight.buttonPrimary
+                    },
+                    shape = RoundedCornerShape(PhotoUnifierRadius.md)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Filled.Crop,
                         contentDescription = null,
-                        modifier = Modifier.size(PhotoUnifierIconSize.xs),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(PhotoUnifierIconSize.sm)
                     )
+                    Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
                     Text(
-                        text = hintText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = if (state.cropEdits.isNotEmpty()) {
+                            stringResource(
+                                R.string.crop_continue_review,
+                                state.cropEdits.size,
+                                state.selected.size
+                            )
+                        } else {
+                            stringResource(R.string.action_open_crop_editor)
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
                     )
+                }
+
+                val hintText = when {
+                    state.cropApplying -> stringResource(R.string.crop_processing)
+                    state.selected.isEmpty() -> stringResource(R.string.crop_select_first)
+                    !openCvReady -> stringResource(R.string.crop_opencv_unavailable)
+                    state.cropEdits.isNotEmpty() -> stringResource(
+                        R.string.crop_edits_saved_summary,
+                        state.cropEdits.size,
+                        state.selected.size
+                    )
+                    else -> stringResource(R.string.crop_optional_hint)
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(
+                            horizontal = if (compactLayout) {
+                                PhotoUnifierSpacing.xs
+                            } else {
+                                PhotoUnifierSpacing.sm
+                            },
+                            vertical = if (compactLayout) {
+                                PhotoUnifierSpacing.xxs
+                            } else {
+                                PhotoUnifierSpacing.xs
+                            }
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.xs),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = hintText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
-    }
     }
 }
 
