@@ -268,6 +268,8 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
     implementation("org.opencv:opencv:4.9.0")
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
