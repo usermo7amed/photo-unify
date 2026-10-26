@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import com.photounifier.ui.PhotoUnifierGlass
 import com.photounifier.ui.components.PhotoUnifierButton
 import com.photounifier.ui.components.PhotoUnifierOutlinedButton
@@ -547,142 +548,39 @@ private fun SuccessExportCard(
                     }
                 }
 
-                item(key = "export-actions") {
-                    // Export PDF and image actions.
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.export_options_share),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
-                        ) {
-                            PhotoUnifierButton(
-                                onClick = onExportPdf,
-                                enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
-                                modifier = Modifier.weight(1f),
-                                height = PhotoUnifierHeight.buttonSecondary,
-                                shape = RoundedCornerShape(PhotoUnifierRadius.md)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PictureAsPdf,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                                )
-                                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                                Text(
-                                    stringResource(R.string.action_export_pdf),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            PhotoUnifierButton(
-                                onClick = onExportImages,
-                                enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
-                                modifier = Modifier.weight(1f),
-                                height = PhotoUnifierHeight.buttonSecondary,
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
-                                    alpha = PhotoUnifierGlass.secondaryAlpha
-                                ),
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                shape = RoundedCornerShape(PhotoUnifierRadius.md)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Image,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(PhotoUnifierIconSize.xs)
-                                )
-                                Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
-                                Text(
-                                    stringResource(R.string.action_save_images),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        if (
-                            state.exportBusy ||
-                            state.exportProgress > 0 ||
-                            state.exportErrors.isNotEmpty() ||
-                            state.exportStatus != stringResource(R.string.status_ready_export)
-                        ) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(PhotoUnifierRadius.sm),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(PhotoUnifierSpacing.sm),
-                                    verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                                ) {
-                                    Text(
-                                        text = state.exportStatus,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    if (state.exportBusy) {
-                                        LinearProgressIndicator(
-                                            progress = { animatedExportProgress },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(PhotoUnifierHeight.progressBar)
-                                                .clip(RoundedCornerShape(PhotoUnifierRadius.xs))
-                                        )
-                                    } else {
-                                        Text(
-                                            text = if (state.exportErrors.isEmpty()) {
-                                                stringResource(R.string.export_success)
-                                            } else {
-                                                stringResource(R.string.export_finished_with_notes)
-                                            },
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (state.exportErrors.isEmpty()) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.error
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if (state.exportErrors.isNotEmpty()) {
-                    item(key = "export-errors") {
+                    item(key = "export-errors-header") {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(PhotoUnifierRadius.md),
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                         ) {
-                            Column(
+                            Text(
+                                text = stringResource(R.string.export_some_failed),
                                 modifier = Modifier.padding(PhotoUnifierSpacing.sm),
-                                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.export_some_failed),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                state.exportErrors.forEachIndexed { index, message ->
-                                    Text(
-                                        text = "${index + 1}. $message",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
-                            }
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    itemsIndexed(
+                        items = state.exportErrors,
+                        key = { index, _ -> "export-error-$index" }
+                    ) { index, message ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.28f)
+                        ) {
+                            Text(
+                                text = "${index + 1}. $message",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(PhotoUnifierSpacing.sm),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
                         }
                     }
                 }
@@ -770,6 +668,115 @@ private fun SuccessExportCard(
                     }
                 }
             }
+
+            // Export PDF and image actions.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xs)
+            ) {
+                Text(
+                    text = stringResource(R.string.export_options_share),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm)
+                ) {
+                    PhotoUnifierButton(
+                        onClick = onExportPdf,
+                        enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
+                        modifier = Modifier.weight(1f),
+                        height = PhotoUnifierHeight.buttonSecondary,
+                        shape = RoundedCornerShape(PhotoUnifierRadius.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PictureAsPdf,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                        )
+                        Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                        Text(
+                            stringResource(R.string.action_export_pdf),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    PhotoUnifierButton(
+                        onClick = onExportImages,
+                        enabled = !state.exportBusy && isSuccess && state.selectedExportIds.isNotEmpty(),
+                        modifier = Modifier.weight(1f),
+                        height = PhotoUnifierHeight.buttonSecondary,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
+                            alpha = PhotoUnifierGlass.secondaryAlpha
+                        ),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(PhotoUnifierRadius.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier.size(PhotoUnifierIconSize.xs)
+                        )
+                        Spacer(modifier = Modifier.width(PhotoUnifierSpacing.xs))
+                        Text(
+                            stringResource(R.string.action_save_images),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                if (
+                    state.exportBusy ||
+                    state.exportProgress > 0 ||
+                    state.exportErrors.isNotEmpty() ||
+                    state.exportStatus != stringResource(R.string.status_ready_export)
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PhotoUnifierRadius.sm),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(PhotoUnifierSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.xxs)
+                        ) {
+                            Text(
+                                text = state.exportStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (state.exportBusy) {
+                                LinearProgressIndicator(
+                                    progress = { animatedExportProgress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(PhotoUnifierHeight.progressBar)
+                                        .clip(RoundedCornerShape(PhotoUnifierRadius.xs))
+                                )
+                            } else {
+                                Text(
+                                    text = if (state.exportErrors.isEmpty()) {
+                                        stringResource(R.string.export_success)
+                                    } else {
+                                        stringResource(R.string.export_finished_with_notes)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (state.exportErrors.isEmpty()) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }
