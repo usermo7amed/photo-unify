@@ -12,15 +12,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.fetchSemanticsNode
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.useUnmergedTree
 import androidx.compose.ui.unit.dp
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertExists
 import com.photounifier.ui.PhotoUnifierTheme
 import com.photounifier.ui.screens.ResultScreen
 import java.io.File
@@ -111,7 +108,6 @@ class CompactExportActionsLayoutTest {
     }
 
     private fun assertInsideViewport(label: String, child: Rect, viewport: Rect) {
-        assertTrue("$label must start within the compact viewport: $child / $viewport", child.left >= viewport.left - 1f)
         assertTrue("$label must not extend left of the viewport: $child / $viewport", child.left >= viewport.left - 1f)
         assertTrue("$label must not extend right of the viewport: $child / $viewport", child.right <= viewport.right + 1f)
         assertTrue("$label must not extend above the viewport: $child / $viewport", child.top >= viewport.top - 1f)
