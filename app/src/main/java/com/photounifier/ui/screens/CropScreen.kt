@@ -242,7 +242,6 @@ fun CropReviewCard(
             }
         }
     }
-        }
     }
 }
 
