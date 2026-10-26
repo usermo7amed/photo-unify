@@ -115,7 +115,7 @@ fun ResultScreen(
     )
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val compactHeight = maxHeight < 680.dp
+        val compactHeight = maxHeight < 680.dp || maxWidth < 360.dp
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -378,7 +378,7 @@ private fun SuccessExportCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .weight(if (compactHeight) 0.85f else 1.15f)
+                        .weight(if (compactHeight) 1.2f else 1.15f)
                         .heightIn(min = if (compactHeight) 76.dp else 100.dp)
                         .clip(RoundedCornerShape(PhotoUnifierRadius.lg))
                         .background(Color(0xFF14171C))
@@ -419,7 +419,7 @@ private fun SuccessExportCard(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(if (compactHeight) 1.15f else 0.9f),
+                    .weight(if (compactHeight) 0.85f else 0.9f),
                 verticalArrangement = Arrangement.spacedBy(
                     if (compactHeight) PhotoUnifierSpacing.xs else PhotoUnifierSpacing.md
                 )
