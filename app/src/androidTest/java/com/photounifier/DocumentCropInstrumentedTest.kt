@@ -322,6 +322,83 @@ class DocumentCropInstrumentedTest {
     }
 
     @Test
+    fun repositoryStopsProcessingAtTheNextStageAfterCancellation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val source = Bitmap.createBitmap(96, 72, Bitmap.Config.ARGB_8888)
+        val inputFile = File(context.cacheDir, "processing-cancel-${System.nanoTime()}.png")
+        var sourcePreview: Bitmap? = null
+        var sourceCount = 0
+        var classificationCount = 0
+        var enhancedCount = 0
+        var savedCount = 0
+        var cancellationRequested = false
+        var finishedSuccess = -1
+        var finishedFailed = -1
+        var finishedError: String? = null
+
+        try {
+            source.eraseColor(Color.WHITE)
+            FileOutputStream(inputFile).use { output ->
+                assertTrue("Synthetic source image must be written", source.compress(Bitmap.CompressFormat.PNG, 100, output))
+            }
+            val uri = Uri.fromFile(inputFile)
+            val observer = object : PhotoRepository.Observer {
+                override fun onSource(index: Int, total: Int, bitmap: Bitmap) {
+                    sourceCount++
+                    sourcePreview = bitmap
+                    cancellationRequested = true
+                }
+
+                override fun onClassification(index: Int, total: Int, kind: ImageKind) {
+                    classificationCount++
+                }
+
+                override fun onEnhanced(bitmap: Bitmap) {
+                    enhancedCount++
+                    bitmap.recycle()
+                }
+
+                override fun onSaved(index: Int, bitmap: Bitmap, file: File) {
+                    savedCount++
+                    bitmap.recycle()
+                    file.delete()
+                }
+
+                override fun onError(index: Int, total: Int, uri: Uri, message: String) {
+                    throw AssertionError("Cancelled work must not be reported as a processing failure: $message")
+                }
+
+                override fun onFinished(success: Int, failed: Int, error: String?) {
+                    finishedSuccess = success
+                    finishedFailed = failed
+                    finishedError = error
+                }
+            }
+
+            PhotoRepository().process(
+                context = context,
+                uris = listOf(uri, uri),
+                brightness = 0,
+                contrastPercent = 100,
+                observer = observer,
+                shouldCancel = { cancellationRequested }
+            )
+
+            assertEquals("The first image should reach source-preview delivery", 1, sourceCount)
+            assertEquals("Cancellation should prevent scene classification", 0, classificationCount)
+            assertEquals("Cancellation should prevent image enhancement", 0, enhancedCount)
+            assertEquals("Cancellation should prevent output persistence", 0, savedCount)
+            assertEquals("Cancellation is not an image-processing failure", 0, finishedSuccess)
+            assertEquals("Cancellation is not an image-processing failure", 0, finishedFailed)
+            assertEquals("Cancellation should not report a processing error", null, finishedError)
+        } finally {
+            sourcePreview?.let { if (!it.isRecycled) it.recycle() }
+            if (!source.isRecycled) source.recycle()
+            inputFile.delete()
+        }
+    }
+
+    @Test
     fun repositoryAppliesSavedCropEditToProcessedOutput() {
         assertTrue("OpenCV native library must load for the crop processing pipeline", OpenCVLoader.initLocal())
 
