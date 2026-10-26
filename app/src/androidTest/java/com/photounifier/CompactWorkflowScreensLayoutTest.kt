@@ -26,6 +26,7 @@ import com.photounifier.ui.screens.CropReviewCard
 import com.photounifier.ui.screens.CropWorkspaceBottomBar
 import com.photounifier.ui.screens.CropWorkspaceView
 import com.photounifier.ui.screens.HomeScreen
+import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
