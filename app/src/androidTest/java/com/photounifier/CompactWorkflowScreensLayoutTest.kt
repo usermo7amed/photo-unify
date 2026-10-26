@@ -307,7 +307,7 @@ class CompactWorkflowScreensLayoutTest {
         assertInsideViewport("Processing status", status, viewport)
         assertTrue(
             "Progress should remain below the processing status",
-            status.bottom <= progress.top + 1f || progress.bottom <= status.top + 1f
+            status.bottom <= progress.top + 1f
         )
     }
 
