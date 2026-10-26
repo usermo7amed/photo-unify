@@ -367,7 +367,8 @@ fun ValuePill(
 @Composable
 fun CropResultPreview(
     bitmap: android.graphics.Bitmap?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -377,13 +378,19 @@ fun CropResultPreview(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(
+                    horizontal = if (compact) 8.dp else 12.dp,
+                    vertical = if (compact) 4.dp else 8.dp
+                ),
             horizontalArrangement = Arrangement.spacedBy(PhotoUnifierSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(width = 64.dp, height = 78.dp)
+                    .size(
+                        width = if (compact) 48.dp else 64.dp,
+                        height = if (compact) 58.dp else 78.dp
+                    )
                     .clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -410,7 +417,7 @@ fun CropResultPreview(
             ) {
                 Text(
                     text = stringResource(R.string.crop_preview_title),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -418,7 +425,7 @@ fun CropResultPreview(
                         stringResource(R.string.crop_preview_corrected_notice)
                     else
                         stringResource(R.string.crop_preview_hint),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
