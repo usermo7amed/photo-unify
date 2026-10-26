@@ -19,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import com.photounifier.ui.PhotoUnifierTheme
 import com.photounifier.ui.screens.AdjustPreviewScreen
+import com.photounifier.ui.screens.CropReviewCard
 import com.photounifier.ui.screens.CropWorkspaceBottomBar
 import com.photounifier.ui.screens.CropWorkspaceView
 import com.photounifier.ui.screens.HomeScreen
@@ -191,6 +192,122 @@ class CompactWorkflowScreensLayoutTest {
         assertTrue(
             "Crop controls must be below the image-editing workspace",
             workspace.bottom <= cancelAction.top + 1f
+        )
+    }
+
+    @Test
+    fun emptyHomeStateKeepsGuidanceInsideCompactViewport() {
+        composeRule.setContent {
+            PhotoUnifierTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 320.dp, height = 430.dp)
+                        .testTag("empty-home-viewport")
+                ) {
+                    HomeScreen(
+                        state = PhotoUiState(),
+                        onCaptureDocument = {},
+                        onClearSelection = {},
+                        onRemoveImage = {},
+                        onPreviewSelect = {},
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        val viewport = bounds("empty-home-viewport")
+        val title = boundsForText("ابدأ بمسح مستند")
+        val guidance = boundsForText("صوّر الورقة بالكاميرا أو اختر صورًا من المعرض.")
+
+        assertInsideViewport("Empty home title", title, viewport)
+        assertInsideViewport("Empty home guidance", guidance, viewport)
+        assertTrue("Empty home guidance must be below the title", title.bottom <= guidance.top + 1f)
+    }
+
+    @Test
+    fun cropReviewKeepsSourcePreviewAndCropActionInsideCompactViewport() {
+        val source = testBitmap()
+        val uri = Uri.parse("content://photo-unifier/crop-review-test")
+        val state = PhotoUiState(
+            selected = listOf(uri),
+            sourcePreview = source
+        )
+
+        composeRule.setContent {
+            DisposableEffect(source) {
+                onDispose { if (!source.isRecycled) source.recycle() }
+            }
+            PhotoUnifierTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 320.dp, height = 430.dp)
+                        .testTag("crop-review-viewport")
+                ) {
+                    CropReviewCard(
+                        state = state,
+                        openCvReady = true,
+                        onOpenCrop = {},
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        val viewport = bounds("crop-review-viewport")
+        val preview = boundsForDescription("معاينة الصفحة 1")
+        val cropAction = boundsForText("ضبط الزوايا")
+
+        assertInsideViewport("Crop-review source preview", preview, viewport)
+        assertInsideViewport("Crop-review primary action", cropAction, viewport)
+        assertTrue(
+            "Crop-review action must remain below the source preview",
+            preview.bottom <= cropAction.top + 1f
+        )
+    }
+
+    @Test
+    fun processingResultKeepsProgressAndStatusInsideCompactViewport() {
+        composeRule.setContent {
+            PhotoUnifierTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 320.dp, height = 430.dp)
+                        .testTag("processing-result-viewport")
+                ) {
+                    com.photounifier.ui.screens.ResultScreen(
+                        state = PhotoUiState(
+                            busy = true,
+                            progress = 1,
+                            progressMax = 3,
+                            status = "جاري معالجة الصور"
+                        ),
+                        onBackToAdjust = {},
+                        onPickNewBatch = {},
+                        onToggleExportImage = { _, _ -> },
+                        onSelectAllExportImages = {},
+                        onExportImages = {},
+                        onExportPdf = {},
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        val viewport = bounds("processing-result-viewport")
+        val title = boundsForText("جاري تحسين وحفظ المستندات...")
+        val progress = boundsForText("المستند 1 من 3")
+        val status = boundsForText("جاري معالجة الصور")
+
+        assertInsideViewport("Processing title", title, viewport)
+        assertInsideViewport("Processing progress", progress, viewport)
+        assertInsideViewport("Processing status", status, viewport)
+        assertTrue(
+            "Progress should remain below the processing status",
+            status.bottom <= progress.top + 1f || progress.bottom <= status.top + 1f
         )
     }
 
