@@ -1341,7 +1341,9 @@ class PhotoViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 },
-                    pageEdits = snapshot.cropEdits
+                    pageEdits = snapshot.cropEdits,
+                    // ViewModel teardown should stop the remaining batch at safe stage boundaries.
+                    shouldCancel = { cleared }
                 )
             } catch (error: Throwable) {
                 val message = error.message ?: error.javaClass.simpleName
