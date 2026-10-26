@@ -23,7 +23,16 @@ class PhotoRepository {
         fun onFinished(success: Int, failed: Int, error: String?)
     }
 
-    fun process(context: Context, uris: List<Uri>, brightness: Int, contrastPercent: Int, observer: Observer, firstSourceOverride: Bitmap? = null, pageEdits: Map<Uri, DocumentPageEdit> = emptyMap()) {
+    fun process(
+        context: Context,
+        uris: List<Uri>,
+        brightness: Int,
+        contrastPercent: Int,
+        observer: Observer,
+        firstSourceOverride: Bitmap? = null,
+        pageEdits: Map<Uri, DocumentPageEdit> = emptyMap(),
+        shouldCancel: () -> Boolean = { false }
+    ) {
         val batchStarted = SystemClock.elapsedRealtimeNanos()
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         var success = 0
@@ -32,6 +41,7 @@ class PhotoRepository {
         val classifier = try { SceneClassifier() } catch (_: Exception) { null }
         try {
             uris.forEachIndexed { index, uri ->
+                if (shouldCancel()) return@forEachIndexed
                 val imageStarted = SystemClock.elapsedRealtimeNanos()
                 var loadMs = 0.0
                 var classifyMs = 0.0
@@ -79,6 +89,7 @@ class PhotoRepository {
                         Trace.endSection()
                         loadMs = elapsedMs(loadStarted)
                     }
+                    if (shouldCancel()) return@forEachIndexed
                     val loadedSource = source ?: throw IllegalStateException(context.getString(R.string.error_load_image))
                     // Preserve dimensions for diagnostics before releasing the full-size source.
                     val loadedSourceWidth = loadedSource.width
@@ -99,6 +110,8 @@ class PhotoRepository {
                         sourcePreviewMs = elapsedMs(sourcePreviewStarted)
                     }
 
+                    if (shouldCancel()) return@forEachIndexed
+
                     val classifyStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.classify")
                     val classification = try {
@@ -108,6 +121,7 @@ class PhotoRepository {
                         Trace.endSection()
                         classifyMs = elapsedMs(classifyStarted)
                     }
+                    if (shouldCancel()) return@forEachIndexed
                     observer.onClassification(index + 1, uris.size, classification.kind)
 
                     // Enhancement is strictly pixel-based: no OCR, text reconstruction,
@@ -122,6 +136,8 @@ class PhotoRepository {
                         enhanceMs = elapsedMs(enhanceStarted)
                     }
                     enhanced = finalEnhanced
+                    if (shouldCancel()) return@forEachIndexed
+
                     // The source is no longer needed once enhancement completes.
                     // Transfer ownership when a processor ever returns the same bitmap.
                     if (source !== finalEnhanced) {
@@ -146,6 +162,8 @@ class PhotoRepository {
                         enhancedPreviewMs = elapsedMs(enhancedPreviewStarted)
                     }
 
+                    if (shouldCancel()) return@forEachIndexed
+
                     val adjustmentStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.adjust")
                     try {
@@ -154,6 +172,8 @@ class PhotoRepository {
                         Trace.endSection()
                         adjustmentMs = elapsedMs(adjustmentStarted)
                     }
+                    if (shouldCancel()) return@forEachIndexed
+
                     // The adjusted output now owns the pixels needed for saving;
                     // release the full-resolution enhanced bitmap before disk I/O.
                     if (enhanced !== output) {
@@ -173,6 +193,8 @@ class PhotoRepository {
                         Trace.endSection()
                         saveMs = elapsedMs(saveStarted)
                     }
+
+                    if (shouldCancel()) return@forEachIndexed
 
                     val savedPreviewStarted = SystemClock.elapsedRealtimeNanos()
                     Trace.beginSection("PU.preview.saved")
