@@ -2,7 +2,6 @@ package com.photounifier
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -11,13 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.fetchSemanticsNode
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
-import androidx.activity.ComponentActivity
 import com.photounifier.ui.PhotoUnifierTheme
 import com.photounifier.ui.screens.ResultScreen
 import java.io.File
@@ -30,7 +28,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 @RunWith(AndroidJUnit4::class)
 class CompactExportActionsLayoutTest {
     @get:Rule
-    val composeRule = createAndroidComposeRule<ComponentActivity>()
+    val composeRule = createComposeRule()
 
     @Test
     fun exportActionsAndPreviewStayVisibleWithLongListOnCompactScreen() {
@@ -40,8 +38,8 @@ class CompactExportActionsLayoutTest {
         val images = List(50) { index ->
             ExportImage(
                 id = "page-$index",
-                sourceUri = Uri.parse("content://photo-unifier/page/$index"),
-                file = File(composeRule.activity.cacheDir, "page-$index.jpg"),
+                sourceUri = android.net.Uri.parse("content://photo-unifier/page/$index"),
+                file = File("page-$index.jpg"),
                 displayName = "Page ${index + 1}.jpg"
             )
         }
@@ -101,6 +99,10 @@ class CompactExportActionsLayoutTest {
         assertInsideViewport("PDF export action", pdfButton, viewport)
         assertInsideViewport("Image export action", imageButton, viewport)
         assertInsideViewport("Final document preview", documentPreview, viewport)
+        assertTrue(
+            "The final preview must not overlap the primary export actions",
+            documentPreview.bottom <= minOf(pdfButton.top, imageButton.top) + 1f
+        )
 
         // The list has far more entries than fit in the viewport, but its primary actions
         // remain composed and reachable without scrolling past the page rows.
