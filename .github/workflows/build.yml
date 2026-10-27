@@ -85,20 +85,8 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: |
-            set +e
-            ./gradlew connectedDebugAndroidTest --no-daemon --stacktrace
-            test_status=$?
-
-            # Preserve compact UI screenshots from the emulator in the test artifact.
-            mkdir -p app/build/reports/androidTests/connected/
-            if adb pull /sdcard/Android/data/com.photounifier/files/visual-audit app/build/reports/androidTests/connected/visual-audit-emulator; then
-              echo "Compact workflow screenshots copied to the instrumentation report artifact."
-            else
-              echo "::warning::No emulator screenshot directory could be copied."
-            fi
-
-            exit "$test_status"
+          # Keep this as one shell command: android-emulator-runner executes script lines separately.
+          script: ./gradlew connectedDebugAndroidTest --no-daemon --stacktrace; test_status=$?; mkdir -p app/build/reports/androidTests/connected/; adb -s emulator-5554 pull /sdcard/Android/data/com.photounifier/files/visual-audit app/build/reports/androidTests/connected/visual-audit-emulator || echo "::warning::No emulator screenshot directory could be copied."; exit "$test_status"
 
       # Preserve test diagnostics even if connected instrumentation tests fail.
       - name: Upload Android instrumentation test reports
