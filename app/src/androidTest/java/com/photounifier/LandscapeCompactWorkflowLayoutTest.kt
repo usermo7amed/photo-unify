@@ -113,9 +113,8 @@ class LandscapeCompactWorkflowLayoutTest {
         val image = composeRule.onNodeWithTag(tag, useUnmergedTree = true).captureToImage()
         val bitmap = image.asAndroidBitmap()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val externalFiles = context.getExternalFilesDir(null)
-            ?: throw AssertionError("App-specific external files directory is unavailable for visual artifacts")
-        val outputDirectory = File(externalFiles, "visual-audit")
+        // Keep visual artifacts in app-internal cache so CI can retrieve them with run-as.
+        val outputDirectory = File(context.cacheDir, "visual-audit")
         check(outputDirectory.mkdirs() || outputDirectory.isDirectory) {
             "Cannot create emulator screenshot directory: ${outputDirectory.absolutePath}"
         }
