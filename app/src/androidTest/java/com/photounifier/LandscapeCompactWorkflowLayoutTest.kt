@@ -115,6 +115,23 @@ class LandscapeCompactWorkflowLayoutTest {
         val image = composeRule.onNodeWithTag(tag, useUnmergedTree = true).captureToImage()
         val bitmap = image.asAndroidBitmap()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val outputDirectory = File(context.cacheDir, "visual-audit")
+        check(outputDirectory.mkdirs() || outputDirectory.isDirectory) {
+            "Cannot create emulator screenshot directory: ${outputDirectory.absolutePath}"
+        }
+
+        // Keep local instrumented runs from polluting the user's photo gallery.
+        // CI opts into shared-media output so screenshots survive Gradle's APK uninstall cleanup.
+        if (InstrumentationRegistry.getArguments().getString("captureVisualAudit") != "true") {
+            File(outputDirectory, fileName).outputStream().use { output ->
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                    "Cannot encode emulator screenshot: $fileName"
+                }
+            }
+            if (!bitmap.isRecycled) bitmap.recycle()
+            return
+        }
+
         val resolver = context.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
