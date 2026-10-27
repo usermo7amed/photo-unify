@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -76,6 +79,7 @@ class CompactExportActionsLayoutTest {
         }
 
         composeRule.waitForIdle()
+        saveScreenshot("compact-viewport", "result-export.png")
         val viewport = composeRule.onNodeWithTag(
             "compact-viewport",
             useUnmergedTree = true
@@ -105,6 +109,23 @@ class CompactExportActionsLayoutTest {
         // The list has far more entries than fit in the viewport, but its primary actions
         // remain composed and reachable without scrolling past the page rows.
         composeRule.onNodeWithText("Page 50.jpg", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    private fun saveScreenshot(tag: String, fileName: String) {
+        val image = composeRule.onNodeWithTag(tag, useUnmergedTree = true).captureToImage()
+        val bitmap = image.asAndroidBitmap()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val externalFiles = context.getExternalFilesDir(null)
+            ?: throw AssertionError("App-specific external files directory is unavailable for visual artifacts")
+        val outputDirectory = File(externalFiles, "visual-audit")
+        check(outputDirectory.mkdirs() || outputDirectory.isDirectory) {
+            "Cannot create emulator screenshot directory: ${outputDirectory.absolutePath}"
+        }
+        File(outputDirectory, fileName).outputStream().use { output ->
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                "Cannot encode emulator screenshot: $fileName"
+            }
+        }
     }
 
     private fun assertInsideViewport(label: String, child: Rect, viewport: Rect) {
