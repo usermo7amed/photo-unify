@@ -1,5 +1,8 @@
 package com.photounifier
 
+import android.content.ContentValues
+import android.provider.MediaStore
+
 import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.compose.foundation.layout.Box
@@ -113,19 +116,53 @@ class LandscapeCompactWorkflowLayoutTest {
         val image = composeRule.onNodeWithTag(tag, useUnmergedTree = true).captureToImage()
         val bitmap = image.asAndroidBitmap()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val externalFiles = context.getExternalFilesDir(null)
-            ?: throw AssertionError("App-specific external files directory is unavailable for visual artifacts")
-        val outputDirectory = File(externalFiles, "visual-audit")
-        check(outputDirectory.mkdirs() || outputDirectory.isDirectory) {
-            "Cannot create emulator screenshot directory: ${outputDirectory.absolutePath}"
-        }
-        File(outputDirectory, fileName).outputStream().use { output ->
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
-                "Cannot encode emulator screenshot: $fileName"
+
+        // Keep ordinary local test runs isolated from the user's photo gallery.
+        if (InstrumentationRegistry.getArguments().getString("captureVisualAudit") != "true") {
+            val outputDirectory = File(context.cacheDir, "visual-audit")
+            check(outputDirectory.mkdirs() || outputDirectory.isDirectory) {
+                "Cannot create emulator screenshot directory: ${outputDirectory.absolutePath}"
             }
+            File(outputDirectory, fileName).outputStream().use { output ->
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                    "Cannot encode emulator screenshot: $fileName"
+                }
+            }
+            if (!bitmap.isRecycled) bitmap.recycle()
+            return
+        }
+
+        // CI opts in to shared storage because Android's test runner uninstalls the app after tests.
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/PhotoUnifierVisualAudit")
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
+        }
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: throw AssertionError("Cannot create shared visual audit image: $fileName")
+        try {
+            val output = resolver.openOutputStream(uri, "w")
+                ?: throw AssertionError("Cannot open visual audit image output: $fileName")
+            output.use {
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) {
+                    "Cannot encode emulator screenshot: $fileName"
+                }
+            }
+            val publishValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.IS_PENDING, 0)
+            }
+            check(resolver.update(uri, publishValues, null, null) == 1) {
+                "Cannot publish emulator screenshot: $fileName"
+            }
+        } catch (error: Exception) {
+            resolver.delete(uri, null, null)
+            throw error
+        } finally {
+            if (!bitmap.isRecycled) bitmap.recycle()
         }
     }
-
     private fun bounds(tag: String): Rect =
         composeRule.onNodeWithTag(tag, useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot
