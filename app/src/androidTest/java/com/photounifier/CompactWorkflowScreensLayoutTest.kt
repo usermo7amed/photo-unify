@@ -1,7 +1,5 @@
 package com.photounifier
 
-import android.content.ContentValues
-import android.provider.MediaStore
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
@@ -331,47 +329,10 @@ class CompactWorkflowScreensLayoutTest {
         check(outputDirectory.mkdirs() || outputDirectory.isDirectory) {
             "Cannot create emulator screenshot directory: ${outputDirectory.absolutePath}"
         }
-
-        // Keep local instrumented runs from polluting the user's photo gallery.
-        // CI opts into shared-media output so screenshots survive Gradle's APK uninstall cleanup.
-        if (InstrumentationRegistry.getArguments().getString("captureVisualAudit") != "true") {
-            File(outputDirectory, fileName).outputStream().use { output ->
-                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
-                    "Cannot encode emulator screenshot: $fileName"
-                }
+        File(outputDirectory, fileName).outputStream().use { output ->
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                "Cannot encode emulator screenshot: $fileName"
             }
-            if (!bitmap.isRecycled) bitmap.recycle()
-            return
-        }
-
-        val resolver = context.contentResolver
-        val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
-            put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/PhotoUnifierVisualAudit")
-            put(MediaStore.MediaColumns.IS_PENDING, 1)
-        }
-        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            ?: throw AssertionError("Cannot create shared visual audit image: $fileName")
-        try {
-            val output = resolver.openOutputStream(uri, "w")
-                ?: throw AssertionError("Cannot open visual audit image output: $fileName")
-            output.use {
-                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) {
-                    "Cannot encode emulator screenshot: $fileName"
-                }
-            }
-            val publishValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.IS_PENDING, 0)
-            }
-            check(resolver.update(uri, publishValues, null, null) == 1) {
-                "Cannot publish emulator screenshot: $fileName"
-            }
-        } catch (error: Exception) {
-            resolver.delete(uri, null, null)
-            throw error
-        } finally {
-            if (!bitmap.isRecycled) bitmap.recycle()
         }
     }
     private fun testBitmap(color: Int = Color.LTGRAY): Bitmap =
