@@ -86,7 +86,6 @@ jobs:
           profile: pixel_2
           disable-animations: true
           # Keep this as one shell command: android-emulator-runner executes script lines separately.
-          # Keep this as one shell command: android-emulator-runner executes script lines separately.
           script: ./gradlew connectedDebugAndroidTest --no-daemon --stacktrace; test_status=$?; mkdir -p app/build/reports/androidTests/connected/visual-audit-emulator; if adb -s emulator-5554 exec-out run-as com.photounifier /system/bin/toybox tar -C /data/user/0/com.photounifier/cache/visual-audit -cf - . > app/build/reports/androidTests/connected/visual-audit-emulator.tar; then tar -xf app/build/reports/androidTests/connected/visual-audit-emulator.tar -C app/build/reports/androidTests/connected/visual-audit-emulator; screenshot_count=$(find app/build/reports/androidTests/connected/visual-audit-emulator -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' '); if [ "$screenshot_count" -lt 8 ]; then echo "::error::Expected 8 emulator screenshots, found $screenshot_count."; test_status=1; fi; else echo "::error::Unable to collect emulator screenshots from the app cache."; test_status=1; fi; exit "$test_status"
 
       # Preserve test diagnostics even if connected instrumentation tests fail.
